@@ -147,24 +147,37 @@ const STORKREDSE = [
   "Vestjyllands Storkreds","Østjyllands Storkreds"
 ];
 
-/* Kredse – udfyldt for Bornholm + Københavns Storkreds */
+/* Kredse – udfyldt for alle storkredse */
 const KREDS_BY_STORKREDS = {
-  "Bornholms Storkreds": ["Rønnekredsen","Aakirkebykredsen"],
+  "Bornholms Storkreds": [
+    "Rønnekredsen",
+    "Aakirkebykredsen"
+  ],
+
   "Københavns Storkreds": [
     "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre_Bykredsen","Nørrebrokredsen",
     "Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen",
     "Vesterbrokredsen","Østerbrokredsen"
   ],
-  "Fyns Storkreds": ["Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen", "Odense_Sydkredsen","Odense_Vestkredsen","Odense_Østkredsen","Svendborgkredsen"], "Københavns Omegns Storkreds": [
+
+  "Fyns Storkreds": [
+    "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen",
+    "Odense_Sydkredsen","Odense_Vestkredsen","Odense_Østkredsen","Svendborgkredsen"
+  ],
+
+  // OBS: Sørg for at disse navne matcher dine mappenavne/CSV'er
+  "Københavns Omegns Storkreds": [
     "Ballerupkredsen",
     "Brøndbykredsen",
     "Glostrupkredsen",
     "Gentoftekredsen",
     "Herlevkredsen",
     "Hvidovrekredsen",
-    "Lyngbykredsen",
-  ], 
-  "Nordjyllands Storkreds": [ 
+    "Lyngbykredsen"
+    // Hvis dine filer bruger "Lyngby-Taarbækkredsen", så skift til den streng
+  ],
+
+  "Nordjyllands Storkreds": [
     "Brønderslevkredsen",
     "Frederikshavnkredsen",
     "Himmerlandkredsen",
@@ -173,24 +186,35 @@ const KREDS_BY_STORKREDS = {
     "Thistedkredsen",
     "Aalborg_Nordkredsen",
     "Aalborg_Vestkredsen",
-    "Aalborg_Østkredsen"],
-  "Nordsjællands Storkreds": [ "Egedalkredsen",
+    "Aalborg_Østkredsen"
+  ],
+
+  "Nordsjællands Storkreds": [
+    "Egedalkredsen",
     "Fredensborgkredsen",
     "Frederikssundkredsen",
     "Helsingørkredsen",
     "Hillerødkredsen",
-    "Rudersdalkredsen"], "Sjællands Storkreds": [Faxekredsen
-Grevekredsen
-Guldborgsundkredsen
-Holbækkredsen
-Kalundborgkredsen
-Køgekredsen
-Lollandkredsen
-Næstvedkredsen
-Ringstedkredsen
-Roskildekredsen
-Slagelsekredsen
-Vordingborgkredsen], "Sydjyllands Storkreds": ["Esbjerg_Bykredsen",
+    "Rudersdalkredsen"
+  ],
+
+  "Sjællands Storkreds": [
+    "Faxekredsen",
+    "Grevekredsen",
+    "Guldborgsundkredsen",
+    "Holbækkredsen",
+    "Kalundborgkredsen",
+    "Køgekredsen",
+    "Lollandkredsen",
+    "Næstvedkredsen",
+    "Ringstedkredsen",
+    "Roskildekredsen",
+    "Slagelsekredsen",
+    "Vordingborgkredsen"
+  ],
+
+  "Sydjyllands Storkreds": [
+    "Esbjerg_Bykredsen",
     "Esbjerg_Omegnskredsen",
     "Fredericiakredsen",
     "Haderslevkredsen",
@@ -202,8 +226,11 @@ Vordingborgkredsen], "Sydjyllands Storkreds": ["Esbjerg_Bykredsen",
     "Vejenkredsen",
     "Vejle_Nordkredsen",
     "Vejle_Sydkredsen",
-    "Aabenraakredsen"],
-  "Vestjyllands Storkreds": ["Herning_Nordkredsen",
+    "Aabenraakredsen"
+  ],
+
+  "Vestjyllands Storkreds": [
+    "Herning_Nordkredsen",
     "Herning_Sydkredsen",
     "Holstebrokredsen",
     "Ikastkredsen",
@@ -213,7 +240,11 @@ Vordingborgkredsen], "Sydjyllands Storkreds": ["Esbjerg_Bykredsen",
     "Skivekredsen",
     "Struerkredsen",
     "Viborg_Vestkredsen",
-    "Viborg_Østkredsen"], "Østjyllands Storkreds": ["Djurskredsen",
+    "Viborg_Østkredsen"
+  ],
+
+  "Østjyllands Storkreds": [
+    "Djurskredsen",
     "Favrskovkredsen",
     "Hedenstedkredsen",
     "Horsenskredsen",
@@ -223,7 +254,8 @@ Vordingborgkredsen], "Sydjyllands Storkreds": ["Esbjerg_Bykredsen",
     "Aarhus_Nordkredsen",
     "Aarhus_Sydkredsen",
     "Aarhus_Vestkredsen",
-    "Aarhus_Østkredsen"]
+    "Aarhus_Østkredsen"
+  ]
 };
 
 /* Farver/bogstaver */
