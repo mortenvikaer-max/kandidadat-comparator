@@ -147,25 +147,18 @@ const STORKREDSE = [
   "Vestjyllands Storkreds","Østjyllands Storkreds"
 ];
 
-/* Kredse – udfyldt for alle storkredse */
+/* Kredse – alle som visningsnavne (mellemrum), mens filer hentes via slug */
 const KREDS_BY_STORKREDS = {
   "Bornholms Storkreds": [
     "Rønnekredsen",
     "Aakirkebykredsen"
   ],
 
-  "Københavns Storkreds": [
-    "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre_Bykredsen","Nørrebrokredsen",
-    "Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen",
-    "Vesterbrokredsen","Østerbrokredsen"
-  ],
-
   "Fyns Storkreds": [
     "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen",
-    "Odense_Sydkredsen","Odense_Vestkredsen","Odense_Østkredsen","Svendborgkredsen"
+    "Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen"
   ],
 
-  // OBS: Sørg for at disse navne matcher dine mappenavne/CSV'er
   "Københavns Omegns Storkreds": [
     "Ballerupkredsen",
     "Brøndbykredsen",
@@ -174,7 +167,13 @@ const KREDS_BY_STORKREDS = {
     "Herlevkredsen",
     "Hvidovrekredsen",
     "Lyngbykredsen"
-    // Hvis dine filer bruger "Lyngby-Taarbækkredsen", så skift til den streng
+    // Skift evt. til "Lyngby-Taarbækkredsen" hvis dine filer hedder sådan
+  ],
+
+  "Københavns Storkreds": [
+    "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre Bykredsen","Nørrebrokredsen",
+    "Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen",
+    "Vesterbrokredsen","Østerbrokredsen"
   ],
 
   "Nordjyllands Storkreds": [
@@ -184,9 +183,9 @@ const KREDS_BY_STORKREDS = {
     "Hjørringkredsen",
     "Mariagerfjordkredsen",
     "Thistedkredsen",
-    "Aalborg_Nordkredsen",
-    "Aalborg_Vestkredsen",
-    "Aalborg_Østkredsen"
+    "Aalborg Nordkredsen",
+    "Aalborg Vestkredsen",
+    "Aalborg Østkredsen"
   ],
 
   "Nordsjællands Storkreds": [
@@ -214,33 +213,33 @@ const KREDS_BY_STORKREDS = {
   ],
 
   "Sydjyllands Storkreds": [
-    "Esbjerg_Bykredsen",
-    "Esbjerg_Omegnskredsen",
+    "Esbjerg Bykredsen",
+    "Esbjerg Omegnskredsen",
     "Fredericiakredsen",
     "Haderslevkredsen",
-    "Kolding_Nordkredsen",
-    "Kolding_Sydkredsen",
+    "Kolding Nordkredsen",
+    "Kolding Sydkredsen",
     "Sønderborgkredsen",
     "Tønderkredsen",
     "Vardekredsen",
     "Vejenkredsen",
-    "Vejle_Nordkredsen",
-    "Vejle_Sydkredsen",
+    "Vejle Nordkredsen",
+    "Vejle Sydkredsen",
     "Aabenraakredsen"
   ],
 
   "Vestjyllands Storkreds": [
-    "Herning_Nordkredsen",
-    "Herning_Sydkredsen",
+    "Herning Nordkredsen",
+    "Herning Sydkredsen",
     "Holstebrokredsen",
     "Ikastkredsen",
     "Ringkøbingkredsen",
-    "Silkeborg_Nordkredsen",
-    "Silkeborg_Sydkredsen",
+    "Silkeborg Nordkredsen",
+    "Silkeborg Sydkredsen",
     "Skivekredsen",
     "Struerkredsen",
-    "Viborg_Vestkredsen",
-    "Viborg_Østkredsen"
+    "Viborg Vestkredsen",
+    "Viborg Østkredsen"
   ],
 
   "Østjyllands Storkreds": [
@@ -248,13 +247,13 @@ const KREDS_BY_STORKREDS = {
     "Favrskovkredsen",
     "Hedenstedkredsen",
     "Horsenskredsen",
-    "Randers_Nordkredsen",
-    "Randers_Sydkredsen",
+    "Randers Nordkredsen",
+    "Randers Sydkredsen",
     "Skanderborgkredsen",
-    "Aarhus_Nordkredsen",
-    "Aarhus_Sydkredsen",
-    "Aarhus_Vestkredsen",
-    "Aarhus_Østkredsen"
+    "Aarhus Nordkredsen",
+    "Aarhus Sydkredsen",
+    "Aarhus Vestkredsen",
+    "Aarhus Østkredsen"
   ]
 };
 
@@ -284,6 +283,9 @@ const isListestemmer = name => {
   return t==="partiliste" || t==="listestemmer" || t==="liste";
 };
 const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
+
+/* NYT: slug til filstier – gør mellemrum til underscore (filnavne) */
+const kredsSlug = name => (name || "").toString().replaceAll(" ", "_");
 
 const sortKandidaterAlpha = (a,b)=>{
   const al=isListestemmer(a.kandidat_navn), bl=isListestemmer(b.kandidat_navn);
@@ -371,10 +373,11 @@ function clearAll(){
   renderAll();
 }
 
-/* Data-indlæsning */
+/* Data-indlæsning (kreds) */
 async function loadKredsData(storkreds,kreds){
-  el("error").textContent=""; el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kreds);
+  el("error").textContent="";
+  el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
+  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds)); // brug slug til filsti
   const candidates=[
     `${BASE_PATH}${s}/${k}_allepartier.csv`,
     `${BASE_PATH}${s}/${k}.csv`,
@@ -387,9 +390,7 @@ async function loadKredsData(storkreds,kreds){
   el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
 }
 
-/* NYT: Robust “hele storkredsen”-loader
-   1) Prøv storkreds-CSV.
-   2) Hvis ikke fundet, saml alle kredsefiler i storkredsen (fallback). */
+/* “Hele storkredsen”-loader (med fallback til at samle alle kredse) */
 async function loadStorkredsData(storkreds){
   el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
   const s=encodeURIComponent(storkreds);
@@ -477,11 +478,11 @@ function parseCsvTextToRows(text, kredsNameOverride){
   });
 }
 
-// Hent og cache rækker for én kreds
+// Hent og cache rækker for én kreds (kreds er visningsnavn; filsti bruger slug)
 async function loadRowsForKreds(storkreds, kreds){
   const key = `${storkreds}::${kreds}`;
   if(state.csvCache.has(key)) return state.csvCache.get(key);
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kreds);
+  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds)); // slug til filsti
   const candidates=[
     `${BASE_PATH}${s}/${k}_allepartier.csv`,
     `${BASE_PATH}${s}/${k}.csv`
@@ -489,7 +490,7 @@ async function loadRowsForKreds(storkreds, kreds){
   for(const url of candidates){
     try{
       const text = await fetchCsvText(url);
-      const rows = parseCsvTextToRows(text, kreds);
+      const rows = parseCsvTextToRows(text, kreds); // behold visningsnavn i rækkerne
       state.csvCache.set(key, rows);
       return rows;
     }catch(e){}
@@ -768,7 +769,7 @@ function setupAddKredsUI(){
 
   function renderAddKredsMenu(){
     const all = KREDS_BY_STORKREDS[state.storkreds] || [];
-    const already = new Set([ ...state.selectedKredse ]); // bemærk: basis-kreds ekskluderes IKKE her
+    const already = new Set([ ...state.selectedKredse ]); // basis-kreds ekskluderes IKKE her
     const options = all.filter(k=>k && !already.has(k));
 
     // “Vælg alle kredse” (gælder ALLE kredse i storkredsen – inkl. den aktuelle)
@@ -779,7 +780,7 @@ function setupAddKredsUI(){
     addKredsMenu.innerHTML = selectAll + (
       options.map(k=>{
         return `<div class="vb-option" role="option" data-kreds="${escapeHtml(k)}">
-                  <span class="flex-1">${k.replaceAll('_',' ')}</span>
+                  <span class="flex-1">${k}</span>
                 </div>`;
       }).join('') || `<div class="p-2 text-sm text-gray-500">Ingen ekstra kredse</div>`
     );
@@ -813,7 +814,7 @@ function setupAddKredsUI(){
 function renderExtraKredsChips(){
   const root = document.getElementById('extraKredsChips');
   const items = Array.from(state.selectedKredse);
-  root.innerHTML = items.map(k=>`<button class="vb-btn" data-delk="${escapeHtml(k)}">${k.replaceAll('_',' ')} &times;</button>`).join('');
+  root.innerHTML = items.map(k=>`<button class="vb-btn" data-delk="${escapeHtml(k)}">${k} &times;</button>`).join('');
   root.querySelectorAll('button[data-delk]').forEach(b=>{
     b.onclick = ()=>{
       const k = b.getAttribute('data-delk');
