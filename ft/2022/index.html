@@ -167,7 +167,6 @@ const KREDS_BY_STORKREDS = {
     "Herlevkredsen",
     "Hvidovrekredsen",
     "Lyngbykredsen"
-    // Skift evt. til "Lyngby-Taarbækkredsen" hvis dine filer hedder sådan
   ],
 
   "Københavns Storkreds": [
@@ -257,15 +256,41 @@ const KREDS_BY_STORKREDS = {
   ]
 };
 
+/* ---------- PARTIER / FARVER / ALIAS ---------- */
+
+/* Normalisering af partinavne til opslag (robust mod bindestreger, parenteser, flere mellemrum m.m.) */
+const norm = s => (s||"")
+  .toLowerCase()
+  .replace(/[–—-]/g, " ")   // alle slags bindestreger → mellemrum
+  .replace(/[().]/g, " ")   // fjern parenteser/punktum
+  .replace(/\s+/g, " ")     // komprimer mellemrum
+  .trim();
+
 /* Farver/bogstaver */
 const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
+
+/* Alias → bogstav (inkl. de três du nævnte) */
 const PARTY_LETTERS_BY_NAME = {
-  "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
-  "konservative folkeparti":"C","det konservative folkeparti":"C","nye borgerlige":"D",
-  "sf":"F","socialistisk folkeparti":"F","liberal alliance":"I","venstre, danmarks liberale parti":"V","venstre":"V",
-  "dansk folkeparti":"O","enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","alternativet":"Å",
-  "kristendemokraterne":"K","kd - kristendemokraterne":"K","moderaterne":"M"
+  "socialdemokratiet":"A",
+  "radikale venstre":"B","det radikale venstre":"B",
+  "konservative folkeparti":"C","det konservative folkeparti":"C",
+  "nye borgerlige":"D",
+  "sf":"F","socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F","sf socialistisk folkeparti":"F",
+  "liberal alliance":"I",
+  "venstre, danmarks liberale parti":"V","venstre":"V",
+  "dansk folkeparti":"O",
+  "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
+  "alternativet":"Å",
+  "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
+  "moderaterne":"M",
+  "danmarksdemokraterne":"Æ",
+  "frie grønne":"Q"
 };
+/* Normaliseret opslagstabel */
+const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(
+  Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v]) => [norm(k), v])
+);
+
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
 
 /* Helpers & state */
@@ -359,7 +384,6 @@ function populateKredse(storkreds){
 
 function updateAddKredsUIState(){
   const btn = el("btnAddKreds");
-  // Når hele storkredsen er valgt, giver ekstra-kreds ingen mening (ville give dobbeltoptælling)
   const disable = !state.storkreds || state.kreds===KREDS_ALL_VALUE || !state.kreds;
   if(btn){ btn.disabled = disable; btn.title = disable ? "Tilføjelse af kredse er ikke tilgængelig, når alle kredse er valgt." : ""; }
 }
@@ -411,9 +435,7 @@ async function loadStorkredsData(storkreds){
       state.rows = all;
       afterDataLoaded();
       return;
-    }catch(e){
-      /* falder igennem til fejl */
-    }
+    }catch(e){}
   }
   el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
 }
@@ -503,19 +525,25 @@ function afterDataLoaded(){ state.activeParty=""; renderPartyCombobox(); renderA
 
 /* Parti-stats (bruger aktive rækker) */
 function detectPartyLetter(parti, rowsForParti){
+  // 1) Hvis CSV allerede har et gyldigt bogstav for partiet → brug det
   for(const r of rowsForParti){
     const L=(r.parti_letter||"").toUpperCase();
     if(L && PARTY_COLORS[L]) return L;
   }
-  const key=parti.trim().toLowerCase();
-  const mapped=PARTY_LETTERS_BY_NAME[key];
+
+  // 2) Normaliseret alias-opslag
+  const keyNorm = norm(parti);
+  const mapped = PARTY_LETTERS_BY_NAME_NORM[keyNorm];
   if(mapped && PARTY_COLORS[mapped]) return mapped;
+
+  // 3) Brede fallback-matches (dækker små variationer)
+  if(keyNorm.includes("socialistisk folkeparti") || keyNorm === "sf") return "F";
+  if(keyNorm.includes("danmarksdemokraterne")) return "Æ";
+  if(keyNorm.includes("frie grønne")) return "Q";
+
   return null;
 }
 
-/* Returnér det datasæt der skal bruges (basis + evt. ekstra kredse)
-   VIGTIGT: hvis en ekstra-kreds er den samme som basis-kredsen, SKIPPES den
-   for at undgå dobbelt-optælling – men den kan stadig vises som chip. */
 function getActiveRows(){
   if(!state.selectedKredse || state.selectedKredse.size===0) return state.rows;
   const combined = [...state.rows];
@@ -697,7 +725,6 @@ function renderPsTable(psList, sel){
       ${header}
     </tr>`;
 
-  // Build rows med tydelig separator ved kredsskift
   const colspan = 2 + sel.length;
   let prevKreds = null;
   const rowsHtml = [];
@@ -769,10 +796,9 @@ function setupAddKredsUI(){
 
   function renderAddKredsMenu(){
     const all = KREDS_BY_STORKREDS[state.storkreds] || [];
-    const already = new Set([ ...state.selectedKredse ]); // basis-kreds ekskluderes IKKE her
+    const already = new Set([ ...state.selectedKredse ]);
     const options = all.filter(k=>k && !already.has(k));
 
-    // “Vælg alle kredse” (gælder ALLE kredse i storkredsen – inkl. den aktuelle)
     const selectAll = options.length || all.length
       ? `<div class="vb-option" role="option" data-kreds="__ALL__"><strong>Vælg alle kredse</strong></div><hr class="my-1 border-gray-200">`
       : '';
@@ -790,7 +816,6 @@ function setupAddKredsUI(){
         const v = opt.getAttribute('data-kreds');
         try{
           if(v === '__ALL__'){
-            // Tilføj ALLE kredse i storkredsen – også basis-kredsen.
             const toAdd = (KREDS_BY_STORKREDS[state.storkreds] || []).slice();
             await Promise.all(toAdd.map(k=>loadRowsForKreds(state.storkreds, k).catch(()=>null)));
             toAdd.forEach(k=>state.selectedKredse.add(k));
