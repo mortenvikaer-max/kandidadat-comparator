@@ -55,6 +55,11 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
       <img src="../../Valgbar-transparent3.png" alt="Valgbar" class="h-32 w-auto" />
     </a>
   </div>
+  <div class="mx-auto max-w-6xl px-4 pb-8">
+    <div class="text-white/80 text-base md:text-lg">
+      Vælg først en <strong>storkreds</strong> og derefter en <strong>kreds</strong>.
+      Under “Sammenligning af kandidater” kan du <strong>tilføje ekstra kredse</strong> til visningen.
+    </div>
     <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
       <div>
         <label class="text-sm text-white/80">Storkreds</label>
@@ -210,18 +215,6 @@ const state = {
   activeParty:"", selected:new Map(), chart:null,
   selectedKredse:new Set(), csvCache:new Map() // cache: `${storkreds}::kreds` og `${storkreds}::__ALL__`
 };
-  // --- Lås visningen til kandidatens storkreds (hvis alle valgte er fra samme storkreds)
-function storkredsForCandidateId(candId){
-  const r = state.rows.find(x => x.kandidat_id === candId);
-  return r ? (r.storkreds || "") : "";
-}
-function getSelectedStorkredsLock(){
-  const ids = Array.from(state.selected.keys());
-  if(!ids.length) return null;
-  const set = new Set(ids.map(storkredsForCandidateId).filter(Boolean));
-  return set.size === 1 ? Array.from(set)[0] : null; // én fælles storkreds => lås
-}
-
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
 const canon = s => (s||"").toString().trim();
@@ -539,16 +532,12 @@ function toggleCandidateFromTop(candId, rows){
   // find base info
   const sample = rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
-if(state.selected.has(candId)){
-  state.selected.delete(candId);
-}else{
-  const sample = rows.find(r=>r.kandidat_id===candId);
-  const ok = ensureSameStorkredsOrExplain(candId, `${sample?.kandidat_navn||'Kandidat'} (${sample?.parti||''})`);
-  if(!ok) return;
-  state.selected.set(candId, { kandidat_id: candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
-}
-renderAll();
-
+  if(state.selected.has(candId)){
+    state.selected.delete(candId);
+  }else{
+    state.selected.set(candId, { kandidat_id: candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
+  }
+  renderAll();
   // scroll til sammenligning når mindst én er valgt
   if(state.selected.size>0){
     document.getElementById('compareSection').scrollIntoView({behavior:'smooth', block:'start'});
@@ -634,12 +623,10 @@ function renderPartyDetail(parti){
       <div class="text-xs text-gray-500">${escapeHtml(k.parti)} · ${subtitle}</div>
     </div>
     <button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`;
-div.querySelector("button[data-add]").onclick=()=>{
-  if(!ensureSameStorkredsOrExplain(k.kandidat_id, `${k.kandidat_navn} (${k.parti})`)) return;
-  state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
-  renderAll();
-};
-
+    div.querySelector("button[data-add]").onclick=()=>{
+      state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
+      renderAll();
+    };
     return div;
   }
 
@@ -836,31 +823,15 @@ function renderExtraKredsChips(){
 /* “Hvor er jeg?” bar */
 function renderContextBar(){
   const bar = document.getElementById('contextBar');
-  const locked = getSelectedStorkredsLock();
   let html = '';
   if(!state.storkreds){
-    if(locked){
-      html = `<span class="crumb-strong">${escapeHtml(locked)}</span><span class="sep">·</span><span class="crumb">Filtreret af valgte kandidat(er)</span>`;
-    }else{
-      html = `<span class="crumb-strong">Danmark</span>`;
-    }
+    html = `<span class="crumb-strong">Danmark</span>`;
   }else if(state.kreds && state.kreds !== KREDS_ALL_VALUE){
     html = `<span class="crumb">${escapeHtml(state.storkreds)}</span><span class="sep">/</span><span class="crumb-strong">${escapeHtml(state.kreds)}</span>`;
   }else{
     html = `<span class="crumb">${escapeHtml(state.storkreds)}</span><span class="sep">/</span><span class="crumb-strong">Alle kredse i storkredsen</span>`;
   }
   bar.innerHTML = html;
-}
-function ensureSameStorkredsOrExplain(candId, candidateLabel){
-  const current = getSelectedStorkredsLock();
-  if(!current) return true; // ingen lås endnu
-  const sk = storkredsForCandidateId(candId);
-  if(sk && sk !== current){
-    el("error").textContent = `Du kan kun sammenligne kandidater fra samme storkreds. ${candidateLabel} er fra ${sk}, mens dine valgte kandidater er fra ${current}.`;
-    return false;
-  }
-  el("error").textContent = ""; // ryd evt. gammel fejl
-  return true;
 }
 
 function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
