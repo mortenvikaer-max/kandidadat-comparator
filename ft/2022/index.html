@@ -242,8 +242,14 @@ window.addEventListener("DOMContentLoaded", async ()=>{
       el("kredsSelect").value=k; state.kreds=k; await loadKredsData(s,k);
     }
   }else{
+    // Start i "Hele Danmark" som default-visning
+    el("storkredsSelect").value = DK_VALUE; // viser "Hele Danmark" i dropdown
+    state.storkreds = "";
+    state.kreds = "";
     await loadNationalData();
+    renderContextBar();
   }
+
   el("btnClearAll")?.addEventListener('click', ()=>{ state.selected.clear(); renderAll(); });
   document.addEventListener('click',(e)=>{ const box=el('partyCombo'); if(box && !box.contains(e.target)) closePartyMenu(); });
   setupAddKredsUI();
@@ -478,6 +484,25 @@ function getActiveRows(){
     combined.push(...extra);
   });
   return combined;
+}
+// === 2.a) NY HJÆLPER: Intersektion af storkredse for valgte kandidater ===
+function getAllowedStorkredseForSelection(){
+  // Returnerer Set af storkredse som ALLE valgte kandidater deler.
+  // Hvis der ikke er valgt kandidater, returneres null (dvs. ingen filtrering).
+  const sel = getSelected();
+  if(sel.length===0) return null;
+
+  const scopes = getCandidateScopes();
+  let allowed = null;
+
+  for(const c of sel){
+    const sc = scopes.get(c.kandidat_id);
+    if(!sc) continue;
+    allowed = (allowed===null)
+      ? new Set(sc.storkredse)
+      : new Set([...allowed].filter(x => sc.storkredse.has(x)));
+  }
+  return allowed || null;
 }
 
 /* ---- Hjælpere til #2 og #3 (kandidatområder og validering) ---- */
@@ -770,6 +795,10 @@ function getPollingStations(){
 function renderPsTable(psList, sel){
   const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
   if(!sel.length){ thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th><th class="text-left py-2 pr-3">Kreds</th></tr>`; tbody.innerHTML=""; tfoot.innerHTML=""; return; }
+    // === 2.b) NYT: Filtrér til kun de storkredse, de valgte kandidater faktisk er opstillet i ===
+  const allowedStk = getAllowedStorkredseForSelection();
+  const filteredPs = allowedStk ? psList.filter(ps => allowedStk.has(ps.storkreds)) : psList;
+
   const scopes = getCandidateScopes();
   const header = sel.map(s=>{
     const stat = getPartyStats().find(x=>x.parti===s.parti);
@@ -786,7 +815,7 @@ function renderPsTable(psList, sel){
   const colspan = 2 + sel.length;
   let prevKreds = null;
   const rowsHtml = [];
-  for(const ps of psList){
+    for(const ps of filteredPs){
     if(prevKreds !== null && ps.kreds !== prevKreds){
       rowsHtml.push(`<tr><td class="kreds-divider" colspan="${colspan}"></td></tr>`);
     }
@@ -808,7 +837,7 @@ function renderPsTable(psList, sel){
   const totals=computeTotalsByCandidateScoped();
   tfoot.innerHTML=`<tr class="border-t">
     <th class="py-2 pr-3 text-left">Samlet</th>
-    <th class="py-2 pr-3 text-left text-gray-500">(${fmt(psList.length)} rækker)</th>
+        <th class="py-2 pr-3 text-left text-gray-500">(${fmt(filteredPs.length)} rækker)</th>
     ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}
   </tr>`;
 }
