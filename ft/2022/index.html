@@ -77,7 +77,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
       <h2 class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
     </div>
 
-    <!-- NY: 1–5 venstre, 6–10 højre -->
+    <!-- 1–5 venstre, 6–10 højre -->
     <div id="top10List" class="top10-grid">
       <ol id="top10ColLeft" class="space-y-2"></ol>
       <ol id="top10ColRight" class="space-y-2"></ol>
@@ -208,6 +208,40 @@ const kredsSlug = name => (name || "").toString().replaceAll(" ", "_");
 const sortKandidaterAlpha = (a,b)=>{ const al=isListestemmer(a.kandidat_navn), bl=isListestemmer(b.kandidat_navn); if(al&&!bl) return 1; if(!al&&bl) return -1; return a.kandidat_navn.localeCompare(b.kandidat_navn,"da"); };
 function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
+/* =================== SPARKLINE: hjælper-funktioner =================== */
+// Byg liste af valgsteder + stemmer fra et vilkårligt sæt rækker (samme sortering som tabellen)
+function getPollingStationsFromRows(rows){
+  const m=new Map();
+  for(const r of rows){
+    const key = `${r.kreds||""}::${r.valgsted_id}`;
+    if(!m.has(key)) m.set(key,{id:key,navn:cleanPollingPlaceName(r.valgsted_navn),kreds:r.kreds||""});
+    const ps=m.get(key);
+    ps[r.kandidat_id]=(ps[r.kandidat_id]||0)+r.stemmer;
+  }
+  return Array.from(m.values()).sort((a,b)=>{ if(a.kreds!==b.kreds) return a.kreds.localeCompare(b.kreds,"da"); return a.navn.localeCompare(b.navn,"da"); });
+}
+// Returnér tidsserie/fordeling for en kandidat (i rækkefølge af valgsteder)
+function seriesForCandidateFromPS(psList, candidate_id){
+  return psList.map(x=>x[candidate_id]||0);
+}
+// Generér lille inline SVG sparkline
+function sparklineSVG(values, color, width=120, height=28, strokeWidth=2){
+  if(!values || !values.length) return '';
+  const min = Math.min(...values), max = Math.max(...values);
+  const pad = 2, w = width - pad*2, h = height - pad*2;
+  const n = values.length, denom = (max - min) || 1;
+  const pts = values.map((v,i)=>{
+    const x = pad + (n===1 ? w/2 : i*(w/(n-1)));
+    const y = pad + (h - ((v - min)/denom) * h);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const stroke = color || '#9ca3af'; // neutral grå fallback
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"></polyline>
+  </svg>`;
+}
+/* ===================================================================== */
+
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown(); initTabs();
@@ -241,7 +275,6 @@ function initStorkredsDropdown(){
     state.selectedKredse.clear(); renderExtraKredsChips(); updateAddKredsUIState();
     const u=new URL(location.href);
     if(s){ u.searchParams.set("storkreds",s); u.searchParams.delete("kreds"); u.searchParams.delete("parti"); u.searchParams.delete("kandidat"); history.replaceState({}, "", u); populateKredse(s);
-      // NYT: vis storkredsens samlede data i Top-10 med det samme
       await loadStorkredsData(s);
     }else{
       u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
@@ -287,7 +320,6 @@ function clearAll(){
 /* ================= NATIONAL (robust, uden fejl) ================= */
 async function loadNationalData(){
   el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
-  // 1) Prøv landsfiler
   const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
   for(const url of candidates){
     try{
@@ -300,7 +332,6 @@ async function loadNationalData(){
       }
     }catch(_){}
   }
-  // 2) Fallback: aggreger alle storkredse/kredse – UDEN at kaste fejl
   const all = [];
   for(const sk of STORKREDSE){
     const kredse = KREDS_BY_STORKREDS[sk] || [];
@@ -309,17 +340,13 @@ async function loadNationalData(){
       try{
         const rows = await loadRowsForKreds(sk, k);
         acc.push(...rows);
-      }catch(_){
-        // ignorer manglende/fejlende kredsfiler
-      }
+      }catch(_){}
     }
-    // cache __ALL__ for storkredsen (til Top-10)
     state.csvCache.set(`${sk}::__ALL__`, acc.slice());
     all.push(...acc);
   }
   state.rows = all;
   afterDataLoaded();
-  // Hvis der stadig ikke er noget som helst, vis en mild fejl
   if(!all.length){
     el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`;
   }
@@ -343,7 +370,7 @@ async function loadKredsData(storkreds,kreds){
   el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
 }
 
-/* “Hele storkredsen” (med fallback til at samle alle kredse) + cache __ALL__ */
+/* “Hele storkredsen” + cache __ALL__ */
 async function loadStorkredsData(storkreds){
   el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
   const s=encodeURIComponent(storkreds);
@@ -352,13 +379,11 @@ async function loadStorkredsData(storkreds){
     try{
       const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
       const text=await r.text(); parseCsv(text, null);
-      // Cache __ALL__ for Top-10
       state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
       afterDataLoaded();
       return;
     }catch(e){}
   }
-  // Fallback: saml alle kredse i storkredsen
   const kredse = KREDS_BY_STORKREDS[storkreds] || [];
   if(kredse.length){
     const all = [];
@@ -480,7 +505,7 @@ function totalsByCandidate(rows){
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
 
-/* NY: label over Top-10 som afspejler valget */
+/* Label over Top-10 som afspejler valget */
 function getTop10SelectionLabel(){
   if(!state.storkreds) return "Danmark";
   if(state.kreds === KREDS_ALL_VALUE || !state.kreds){
@@ -489,10 +514,7 @@ function getTop10SelectionLabel(){
   return `${state.storkreds} / ${state.kreds}`;
 }
 
-/* OPDATERET: vælg korrekt datasæt til Top-10
-   - Ingen storkreds -> nationalt (state.rows)
-   - Specifik kreds -> state.rows (indlæst i loadKredsData)
-   - Storkreds + 'Alle kredse' -> brug cachet __ALL__ */
+/* Datasæt til Top-10 */
 function getOverviewRows(){
   if(!state.storkreds) return state.rows;
   if(state.kreds && state.kreds !== KREDS_ALL_VALUE) return state.rows;
@@ -500,7 +522,7 @@ function getOverviewRows(){
   return (cached && cached.length) ? cached : state.rows;
 }
 
-/* OPDATERET: render Top-10 i to kolonner (1–5 venstre, 6–10 højre) + label */
+/* RENDER: Top-10 i to kolonner + SPARKLINE under hver kandidat */
 function renderOverview(){
   const rows = getOverviewRows();
   const top10 = totalsByCandidate(rows).slice(0,10);
@@ -510,18 +532,26 @@ function renderOverview(){
   const selEl = document.getElementById("top10Selection");
   selEl.textContent = top10.length ? sel : "";
 
-  // Split 1–5 og 6–10
+  const psTop = getPollingStationsFromRows(rows); // SPARKLINE: præcompute PS-liste
+
   const left = top10.slice(0,5);
   const right = top10.slice(5,10);
 
   function liFor(k, rank){
     const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
     const bd = badge(letter);
+    // SPARKLINE: serie + svg
+    const color = (letter && PARTY_COLORS[letter]) ? PARTY_COLORS[letter] : '#9ca3af';
+    const series = seriesForCandidateFromPS(psTop, k.kandidat_id);
+    const spark = sparklineSVG(series, color);
+
     return `<li class="top10-item">
       <span class="rank-pill">${rank}</span>
       <div class="min-w-0 flex-1">
         <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
         <div class="text-xs text-gray-500 truncate">${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer</div>
+        <!-- SPARKLINE -->
+        <div class="mt-1">${spark}</div>
       </div>
       <span class="vb-badge" style="${bd.style}">${bd.text}</span>
     </li>`;
@@ -575,7 +605,6 @@ function renderPartyCombobox(){
       opt.onclick=()=>{
         state.activeParty=opt.getAttribute('data-parti'); renderButton(); closePartyMenu(); renderPartyDetail(state.activeParty);
         menu.querySelectorAll('.vb-option').forEach((x,j)=>x.setAttribute('aria-selected', j===i));
-        // Deep-link: opdater URL når parti vælges
         const u=new URL(location.href); u.searchParams.set("parti", state.activeParty); u.searchParams.delete("kandidat"); history.replaceState({}, "", u);
       };
     });
@@ -589,22 +618,35 @@ function renderPartyCombobox(){
   el("candidateList").innerHTML = "";
 }
 
-/* Kandidatliste */
+/* Kandidatliste (med SPARKLINE under hver kandidat) */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), list=el("candidateList"); list.innerHTML="";
   if(!parti){ header.textContent="Vælg et parti i drop-down menuen."; return; }
   header.textContent=parti;
   const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
   const sorted=kandidaterAll.slice().sort(sortKandidaterAlpha);
+
+  const activeRows = getActiveRows();                           // SPARKLINE
+  const psActive   = getPollingStationsFromRows(activeRows);    // SPARKLINE
+  const partyLetter = getPartyStats().find(x=>x.parti===parti)?.letter || null;
+  const partyColor  = partyLetter ? (PARTY_COLORS[partyLetter]||'#9ca3af') : '#9ca3af';
+
   for(const k of sorted){
     const listestemmer = isListestemmer(k.kandidat_navn);
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
+
+    // SPARKLINE: serie + svg for kandidaten
+    const series = seriesForCandidateFromPS(psActive, k.kandidat_id);
+    const spark = sparklineSVG(series, partyColor);
+
     const row=document.createElement("div");
     row.className="rounded-xl border px-3 py-2 flex items-center justify-between";
     row.setAttribute("data-cand-id", k.kandidat_id);
     row.innerHTML=`<div>
       <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
       <div class="text-xs text-gray-500">${escapeHtml(k.parti)} · ${subtitle}</div>
+      <!-- SPARKLINE -->
+      <div class="mt-1">${spark}</div>
     </div>
     <button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`;
     row.querySelector("button[data-add]").onclick=()=>{
@@ -623,8 +665,7 @@ function renderAll(){
   const hasSel=getSelected().length>0;
   el("compareSection").classList.toggle("hidden",!hasSel);
   el("tabsCard").classList.toggle("hidden",!hasSel);
-  // Opdatér Top-10 hver gang datasæt/valg ændres
-  renderOverview();
+  renderOverview(); // opdatér Top-10
 }
 function stemmerLabel(n){ return n===1 ? "stemme" : "stemmer"; }
 function computeTotalsByCandidate(){
@@ -659,17 +700,10 @@ window.removeCandidate = id => { state.selected.delete(id); renderAll(); };
 const getSelected = () => Array.from(state.selected.values());
 const getSelectedOrdered = () => { const s=getSelected().slice(); s.sort(sortKandidaterAlpha); return s; };
 
-/* Valgsteder */
+/* Valgsteder (for aktive rækker) */
 function getPollingStations(){
   const rows = getActiveRows();
-  const m=new Map();
-  for(const r of rows){
-    const key = `${r.kreds||""}::${r.valgsted_id}`;
-    if(!m.has(key)) m.set(key,{id:key,navn:cleanPollingPlaceName(r.valgsted_navn),kreds:r.kreds||""});
-    const ps=m.get(key);
-    ps[r.kandidat_id]=(ps[r.kandidat_id]||0)+r.stemmer;
-  }
-  return Array.from(m.values()).sort((a,b)=>{ if(a.kreds!==b.kreds) return a.kreds.localeCompare(b.kreds,"da"); return a.navn.localeCompare(b.navn,"da"); });
+  return getPollingStationsFromRows(rows);
 }
 function renderPsTable(psList, sel){
   const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
