@@ -53,7 +53,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 /* Tabel-celle uden data */
 .cell-na{ color:#9ca3af; }
 
-/* Info banner på DK (ikke i brug længere) */
+/* Info banner klasse (ikke i brug længere) */
 .info-banner{ background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:.6rem .8rem; font-size:.9rem; color:#374151; }
 </style>
 </head>
@@ -94,7 +94,6 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
       <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
       <div class="flex items-center gap-3">
         <div id="top10Scope" class="text-sm text-gray-500"></div>
-        <!-- Toggle: Top 10 / Alle kandidater -->
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnTop10" class="vb-tabbox small active" type="button">Top 10</button>
           <button id="btnAll" class="vb-tabbox small" type="button">Alle kandidater</button>
@@ -248,7 +247,8 @@ const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => { const t = canon(name).toLowerCase(); return t==="partiliste" || t==="listestemmer" || t==="liste"; };
 const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
-const kredsSlug = name => (name || "").toString().replaceAll(" ", "_");
+// compat: undgå replaceAll
+const kredsSlug = name => (name || "").toString().split(" ").join("_");
 const sortKandidaterAlpha = (a,b)=>{ const al=isListestemmer(a.kandidat_navn), bl=isListestemmer(b.kandidat_navn); if(al&&!bl) return 1; if(!al&&bl) return -1; return a.kandidat_navn.localeCompare(b.kandidat_navn,"da"); };
 const sortKandidaterVotes = (a,b)=>{ const dv = (b.total||0) - (a.total||0); if(dv!==0) return dv; return sortKandidaterAlpha(a,b); };
 function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
@@ -308,8 +308,14 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     renderContextBar();
   }
 
-  el("btnClearAll")?.addEventListener('click', ()=>{ state.selected.clear(); renderAll(); });
-  document.addEventListener('click',(e)=>{ const box=el('partyCombo'); if(box && !box.contains(e.target)) closePartyMenu(); });
+  // (compat) undgå optional chaining
+  if (el("btnClearAll")) {
+    el("btnClearAll").addEventListener('click', ()=>{ state.selected.clear(); renderAll(); });
+  }
+  document.addEventListener('click',(e)=>{
+    const box=el('partyCombo');
+    if(box && !box.contains(e.target)) closePartyMenu();
+  });
   setupAddKredsUI();
   renderContextBar();
   updateTopToggleUI();
@@ -665,8 +671,11 @@ function renderOverview(){
   el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
   el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
 
+  // (compat) tjek at root findes før querySelectorAll
   const bind = (rootId)=> {
-    document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    root.querySelectorAll('.top10-item').forEach(item=>{
       const candId=item.getAttribute('data-cand');
       item.addEventListener('click', ()=>toggleCandidateFromTop(candId, rows));
       item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTop(candId, rows); }});
@@ -926,17 +935,19 @@ function renderPsTable(psList, sel){
 function setupAddKredsUI(){
   const btnAddKreds = document.getElementById('btnAddKreds');
   const addKredsMenu = document.getElementById('addKredsMenu');
-  btnAddKreds?.addEventListener('click', ()=>{
-    if(!state.storkreds) return; // DK: ingen tilføj-kreds
-    renderAddKredsMenu();
-    const isHidden = addKredsMenu.classList.contains('hidden');
-    addKredsMenu.classList.toggle('hidden', !isHidden ? true : false);
-    btnAddKreds.setAttribute('aria-expanded', (!isHidden).toString());
-  });
+  if (btnAddKreds) {
+    btnAddKreds.addEventListener('click', ()=>{
+      if(!state.storkreds) return; // DK: ingen tilføj-kreds
+      renderAddKredsMenu();
+      const isHidden = addKredsMenu.classList.contains('hidden');
+      addKredsMenu.classList.toggle('hidden', !isHidden ? true : false);
+      btnAddKreds.setAttribute('aria-expanded', (!isHidden).toString());
+    });
+  }
   document.addEventListener('click',(e)=>{
-    if(!addKredsMenu.contains(e.target) && e.target!==btnAddKreds){
+    if(addKredsMenu && !addKredsMenu.contains(e.target) && e.target!==btnAddKreds){
       addKredsMenu.classList.add('hidden');
-      btnAddKreds.setAttribute('aria-expanded','false');
+      if (btnAddKreds) btnAddKreds.setAttribute('aria-expanded','false');
     }
   });
   function renderAddKredsMenu(){
@@ -970,7 +981,7 @@ function setupAddKredsUI(){
           el("error").textContent = `Kunne ikke indlæse data.`;
         }finally{
           addKredsMenu.classList.add('hidden');
-          btnAddKreds.setAttribute('aria-expanded','false');
+          if (btnAddKreds) btnAddKreds.setAttribute('aria-expanded','false');
         }
       };
     });
@@ -1011,24 +1022,32 @@ function renderContextBar(){
   bar.innerHTML = parts.join("");
 
   const dk = bar.querySelector('[data-nav="dk"]');
-  dk?.addEventListener('click', async ()=>{
-    el("storkredsSelect").value = DK_VALUE;
-    state.storkreds=""; state.kreds=""; state.selectedKredse.clear();
-    const u=new URL(location.href); u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
-    await loadNationalData(); renderAll();
-  });
+  if (dk) {
+    dk.addEventListener('click', async ()=>{
+      el("storkredsSelect").value = DK_VALUE;
+      state.storkreds=""; state.kreds=""; state.selectedKredse.clear();
+      const u=new URL(location.href); u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
+      await loadNationalData(); renderAll();
+    });
+  }
 
   const sk = bar.querySelector('[data-nav="storkreds"]');
-  sk?.addEventListener('click', async ()=>{
-    const s = state.storkreds;
-    el("kredsSelect").value = KREDS_ALL_VALUE;
-    state.kreds = KREDS_ALL_VALUE;
-    const u=new URL(location.href); u.searchParams.set("storkreds", s); u.searchParams.set("kreds", KREDS_ALL_VALUE); history.replaceState({}, "", u);
-    await loadStorkredsData(s); renderAll();
-  });
+  if (sk) {
+    sk.addEventListener('click', async ()=>{
+      const s = state.storkreds;
+      el("kredsSelect").value = KREDS_ALL_VALUE;
+      state.kreds = KREDS_ALL_VALUE;
+      const u=new URL(location.href); u.searchParams.set("storkreds", s); u.searchParams.set("kreds", KREDS_ALL_VALUE); history.replaceState({}, "", u);
+      await loadStorkredsData(s); renderAll();
+    });
+  }
 }
 
-function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
+function closePartyMenu(){ 
+  const btn=el('partyButton'), menu=el('partyMenu'); 
+  if (btn) btn.setAttribute('aria-expanded','false'); 
+  if (menu) menu.classList.add('hidden'); 
+}
 </script>
 </body>
 </html>
