@@ -53,7 +53,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 /* Tabel-celle uden data */
 .cell-na{ color:#9ca3af; }
 
-/* Info banner på DK */
+/* Info banner på DK (ikke i brug længere) */
 .info-banner{ background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:.6rem .8rem; font-size:.9rem; color:#374151; }
 </style>
 </head>
@@ -73,11 +73,6 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
   <!-- Tydelig, klikbar kontekst -->
   <div id="contextBar" class="context-bar"></div>
-
-  <!-- (DK) kort besked om sammenligning -->
-  <div id="dkCompareHint" class="info-banner hidden">
-    Vælg en <strong>storkreds</strong> eller en <strong>kreds</strong> for at sammenligne kandidater. Klik på en kandidat nedenfor for at hoppe til vedkommendes storkreds.
-  </div>
 
   <!-- Valgdrop-downs -->
   <section class="vb-card p-4 space-y-3">
@@ -205,6 +200,19 @@ const KREDS_BY_STORKREDS = {
   "Vestjyllands Storkreds": [ "Herning Nordkredsen","Herning Sydkredsen","Holstebrokredsen","Ikastkredsen","Ringkøbingkredsen","Silkeborg Nordkredsen","Silkeborg Sydkredsen","Skivekredsen","Struerkredsen","Viborg Vestkredsen","Viborg Østkredsen" ],
   "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
 };
+
+/* Kredse → Storkreds (til inferens når CSV ikke har storkreds-kolonne) */
+const KREDS_TO_STORKREDS = (() => {
+  const m = new Map();
+  for (const [sk, ks] of Object.entries(KREDS_BY_STORKREDS)) {
+    ks.forEach(k => m.set(canon(k), sk));
+  }
+  return m;
+})();
+function inferStorkredsFromKreds(kredsNavn){
+  if(!kredsNavn) return "";
+  return KREDS_TO_STORKREDS.get(canon(kredsNavn)) || "";
+}
 
 /* ---------- PARTIER / FARVER / ALIAS ---------- */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
@@ -456,7 +464,7 @@ async function loadStorkredsData(storkreds){
   el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
 }
 
-/* CSV-parse + normalisering */
+/* CSV-parse + normalisering (robust storkreds-inferens) */
 function parseCsv(text, kredsNameOverride=null){
   const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
   state.rows=res.data.map(r=>{
@@ -467,10 +475,14 @@ function parseCsv(text, kredsNameOverride=null){
     const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
     const L = canon(rawLetter).toUpperCase();
     const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
+
+    const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
+    const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
+
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
-      storkreds: canon(r.storkreds || r.kreds || r.kommune),
-      kreds: kredsNameOverride || canon(r.kredsnavn || r.kreds || ""),
+      storkreds: storkredsNavn,
+      kreds: kredsNavn,
       valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
@@ -494,10 +506,14 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
     const L = canon(rawLetter).toUpperCase();
     const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
+
+    const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
+    const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
+
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
-      storkreds: canon(r.storkreds || r.kreds || r.kommune),
-      kreds: kredsNameOverride || canon(r.kredsnavn || r.kreds || ""), /* <- rettet (ingen 'eller') */
+      storkreds: storkredsNavn,
+      kreds: kredsNavn, /* <- ingen 'eller' her */
       valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
@@ -632,7 +648,6 @@ function renderOverview(){
   function itemHTML(k, idx){
     const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
     const bd = badge(letter);
-    // DK: vis kun parti + stemmer; Storkreds/kreds: du kan (hvis ønsket) tilføje mere, men vi holder det ensartet.
     const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
     return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
       <span class="rank-pill">${idx}</span>
@@ -737,7 +752,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: “Se i storkreds” (uden storkreds i metadata) · Storkreds/kreds: “Tilføj” */
+/* Kandidatliste – DK: “Se i storkreds” · Storkreds/kreds: “Tilføj” */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
@@ -766,7 +781,6 @@ function renderPartyDetail(parti){
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
-    // DK: vis ikke storkreds i metadata
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
     const div=document.createElement("div");
     div.className="rounded-xl border px-3 py-2";
@@ -789,9 +803,6 @@ function renderPartyDetail(parti){
 /* Samlet render / tabel */
 function renderAll(){
   const isDK = !state.storkreds;
-
-  // DK-hint
-  el("dkCompareHint").classList.toggle("hidden", !isDK);
 
   renderSelected();
   renderPsTable(getPollingStations(), getSelectedOrdered());
