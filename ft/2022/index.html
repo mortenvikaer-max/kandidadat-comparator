@@ -499,7 +499,7 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
       storkreds: canon(r.storkreds || r.kreds || r.kommune),
-      kreds: kredsNameOverride || canon(r.kredsnavn eller r.kreds || ""),
+    kreds: kredsNameOverride || canon(r.kredsnavn || r.kreds || ""),
       valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
