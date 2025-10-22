@@ -246,7 +246,6 @@ const sortKandidaterVotes = (a,b)=>{ const dv = (b.total||0) - (a.total||0); if(
 function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
 /* === Hjælpere til storkreds-link fra DK === */
-// primær storkreds for kandidat (vælger den storkreds hvor kandidaten har flest rækker)
 function primaryStorkredsForCandidate(candId, rows){
   const count=new Map();
   for(const r of rows){ if(r.kandidat_id===candId && r.storkreds){ count.set(r.storkreds, (count.get(r.storkreds)||0)+1); } }
@@ -259,7 +258,6 @@ function gotoStorkreds(storkredsName){
   u.searchParams.set("storkreds", storkredsName);
   u.searchParams.set("kreds", KREDS_ALL_VALUE);
   history.replaceState({}, "", u);
-  // tving UI over i den valgte storkreds
   el("storkredsSelect").value = storkredsName;
   populateKredse(storkredsName);
   state.storkreds = storkredsName; state.kreds = KREDS_ALL_VALUE;
@@ -499,7 +497,7 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
       storkreds: canon(r.storkreds || r.kreds || r.kommune),
-    kreds: kredsNameOverride || canon(r.kredsnavn || r.kreds || ""),
+      kreds: kredsNameOverride || canon(r.kredsnavn || r.kreds || ""), /* <- rettet (ingen 'eller') */
       valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
@@ -634,12 +632,13 @@ function renderOverview(){
   function itemHTML(k, idx){
     const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
     const bd = badge(letter);
-    const stork = primaryStorkredsForCandidate(k.kandidat_id, rows) || (state.storkreds || "");
+    // DK: vis kun parti + stemmer; Storkreds/kreds: du kan (hvis ønsket) tilføje mere, men vi holder det ensartet.
+    const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
     return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
       <span class="rank-pill">${idx}</span>
       <div class="min-w-0 flex-1">
         <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
-        <div class="text-xs text-gray-500 truncate">${escapeHtml(k.parti)} · ${escapeHtml(stork || '—')} · ${fmt(k.total)} stemmer</div>
+        <div class="text-xs text-gray-500 truncate">${meta}</div>
       </div>
       <span class="vb-badge" style="${bd.style}">${bd.text}</span>
     </li>`;
@@ -738,7 +737,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: “Se i storkreds” · Storkreds/kreds: “Tilføj” */
+/* Kandidatliste – DK: “Se i storkreds” (uden storkreds i metadata) · Storkreds/kreds: “Tilføj” */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
@@ -754,7 +753,6 @@ function renderPartyDetail(parti){
 
   function addCandidate(k){
     if(!state.storkreds){
-      // På DK: hop til kandidatens storkreds
       const stk = primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows());
       if(stk) gotoStorkreds(stk);
       return;
@@ -768,14 +766,15 @@ function renderPartyDetail(parti){
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
-    const stork = !state.storkreds ? (primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows()) || '—') : state.storkreds;
+    // DK: vis ikke storkreds i metadata
+    const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
     const div=document.createElement("div");
     div.className="rounded-xl border px-3 py-2";
     div.setAttribute("data-cand-id", k.kandidat_id);
     div.innerHTML=`<div class="flex items-center justify-between">
       <div>
         <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
-        <div class="text-xs text-gray-500">${escapeHtml(k.parti)} · ${escapeHtml(stork)} · ${subtitle}</div>
+        <div class="text-xs text-gray-500">${meta}</div>
       </div>
       <button class="vb-btn" data-add="${k.kandidat_id}">${state.storkreds ? 'Tilføj' : 'Se i storkreds'}</button>
     </div>`;
