@@ -47,6 +47,20 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 .sep{ color:#9ca3af; }
 
 .cell-na{ color:#9ca3af; }
+
+/* ===== Loader (ny) ===== */
+.loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
+.progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
+.progress::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, rgba(0,0,0,0) 0%, #c7d2fe 50%, rgba(0,0,0,0) 100%);
+  animation:loadbar 1.2s infinite;
+}
+@keyframes loadbar{
+  0%{ transform:translateX(-100%); }
+  50%{ transform:translateX(0%); }
+  100%{ transform:translateX(100%); }
+}
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -89,6 +103,13 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
         </div>
       </div>
     </div>
+
+    <!-- ===== Loader (ny) – placeret her ===== -->
+    <div id="loader" class="loader-wrap hidden" aria-live="polite">
+      <div class="progress w-48 rounded-full"></div>
+      <span id="loaderText">Indlæser…</span>
+    </div>
+
     <div id="top10List" class="top10-grid">
       <ol id="top10ColLeft" class="space-y-2"></ol>
       <ol id="top10ColRight" class="space-y-2"></ol>
@@ -229,10 +250,7 @@ const state = {
   activeParty:"", selected:new Map(),
   selectedKredse:new Set(), csvCache:new Map(),
   topListMode:"top10",
-  candidateSortMode:"alpha",
-  /* NYT: hurtig DK-top & indeks */
-  fastTopDK: null,         // [{kandidat_id, kandidat_navn, parti, parti_letter?, total, storkreds}, ...]
-  fastIndex: null          // Map(kandidat_id -> storkreds)
+  candidateSortMode:"alpha"
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
@@ -263,12 +281,43 @@ function primaryStorkredsForCandidate(candId, rows){
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
+/* NYT: Loader helpers (eneste nye JS-helpers) */
+function showLoading(msg = "Indlæser…") {
+  const box = document.getElementById('loader');
+  const txt = document.getElementById('loaderText');
+  if (txt) txt.textContent = msg;
+  if (box) box.classList.remove('hidden');
+  document.getElementById('overviewTop')?.setAttribute('aria-busy','true');
+  el('storkredsSelect')?.setAttribute('disabled','');
+  el('kredsSelect')?.setAttribute('disabled','');
+}
+function hideLoading() {
+  const box = document.getElementById('loader');
+  if (box) box.classList.add('hidden');
+  document.getElementById('overviewTop')?.removeAttribute('aria-busy');
+  el('storkredsSelect')?.removeAttribute('disabled');
+  if (state.storkreds) el('kredsSelect')?.removeAttribute('disabled');
+}
+function setLoaderMessage(msg) {
+  const txt = document.getElementById('loaderText');
+  if (txt) txt.textContent = msg;
+}
+/* (valgfrit) brugt i fallback-loops til progress-tekst */
+function setProgress(current, total) {
+  setLoaderMessage(total ? `Indlæser… ${current}/${total}` : "Indlæser…");
+}
+
 /* NYT: Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
+  // Første kandidat er altid ok at tilføje
   if(!state.selected.has(candId)){
-    state.selected.set(candId, { kandidat_id: candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
+    state.selected.set(candId, {
+      kandidat_id: candId,
+      kandidat_navn: sample.kandidat_navn,
+      parti: sample.parti
+    });
   }
   renderAll();
   const sec = document.getElementById('compareSection');
@@ -413,104 +462,103 @@ function clearAll(){
   renderAll();
 }
 
-/* ================= NATIONAL (Hele Danmark) ================= */
+/* ================= NATIONAL ================= */
 async function loadNationalData(){
-  el("error").textContent="";
-  el("storkredstitel").textContent=`(Danmark)`;
-
-  /* NYT: forsøg hurtig top-liste via JSON + indeks (ingen scanning) */
+  showLoading("Indlæser Danmark…");
   try{
-    const r = await fetch(`${BASE_PATH}Danmark_top50.json`, { cache:"no-store" });
-    if(r.ok){
-      const data = await r.json();
-      state.fastTopDK = Array.isArray(data.candidates) ? data.candidates : null;
-      // O(1) map: kandidat_id -> storkreds
-      state.fastIndex = new Map();
-      if (state.fastTopDK) {
-        state.fastTopDK.forEach(c => {
-          if (c && c.kandidat_id && c.storkreds) state.fastIndex.set(c.kandidat_id, c.storkreds);
-        });
-      }
-      state.rows = []; // vi bruger ikke DK-CSV til toplisten
-      afterDataLoaded();
-      return;
+    el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
+    const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{cache:"no-store"});
+        if(r.ok){
+          const text=await r.text();
+          parseCsv(text, null);
+          afterDataLoaded();
+          return;
+        }
+      }catch(_){}
     }
-  }catch(_){ /* ignorer, fald tilbage */ }
-
-  // Fallback: originale CSV-forsøg (langsommere)
-  state.fastTopDK = null; state.fastIndex = null;
-  const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
-  for(const url of candidates){
-    try{
-      const r=await fetch(url,{cache:"no-store"});
-      if(r.ok){
-        const text=await r.text();
-        parseCsv(text, null);
-        afterDataLoaded();
-        return;
+    const all = [];
+    const totalSK = STORKREDSE.length;
+    let doneSK = 0;
+    for(const sk of STORKREDSE){
+      const kredse = KREDS_BY_STORKREDS[sk] || [];
+      let acc = [];
+      for(const k of kredse){
+        try{ const rows = await loadRowsForKreds(sk, k); acc.push(...rows); }catch(_){}
       }
-    }catch(_){}
-  }
-  // Ultimate fallback: samle alt fra storkredse (tungt)
-  const all = [];
-  for(const sk of STORKREDSE){
-    const kredse = KREDS_BY_STORKREDS[sk] || [];
-    let acc = [];
-    for(const k of kredse){
-      try{ const rows = await loadRowsForKreds(sk, k); acc.push(...rows); }catch(_){}
+      state.csvCache.set(`${sk}::__ALL__`, acc.slice());
+      all.push(...acc);
+      doneSK += 1;
+      setProgress(doneSK, totalSK); // progress-tekst
     }
-    state.csvCache.set(`${sk}::__ALL__`, acc.slice());
-    all.push(...acc);
+    state.rows = all;
+    afterDataLoaded();
+    if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
+  } finally {
+    hideLoading();
   }
-  state.rows = all;
-  afterDataLoaded();
-  if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
 }
 
 /* Data-indlæsning (kreds) */
 async function loadKredsData(storkreds,kreds){
-  el("error").textContent="";
-  el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-  const candidates=[
-    `${BASE_PATH}${s}/${k}_allepartier.csv`,
-    `${BASE_PATH}${s}/${k}.csv`,
-    `${BASE_PATH}${s}_allepartier.csv`,
-    `${BASE_PATH}${s}.csv`
-  ];
-  for(const url of candidates){
-    try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
+  showLoading(`Indlæser ${storkreds} – ${kreds}…`);
+  try{
+    el("error").textContent="";
+    el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
+    const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
+    const candidates=[
+      `${BASE_PATH}${s}/${k}_allepartier.csv`,
+      `${BASE_PATH}${s}/${k}.csv`,
+      `${BASE_PATH}${s}_allepartier.csv`,
+      `${BASE_PATH}${s}.csv`
+    ];
+    for(const url of candidates){
+      try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
+    }
+    el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
+  } finally {
+    hideLoading();
   }
-  el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
 }
 
 /* “Hele storkredsen” + cache __ALL__ */
 async function loadStorkredsData(storkreds){
-  el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
-  const s=encodeURIComponent(storkreds);
-  const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
-  for(const url of candidates){
-    try{
-      const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
-      const text=await r.text(); parseCsv(text, null);
-      state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
+  showLoading(`Indlæser ${storkreds}…`);
+  try{
+    el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
+    const s=encodeURIComponent(storkreds);
+    const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
+        const text=await r.text(); parseCsv(text, null);
+        state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
+        afterDataLoaded();
+        return;
+      }catch(e){}
+    }
+    const kredse = KREDS_BY_STORKREDS[storkreds] || [];
+    if(kredse.length){
+      const all = [];
+      const totalK = kredse.length;
+      let doneK = 0;
+      for(const k of kredse){
+        const rows = await loadRowsForKreds(storkreds, k).catch(()=>[]);
+        all.push(...rows);
+        doneK += 1;
+        setProgress(doneK, totalK); // progress-tekst
+      }
+      state.rows = all;
+      state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
       afterDataLoaded();
       return;
-    }catch(e){}
-  }
-  const kredse = KREDS_BY_STORKREDS[storkreds] || [];
-  if(kredse.length){
-    const all = [];
-    for(const k of kredse){
-      const rows = await loadRowsForKreds(storkreds, k).catch(()=>[]);
-      all.push(...rows);
     }
-    state.rows = all;
-    state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
-    afterDataLoaded();
-    return;
+    el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
+  } finally {
+    hideLoading();
   }
-  el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
 }
 
 /* CSV-parse + normalisering */
@@ -682,61 +730,8 @@ function getOverviewRows(){
   return cached && cached.length ? cached : state.rows;
 }
 function renderOverview(){
-  const isDK = !state.storkreds;
-
-  // ---------- DK: brug den hurtige liste hvis vi har den ----------
-  if(isDK && Array.isArray(state.fastTopDK) && state.fastTopDK.length){
-    el("top10Scope").textContent = "Danmark";
-
-    const ranked = state.fastTopDK.slice().sort((a,b)=> (b.total||0)-(a.total||0));
-    let list;
-    if(state.topListMode==="top10"){
-      list = ranked.slice(0,10);
-      el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
-    }else{
-      list = ranked.slice(0,50);
-      el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
-    }
-
-    function itemHTML(k, idx){
-      const letter = k.parti_letter && PARTY_COLORS[k.parti_letter] ? k.parti_letter : null;
-      const bd = badge(letter);
-      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-      return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at se i storkreds">
-        <span class="rank-pill">${idx}</span>
-        <div class="min-w-0 flex-1">
-          <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
-          <div class="text-xs text-gray-500 truncate">${meta}</div>
-        </div>
-        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
-      </li>`;
-    }
-
-    const half = Math.ceil(list.length/2);
-    const left = list.slice(0,half);
-    const right = list.slice(half);
-    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
-
-    // Klik: direkte hop via fastIndex (O(1))
-    ["top10ColLeft","top10ColRight"].forEach(rootId=>{
-      document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
-        const candId = item.getAttribute('data-cand');
-        const go = ()=>{
-          const sk = state.fastIndex ? state.fastIndex.get(candId) : null;
-          if (sk) gotoStorkreds(sk, candId);
-          else showError("Mangler storkreds i Danmark_top50.json for denne kandidat.");
-        };
-        item.addEventListener('click', go);
-        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
-      });
-    });
-
-    return; // DK gjort
-  }
-
-  // ---------- Ikke-DK (eller ingen fastTopDK): original logik ----------
   const rows = getOverviewRows();
+  const isDK = !state.storkreds;
   const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
   const ranked = totalsByCandidate(rows);
@@ -747,7 +742,7 @@ function renderOverview(){
     el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
   }else{
     if(isDK){
-      list = ranked.slice(0,50); // fallback: DK “Alle” = Top 50
+      list = ranked.slice(0,50); // DK: “Alle” = Top 50
       el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
     }else{
       list = ranked; // storkreds/kreds: vis alle
@@ -786,9 +781,8 @@ function renderOverview(){
 }
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
-    // Fallback-DK (uden fastTopDK): find primær storkreds ved at tælle forekomst i rows
     const stk = primaryStorkredsForCandidate(candId, rows);
-    if(stk) gotoStorkreds(stk, candId);
+    if(stk) gotoStorkreds(stk, candId); // NYT: send kandidat videre
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -1109,7 +1103,7 @@ function renderContextBar(){
   parts.push(state.storkreds ? `<span class="crumb" data-nav="dk">Hele Danmark</span>` : `<span class="crumb-strong">Hele Danmark</span>`);
 
   if(state.storkreds){
-    parts.push(`<span class="sep">/</span>`;
+    parts.push(`<span class="sep">/</span>`);
     const isStorkredsAll = !state.kreds || state.kreds===KREDS_ALL_VALUE;
     parts.push(isStorkredsAll
       ? `<span class="crumb-strong">${escapeHtml(state.storkreds)}</span>`
