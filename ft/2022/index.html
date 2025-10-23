@@ -104,7 +104,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
       </div>
     </div>
 
-    <!-- ===== Loader (ny) – placeret her ===== -->
+    <!-- Loader -->
     <div id="loader" class="loader-wrap hidden" aria-live="polite">
       <div class="progress w-48 rounded-full"></div>
       <span id="loaderText">Indlæser…</span>
@@ -196,7 +196,6 @@ const STORKREDSE = [
 const KREDS_BY_STORKREDS = {
   "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
   "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
-  /* Korrekt liste til Københavns Omegns Storkreds */
   "Københavns Omegns Storkreds": [
     "Ballerupkredsen","Brøndbykredsen","Gentoftekredsen","Gladsaxekredsen",
     "Hvidovrekredsen","Lyngbykredsen","Rødovrekredsen","Taastrupkredsen"
@@ -273,19 +272,11 @@ const sortKandidaterVotes = (a,b)=>{
 
 function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
-/* === Hjælpere til storkreds-link fra DK === */
-function primaryStorkredsForCandidate(candId, rows){
-  const count=new Map();
-  for(const r of rows){ if(r.kandidat_id===candId && r.storkreds){ count.set(r.storkreds, (count.get(r.storkreds)||0)+1); } }
-  if(count.size===0) return "";
-  return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
-}
-
-/* NYT: Loader helpers (eneste nye JS-helpers) */
+/* Hjælpere: loader */
 function showLoading(msg = "Indlæser…") {
   const box = document.getElementById('loader');
   const txt = document.getElementById('loaderText');
-  if (txt) txt.textContent = msg;
+  if (txt) txt.textContent = msg || "Indlæser…";
   if (box) box.classList.remove('hidden');
   document.getElementById('overviewTop')?.setAttribute('aria-busy','true');
   el('storkredsSelect')?.setAttribute('disabled','');
@@ -298,20 +289,22 @@ function hideLoading() {
   el('storkredsSelect')?.removeAttribute('disabled');
   if (state.storkreds) el('kredsSelect')?.removeAttribute('disabled');
 }
-function setLoaderMessage(msg) {
-  const txt = document.getElementById('loaderText');
-  if (txt) txt.textContent = msg;
-}
-/* (valgfrit) brugt i fallback-loops til progress-tekst */
-function setProgress(current, total) {
-  setLoaderMessage(total ? `Indlæser… ${current}/${total}` : "Indlæser…");
+
+/* Parallel-batching helper */
+function chunkArray(arr, size){ const out=[]; for(let i=0;i<arr.length;i+=size){ out.push(arr.slice(i, i+size)); } return out; }
+
+/* === Hjælpere til storkreds-link fra DK === */
+function primaryStorkredsForCandidate(candId, rows){
+  const count=new Map();
+  for(const r of rows){ if(r.kandidat_id===candId && r.storkreds){ count.set(r.storkreds, (count.get(r.storkreds)||0)+1); } }
+  if(count.size===0) return "";
+  return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
 /* NYT: Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
-  // Første kandidat er altid ok at tilføje
   if(!state.selected.has(candId)){
     state.selected.set(candId, {
       kandidat_id: candId,
@@ -463,6 +456,7 @@ function clearAll(){
 }
 
 /* ================= NATIONAL ================= */
+/* NYT: “Hele Danmark” henter i parallelle batches hvis DK-fil ikke findes */
 async function loadNationalData(){
   showLoading("Indlæser Danmark…");
   try{
@@ -479,23 +473,41 @@ async function loadNationalData(){
         }
       }catch(_){}
     }
-    const all = [];
-    const totalSK = STORKREDSE.length;
-    let doneSK = 0;
+
+    // Fallback: hent alle kreds-filer i parallelle batches
+    const allRows = [];
+    const tasks = [];
     for(const sk of STORKREDSE){
       const kredse = KREDS_BY_STORKREDS[sk] || [];
-      let acc = [];
       for(const k of kredse){
-        try{ const rows = await loadRowsForKreds(sk, k); acc.push(...rows); }catch(_){}
+        tasks.push((async ()=>{
+          try{
+            const rows = await loadRowsForKreds(sk, k); // cacher også
+            return rows;
+          }catch(_){
+            return [];
+          }
+        })());
       }
-      state.csvCache.set(`${sk}::__ALL__`, acc.slice());
-      all.push(...acc);
-      doneSK += 1;
-      setProgress(doneSK, totalSK); // progress-tekst
     }
-    state.rows = all;
+    // Kør i batches (6 ad gangen)
+    const BATCH_SIZE = 6;
+    for(const batch of chunkArray(tasks, BATCH_SIZE)){
+      const settled = await Promise.allSettled(batch);
+      for(const res of settled){
+        if(res.status === "fulfilled" && Array.isArray(res.value)) allRows.push(...res.value);
+      }
+    }
+
+    // byg cache pr. storkreds til “Alle kredse i storkredsen”
+    for(const sk of STORKREDSE){
+      const subset = allRows.filter(r => r.storkreds === sk);
+      state.csvCache.set(`${sk}::__ALL__`, subset.slice());
+    }
+
+    state.rows = allRows;
     afterDataLoaded();
-    if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
+    if(!allRows.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
   } finally {
     hideLoading();
   }
@@ -503,7 +515,7 @@ async function loadNationalData(){
 
 /* Data-indlæsning (kreds) */
 async function loadKredsData(storkreds,kreds){
-  showLoading(`Indlæser ${storkreds} – ${kreds}…`);
+  showLoading(`Indlæser…`);
   try{
     el("error").textContent="";
     el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
@@ -523,9 +535,9 @@ async function loadKredsData(storkreds,kreds){
   }
 }
 
-/* “Hele storkredsen” + cache __ALL__ */
+/* “Hele storkredsen” + cache __ALL__ – nu med parallel fallback */
 async function loadStorkredsData(storkreds){
-  showLoading(`Indlæser ${storkreds}…`);
+  showLoading(`Indlæser…`);
   try{
     el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
     const s=encodeURIComponent(storkreds);
@@ -539,16 +551,18 @@ async function loadStorkredsData(storkreds){
         return;
       }catch(e){}
     }
+
+    // Fallback: hent alle kredse i storkredsen i parallelle batches
     const kredse = KREDS_BY_STORKREDS[storkreds] || [];
     if(kredse.length){
       const all = [];
-      const totalK = kredse.length;
-      let doneK = 0;
-      for(const k of kredse){
-        const rows = await loadRowsForKreds(storkreds, k).catch(()=>[]);
-        all.push(...rows);
-        doneK += 1;
-        setProgress(doneK, totalK); // progress-tekst
+      const tasks = kredse.map(k => (async ()=>{
+        try{ return await loadRowsForKreds(storkreds, k); }catch(_){ return []; }
+      })());
+      const BATCH_SIZE = 6;
+      for(const batch of chunkArray(tasks, BATCH_SIZE)){
+        const settled = await Promise.allSettled(batch);
+        for(const res of settled){ if(res.status==="fulfilled") all.push(...res.value); }
       }
       state.rows = all;
       state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
@@ -742,10 +756,10 @@ function renderOverview(){
     el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
   }else{
     if(isDK){
-      list = ranked.slice(0,50); // DK: “Alle” = Top 50
+      list = ranked.slice(0,50);
       el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
     }else{
-      list = ranked; // storkreds/kreds: vis alle
+      list = ranked;
       el("top10Title").textContent = "Alle kandidater (personlige stemmer)";
     }
   }
@@ -782,7 +796,7 @@ function renderOverview(){
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
     const stk = primaryStorkredsForCandidate(candId, rows);
-    if(stk) gotoStorkreds(stk, candId); // NYT: send kandidat videre
+    if(stk) gotoStorkreds(stk, candId);
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -856,7 +870,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: “Se i storkreds” (sender kandidat-id med); Storkreds/kreds: “Tilføj” */
+/* Kandidatliste – DK: “Se i storkreds”; Storkreds/kreds: “Tilføj” */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
@@ -873,7 +887,7 @@ function renderPartyDetail(parti){
   function addCandidate(k){
     if(!state.storkreds){
       const stk = primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows());
-      if(stk) gotoStorkreds(stk, k.kandidat_id); // send kandidat-id
+      if(stk) gotoStorkreds(stk, k.kandidat_id);
       return;
     }
     const check = canAddCandidate(k.kandidat_id);
@@ -899,7 +913,7 @@ function renderPartyDetail(parti){
     const add = div.querySelector("button[data-add]");
     if(add) add.onclick=()=>addCandidate(k);
     const see = div.querySelector("button[data-see]");
-    if(see) see.onclick=()=>addCandidate(k); // i DK-tilfældet hopper funktionen til storkreds
+    if(see) see.onclick=()=>addCandidate(k);
     return div;
   }
 
