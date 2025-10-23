@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generator – FT2022 Danmark_top50.json</title>
+<!-- Tailwind (kun for pæn UI – kan fjernes) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- PapaParse -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  .vb-card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<main class="mx-auto max-w-4xl p-4 space-y-4">
+  <header class="vb-card p-4">
+    <h1 class="text-xl font-semibold">FT2022 – generér <code class="mono">Danmark_top50.json</code></h1>
+    <p class="text-gray-600 mt-1">Åbn denne fil i din browser. Klik “Start” – så hentes alle kreds-CSV’er fra din server, Top 50 beregnes, og du kan downloade JSON’en.</p>
+  </header>
+
+  <section class="vb-card p-4 space-y-3">
+    <div class="flex items-center gap-3">
+      <button id="btnStart" class="px-4 py-2 rounded-lg border bg-white">Start</button>
+      <div id="status" class="text-sm text-gray-600"></div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+      <div id="bar" class="bg-gray-800 h-2 rounded-full" style="width:0%"></div>
+    </div>
+    <div id="summary" class="text-sm text-gray-600"></div>
+  </section>
+
+  <section class="vb-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="font-medium">Resultat (JSON)</h2>
+      <a id="downloadLink" class="px-3 py-1 rounded-lg border bg-white pointer-events-none opacity-40" download="Danmark_top50.json">Download</a>
+    </div>
+    <textarea id="output" class="w-full h-80 p-3 rounded-lg border mono" spellcheck="false"></textarea>
+    <div class="flex gap-2">
+      <button id="btnCopy" class="px-3 py-1 rounded-lg border bg-white">Kopiér</button>
+      <span id="copied" class="text-sm text-green-600 hidden">Kopieret ✔</span>
+    </div>
+  </section>
+
+  <section class="vb-card p-4">
+    <h3 class="font-medium">Tip</h3>
+    <ol class="list-decimal pl-5 text-sm text-gray-700 space-y-1">
+      <li>Læg den downloadede <code class="mono">Danmark_top50.json</code> i samme mappe som dine FT2022-data (<code class="mono">../../data/ft/2022/</code>).</li>
+      <li>Aktivér “hurtig forside” i din FT2022-side (som vi beskrev), så siden først prøver at hente denne JSON.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+/* === Konfiguration – tilpas hvis din mappe er anderledes === */
+const BASE_PATH = '../../data/ft/2022/';
+
+/* Storkredse og kredse – identisk med din FT2022-side */
+const STORKREDSE = [
+  "Bornholms Storkreds","Fyns Storkreds","Københavns Omegns Storkreds","Københavns Storkreds",
+  "Nordjyllands Storkreds","Nordsjællands Storkreds","Sjællands Storkreds","Sydjyllands Storkreds",
+  "Vestjyllands Storkreds","Østjyllands Storkreds"
+];
+const KREDS_BY_STORKREDS = {
+  "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
+  "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
+  "Københavns Omegns Storkreds": [ "Ballerupkredsen","Brøndbykredsen","Gentoftekredsen","Gladsaxekredsen","Hvidovrekredsen","Lyngbykredsen","Rødovrekredsen","Taastrupkredsen" ],
+  "Københavns Storkreds": [ "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre Bykredsen","Nørrebrokredsen","Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen","Vesterbrokredsen","Østerbrokredsen" ],
+  "Nordjyllands Storkreds": [ "Brønderslevkredsen","Frederikshavnkredsen","Himmerlandkredsen","Hjørringkredsen","Mariagerfjordkredsen","Thistedkredsen","Aalborg Nordkredsen","Aalborg Vestkredsen","Aalborg Østkredsen" ],
+  "Nordsjællands Storkreds": [ "Egedalkredsen","Fredensborgkredsen","Frederikssundkredsen","Helsingørkredsen","Hillerødkredsen","Rudersdalkredsen" ],
+  "Sjællands Storkreds": [ "Faxekredsen","Grevekredsen","Guldborgsundkredsen","Holbækkredsen","Kalundborgkredsen","Køgekredsen","Lollandkredsen","Næstvedkredsen","Ringstedkredsen","Roskildekredsen","Slagelsekredsen","Vordingborgkredsen" ],
+  "Sydjyllands Storkreds": [ "Esbjerg Bykredsen","Esbjerg Omegnskredsen","Fredericiakredsen","Haderslevkredsen","Kolding Nordkredsen","Kolding Sydkredsen","Sønderborgkredsen","Tønderkredsen","Vardekredsen","Vejenkredsen","Vejle Nordkredsen","Vejle Sydkredsen","Aabenraakredsen" ],
+  "Vestjyllands Storkreds": [ "Herning Nordkredsen","Herning Sydkredsen","Holstebrokredsen","Ikastkredsen","Ringkøbingkredsen","Silkeborg Nordkredsen","Silkeborg Sydkredsen","Skivekredsen","Struerkredsen","Viborg Vestkredsen","Viborg Østkredsen" ],
+  "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
+};
+
+/* ======= Hjælpere – identiske med din FT2022-parser ======= */
+const canon = s => (s||"").toString().trim();
+const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
+const kredsSlug = name => (name || "").toString().split(" ").join("_");
+const isListestemmer = (name) => {
+  const t = canon(name).toLowerCase();
+  return t==="partiliste" || t==="listestemmer" || t==="liste";
+};
+
+/* Parti-bogstav: vi forsøger primært at bruge feltet fra CSV */
+const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
+const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
+const PARTY_LETTERS_BY_NAME = {
+  "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
+  "konservative folkeparti":"C","det konservative folkeparti":"C","nye borgerlige":"D",
+  "sf":"F","socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F","sf socialistisk folkeparti":"F",
+  "liberal alliance":"I","venstre, danmarks liberale parti":"V","venstre":"V",
+  "dansk folkeparti":"O",
+  "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
+  "alternativet":"Å",
+  "kristendemokraterne":"K",
+  "moderaterne":"M",
+  "danmarksdemokraterne":"Æ",
+  "frie grønne":"Q"
+};
+const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
+
+/* Parser en CSV-tekst til rækker, med samme normalisering som på din side */
+function parseCsvToRows(text, kredsNameOverride=null){
+  const res = Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
+  return res.data.map(r=>{
+    let kandidatNavn = canon(r.kandidat_navn);
+    const navnLower = kandidatNavn.toLowerCase();
+    if (["partiliste","listestemmer","liste"].includes(navnLower)) kandidatNavn = "Partiliste";
+    const parti = canon(r.parti);
+    const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
+    const L = canon(rawLetter).toUpperCase();
+    const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : (PARTY_LETTERS_BY_NAME_NORM[norm(parti)] || "");
+
+    const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
+    const storkredsNavn = canon(r.storkreds || "");
+
+    const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+    return {
+      storkreds: storkredsNavn,
+      kreds: kredsNavn,
+      valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
+      valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
+      kandidat_id,
+      kandidat_navn: kandidatNavn,
+      parti,
+      parti_letter,
+      stemmer: Number(r.stemmer||0)||0
+    };
+  });
+}
+
+/* Forsøger to filnavne per kreds – samme strategi som din side */
+async function loadRowsForKreds(storkreds, kreds){
+  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
+  const candidates=[ `${BASE_PATH}${s}/${k}_allepartier.csv`, `${BASE_PATH}${s}/${k}.csv` ];
+  for(const url of candidates){
+    try{
+      const r = await fetch(url, { cache:"no-store" });
+      if(!r.ok) throw new Error("404");
+      const text = await r.text();
+      return parseCsvToRows(text, kreds);
+    }catch(_){}
+  }
+  throw new Error(`Ingen data for ${storkreds} / ${kreds}`);
+}
+
+/* Progress UI */
+function setProgress(done, total){
+  const pct = total ? Math.round(done*100/total) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('status').textContent = `Henter data: ${done}/${total} filer (${pct}%)`;
+}
+
+/* Hovedlogik: hent alle kreds-CSV’er, aggregér kandidater, lav Top50 JSON */
+async function generateTop50(){
+  const allTasks = [];
+  for(const sk of STORKREDSE){
+    for(const k of (KREDS_BY_STORKREDS[sk]||[])){
+      allTasks.push({ sk, k });
+    }
+  }
+  const total = allTasks.length;
+  let done = 0;
+
+  const agg = new Map(); // kandidat_id -> { kandidat_id, kandidat_navn, parti, parti_letter, total, storkredsCount: Map }
+  for(const task of allTasks){
+    try{
+      const rows = await loadRowsForKreds(task.sk, task.k);
+      // Aggreger
+      for(const r of rows){
+        if(!agg.has(r.kandidat_id)){
+          agg.set(r.kandidat_id, {
+            kandidat_id: r.kandidat_id,
+            kandidat_navn: r.kandidat_navn,
+            parti: r.parti,
+            parti_letter: r.parti_letter || "",
+            total: 0,
+            _storkredsCount: new Map()
+          });
+        }
+        const a = agg.get(r.kandidat_id);
+        a.total += r.stemmer;
+        if(r.storkreds){
+          a._storkredsCount.set(r.storkreds, (a._storkredsCount.get(r.storkreds)||0)+1);
+        }
+      }
+    }catch(e){
+      // spring over manglende filer
+      // console.warn(e);
+    }finally{
+      done++; setProgress(done, total);
+    }
+  }
+
+  // Lav liste, filtrér listestemmer, sortér
+  const list = Array.from(agg.values())
+    .filter(k => !isListestemmer(k.kandidat_navn))
+    .sort((a,b)=> b.total - a.total)
+    .slice(0,50)
+    .map(k=>{
+      // find storkreds_hint = flest forekomster
+      let hint = "";
+      let maxC = -1;
+      for(const [sk,count] of k._storkredsCount.entries()){
+        if(count > maxC){ maxC = count; hint = sk; }
+      }
+      return {
+        kandidat_id: k.kandidat_id,
+        kandidat_navn: k.kandidat_navn,
+        parti: k.parti,
+        parti_letter: k.parti_letter || null,
+        total: k.total,
+        storkreds_hint: hint || null
+      };
+    });
+
+  const payload = {
+    scope: "Danmark",
+    updated: new Date().toISOString(),
+    candidates: list
+  };
+  return payload;
+}
+
+/* UI-wireup */
+const btn = document.getElementById('btnStart');
+const output = document.getElementById('output');
+const summary = document.getElementById('summary');
+const downloadLink = document.getElementById('downloadLink');
+const btnCopy = document.getElementById('btnCopy');
+const copied = document.getElementById('copied');
+
+btn.addEventListener('click', async ()=>{
+  btn.disabled = true;
+  output.value = "";
+  downloadLink.classList.add('opacity-40','pointer-events-none');
+  summary.textContent = "Arbejder…";
+  document.getElementById('bar').style.width = '0%';
+
+  try{
+    const data = await generateTop50();
+    const text = JSON.stringify(data, null, 2);
+    output.value = text;
+    summary.textContent = `Færdig. ${data.candidates.length} kandidater i listen.`;
+    // Forbered download
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    downloadLink.href = url;
+    downloadLink.classList.remove('opacity-40','pointer-events-none');
+  }catch(e){
+    summary.textContent = "Noget gik galt – tjek konsollen (F12) og at filstierne passer.";
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+btnCopy.addEventListener('click', async ()=>{
+  try{
+    await navigator.clipboard.writeText(output.value || "");
+    copied.classList.remove('hidden');
+    setTimeout(()=>copied.classList.add('hidden'), 1200);
+  }catch(_){}
+});
+</script>
+</body>
+</html>
