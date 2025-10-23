@@ -47,6 +47,20 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 .sep{ color:#9ca3af; }
 
 .cell-na{ color:#9ca3af; }
+
+/* ===== Loader (ny) ===== */
+.loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
+.progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
+.progress::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, rgba(0,0,0,0) 0%, #c7d2fe 50%, rgba(0,0,0,0) 100%);
+  animation:loadbar 1.2s infinite;
+}
+@keyframes loadbar{
+  0%{ transform:translateX(-100%); }
+  50%{ transform:translateX(0%); }
+  100%{ transform:translateX(100%); }
+}
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -89,6 +103,13 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
         </div>
       </div>
     </div>
+
+    <!-- ===== Loader (ny) – placeret her ===== -->
+    <div id="loader" class="loader-wrap hidden" aria-live="polite">
+      <div class="progress w-48 rounded-full"></div>
+      <span id="loaderText">Indlæser…</span>
+    </div>
+
     <div id="top10List" class="top10-grid">
       <ol id="top10ColLeft" class="space-y-2"></ol>
       <ol id="top10ColRight" class="space-y-2"></ol>
@@ -260,6 +281,32 @@ function primaryStorkredsForCandidate(candId, rows){
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
+/* NYT: Loader helpers (eneste nye JS-helpers) */
+function showLoading(msg = "Indlæser…") {
+  const box = document.getElementById('loader');
+  const txt = document.getElementById('loaderText');
+  if (txt) txt.textContent = msg;
+  if (box) box.classList.remove('hidden');
+  document.getElementById('overviewTop')?.setAttribute('aria-busy','true');
+  el('storkredsSelect')?.setAttribute('disabled','');
+  el('kredsSelect')?.setAttribute('disabled','');
+}
+function hideLoading() {
+  const box = document.getElementById('loader');
+  if (box) box.classList.add('hidden');
+  document.getElementById('overviewTop')?.removeAttribute('aria-busy');
+  el('storkredsSelect')?.removeAttribute('disabled');
+  if (state.storkreds) el('kredsSelect')?.removeAttribute('disabled');
+}
+function setLoaderMessage(msg) {
+  const txt = document.getElementById('loaderText');
+  if (txt) txt.textContent = msg;
+}
+/* (valgfrit) brugt i fallback-loops til progress-tekst */
+function setProgress(current, total) {
+  setLoaderMessage(total ? `Indlæser… ${current}/${total}` : "Indlæser…");
+}
+
 /* NYT: Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
@@ -417,78 +464,101 @@ function clearAll(){
 
 /* ================= NATIONAL ================= */
 async function loadNationalData(){
-  el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
-  const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
-  for(const url of candidates){
-    try{
-      const r=await fetch(url,{cache:"no-store"});
-      if(r.ok){
-        const text=await r.text();
-        parseCsv(text, null);
-        afterDataLoaded();
-        return;
-      }
-    }catch(_){}
-  }
-  const all = [];
-  for(const sk of STORKREDSE){
-    const kredse = KREDS_BY_STORKREDS[sk] || [];
-    let acc = [];
-    for(const k of kredse){
-      try{ const rows = await loadRowsForKreds(sk, k); acc.push(...rows); }catch(_){}
+  showLoading("Indlæser Danmark…");
+  try{
+    el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
+    const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{cache:"no-store"});
+        if(r.ok){
+          const text=await r.text();
+          parseCsv(text, null);
+          afterDataLoaded();
+          return;
+        }
+      }catch(_){}
     }
-    state.csvCache.set(`${sk}::__ALL__`, acc.slice());
-    all.push(...acc);
+    const all = [];
+    const totalSK = STORKREDSE.length;
+    let doneSK = 0;
+    for(const sk of STORKREDSE){
+      const kredse = KREDS_BY_STORKREDS[sk] || [];
+      let acc = [];
+      for(const k of kredse){
+        try{ const rows = await loadRowsForKreds(sk, k); acc.push(...rows); }catch(_){}
+      }
+      state.csvCache.set(`${sk}::__ALL__`, acc.slice());
+      all.push(...acc);
+      doneSK += 1;
+      setProgress(doneSK, totalSK); // progress-tekst
+    }
+    state.rows = all;
+    afterDataLoaded();
+    if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
+  } finally {
+    hideLoading();
   }
-  state.rows = all;
-  afterDataLoaded();
-  if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
 }
 
 /* Data-indlæsning (kreds) */
 async function loadKredsData(storkreds,kreds){
-  el("error").textContent="";
-  el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-  const candidates=[
-    `${BASE_PATH}${s}/${k}_allepartier.csv`,
-    `${BASE_PATH}${s}/${k}.csv`,
-    `${BASE_PATH}${s}_allepartier.csv`,
-    `${BASE_PATH}${s}.csv`
-  ];
-  for(const url of candidates){
-    try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
+  showLoading(`Indlæser ${storkreds} – ${kreds}…`);
+  try{
+    el("error").textContent="";
+    el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
+    const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
+    const candidates=[
+      `${BASE_PATH}${s}/${k}_allepartier.csv`,
+      `${BASE_PATH}${s}/${k}.csv`,
+      `${BASE_PATH}${s}_allepartier.csv`,
+      `${BASE_PATH}${s}.csv`
+    ];
+    for(const url of candidates){
+      try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
+    }
+    el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
+  } finally {
+    hideLoading();
   }
-  el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
 }
 
 /* “Hele storkredsen” + cache __ALL__ */
 async function loadStorkredsData(storkreds){
-  el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
-  const s=encodeURIComponent(storkreds);
-  const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
-  for(const url of candidates){
-    try{
-      const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
-      const text=await r.text(); parseCsv(text, null);
-      state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
+  showLoading(`Indlæser ${storkreds}…`);
+  try{
+    el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
+    const s=encodeURIComponent(storkreds);
+    const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
+        const text=await r.text(); parseCsv(text, null);
+        state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
+        afterDataLoaded();
+        return;
+      }catch(e){}
+    }
+    const kredse = KREDS_BY_STORKREDS[storkreds] || [];
+    if(kredse.length){
+      const all = [];
+      const totalK = kredse.length;
+      let doneK = 0;
+      for(const k of kredse){
+        const rows = await loadRowsForKreds(storkreds, k).catch(()=>[]);
+        all.push(...rows);
+        doneK += 1;
+        setProgress(doneK, totalK); // progress-tekst
+      }
+      state.rows = all;
+      state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
       afterDataLoaded();
       return;
-    }catch(e){}
-  }
-  const kredse = KREDS_BY_STORKREDS[storkreds] || [];
-  if(kredse.length){
-    const all = [];
-    for(const k of kredse){
-      const rows = await loadRowsForKreds(storkreds, k).catch(()=>[]);
-      all.push(...rows);
     }
-    state.rows = all;
-    state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
-    afterDataLoaded();
-    return;
+    el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
+  } finally {
+    hideLoading();
   }
-  el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
 }
 
 /* CSV-parse + normalisering */
