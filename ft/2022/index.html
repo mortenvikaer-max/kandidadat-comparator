@@ -175,7 +175,7 @@ const STORKREDSE = [
 const KREDS_BY_STORKREDS = {
   "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
   "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
-  /* <<< FIX: Københavns Omegns Storkreds – præcis liste + rækkefølge >>> */
+  /* Korrekt liste til Københavns Omegns Storkreds */
   "Københavns Omegns Storkreds": [
     "Ballerupkredsen","Brøndbykredsen","Gentoftekredsen","Gladsaxekredsen",
     "Hvidovrekredsen","Lyngbykredsen","Rødovrekredsen","Taastrupkredsen"
@@ -189,7 +189,7 @@ const KREDS_BY_STORKREDS = {
   "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
 };
 
-/* Kredse → Storkreds (sikker init uden afhængighed af canon) */
+/* Kredse → Storkreds */
 const KREDS_TO_STORKREDS = (() => {
   const c = s => (s || "").toString().trim();
   const m = new Map();
@@ -259,16 +259,38 @@ function primaryStorkredsForCandidate(candId, rows){
   if(count.size===0) return "";
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
-function gotoStorkreds(storkredsName){
+
+/* NYT: Vælg kandidat automatisk efter hop til storkreds */
+function selectCandidateById(candId){
+  const sample = state.rows.find(r=>r.kandidat_id===candId);
+  if(!sample) return;
+  // Første kandidat er altid ok at tilføje
+  if(!state.selected.has(candId)){
+    state.selected.set(candId, {
+      kandidat_id: candId,
+      kandidat_navn: sample.kandidat_navn,
+      parti: sample.parti
+    });
+  }
+  renderAll();
+  const sec = document.getElementById('compareSection');
+  if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function gotoStorkreds(storkredsName, candidateId=null){
   if(!storkredsName) return;
   const u=new URL(location.href);
   u.searchParams.set("storkreds", storkredsName);
   u.searchParams.set("kreds", KREDS_ALL_VALUE);
+  if(candidateId) u.searchParams.set("kandidat", candidateId); else u.searchParams.delete("kandidat");
   history.replaceState({}, "", u);
   el("storkredsSelect").value = storkredsName;
   populateKredse(storkredsName);
   state.storkreds = storkredsName; state.kreds = KREDS_ALL_VALUE;
-  loadStorkredsData(storkredsName).then(()=>{ renderAll(); renderContextBar(); });
+  loadStorkredsData(storkredsName).then(()=>{
+    if(candidateId) selectCandidateById(candidateId);
+    else { renderAll(); renderContextBar(); }
+  });
 }
 
 /* Init */
@@ -285,7 +307,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty);
   });
 
-  const p=new URLSearchParams(location.search), s=p.get("storkreds"), k=p.get("kreds");
+  const p=new URLSearchParams(location.search), s=p.get("storkreds"), k=p.get("kreds"), cand=p.get("kandidat");
   if(s && STORKREDSE.includes(s)){
     el("storkredsSelect").value=s;
     state.storkreds = s;
@@ -296,6 +318,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     }else if(k && (KREDS_BY_STORKREDS[s]||[]).includes(k)){
       el("kredsSelect").value=k; state.kreds=k; await loadKredsData(s,k);
     }
+    if(cand) selectCandidateById(cand);
   }else{
     el("storkredsSelect").value = DK_VALUE;
     state.storkreds = "";
@@ -315,7 +338,6 @@ window.addEventListener("DOMContentLoaded", async ()=>{
 
 /* Toggle UI helpers */
 function updateTopButtonsForScope(){
-  // Skift label for "alle"-knappen når vi står på DK
   const isDK = !state.storkreds;
   const btnAll = el("btnAll");
   if(btnAll) btnAll.textContent = isDK ? "Top 50" : "Alle kandidater";
@@ -343,12 +365,14 @@ function initStorkredsDropdown(){
     state.activeParty=""; state.kreds=""; state.selectedKredse.clear(); clearAll(); renderExtraKredsChips(); updateAddKredsUIState();
     const u=new URL(location.href);
     if(v===DK_VALUE || !v){
-      u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
+      u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
+      history.replaceState({}, "", u);
       el("kredsSelect").disabled=true; el("kredsSelect").innerHTML=`<option value="">(Vælg storkreds for at vælge kreds)</option>`;
       state.storkreds=""; await loadNationalData();
     }else{
       state.storkreds=v; populateKredse(v);
-      u.searchParams.set("storkreds",v); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
+      u.searchParams.set("storkreds",v); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
+      history.replaceState({}, "", u);
       await loadStorkredsData(v);
     }
     renderContextBar();
@@ -467,7 +491,7 @@ async function loadStorkredsData(storkreds){
   el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
 }
 
-/* CSV-parse + normalisering — robust storkreds-udfyldning */
+/* CSV-parse + normalisering */
 function parseCsv(text, kredsNameOverride=null){
   const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
   state.rows=res.data.map(r=>{
@@ -688,7 +712,7 @@ function renderOverview(){
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
     const stk = primaryStorkredsForCandidate(candId, rows);
-    if(stk) gotoStorkreds(stk);
+    if(stk) gotoStorkreds(stk, candId); // NYT: send kandidat videre
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -762,7 +786,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: ingen knap; Storkreds/kreds: “Tilføj” */
+/* Kandidatliste – DK: “Se i storkreds” (sender kandidat-id med); Storkreds/kreds: “Tilføj” */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
@@ -779,7 +803,7 @@ function renderPartyDetail(parti){
   function addCandidate(k){
     if(!state.storkreds){
       const stk = primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows());
-      if(stk) gotoStorkreds(stk);
+      if(stk) gotoStorkreds(stk, k.kandidat_id); // send kandidat-id
       return;
     }
     const check = canAddCandidate(k.kandidat_id);
@@ -800,10 +824,12 @@ function renderPartyDetail(parti){
         <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
         <div class="text-xs text-gray-500">${meta}</div>
       </div>
-      ${state.storkreds ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>` : ``}
+      ${state.storkreds ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>` : `<button class="vb-btn" data-see="${k.kandidat_id}">Se i storkreds</button>`}
     </div>`;
-    const btn = div.querySelector("button[data-add]");
-    if(btn) btn.onclick=()=>addCandidate(k);
+    const add = div.querySelector("button[data-add]");
+    if(add) add.onclick=()=>addCandidate(k);
+    const see = div.querySelector("button[data-see]");
+    if(see) see.onclick=()=>addCandidate(k); // i DK-tilfældet hopper funktionen til storkreds
     return div;
   }
 
@@ -1025,7 +1051,8 @@ function renderContextBar(){
   dk?.addEventListener('click', async ()=>{
     el("storkredsSelect").value = DK_VALUE;
     state.storkreds=""; state.kreds=""; state.selectedKredse.clear();
-    const u=new URL(location.href); u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); history.replaceState({}, "", u);
+    const u=new URL(location.href); u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
+    history.replaceState({}, "", u);
     await loadNationalData(); renderAll();
   });
 
@@ -1034,7 +1061,8 @@ function renderContextBar(){
     const s = state.storkreds;
     el("kredsSelect").value = KREDS_ALL_VALUE;
     state.kreds = KREDS_ALL_VALUE;
-    const u=new URL(location.href); u.searchParams.set("storkreds", s); u.searchParams.set("kreds", KREDS_ALL_VALUE); history.replaceState({}, "", u);
+    const u=new URL(location.href); u.searchParams.set("storkreds", s); u.searchParams.set("kreds", KREDS_ALL_VALUE); u.searchParams.delete("kandidat");
+    history.replaceState({}, "", u);
     await loadStorkredsData(s); renderAll();
   });
 }
