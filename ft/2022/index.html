@@ -266,7 +266,6 @@ function primaryStorkredsForCandidate(candId, rows){
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
-  // Første kandidat er altid ok at tilføje
   if(!state.selected.has(candId)){
     state.selected.set(candId, {
       kandidat_id: candId,
@@ -279,6 +278,49 @@ function selectCandidateById(candId){
   if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+/* ————— NYT: robust navigation fra DK → storkreds ————— */
+function normalize(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
+function resolveStorkredsName(hint){
+  if(!hint) return null;
+  const h = normalize(hint);
+  // fuldt match først
+  for(const sk of STORKREDSE){ if(normalize(sk)===h) return sk; }
+  // indeholder/startsWith som fallback
+  for(const sk of STORKREDSE){ const n=normalize(sk); if(n.includes(h) || h.includes(n)) return sk; }
+  return null;
+}
+async function loadStorkredsAndTrySelect(stk, candId){
+  // sæt UI til storkreds + alle kredse
+  el("storkredsSelect").value = stk;
+  populateKredse(stk);
+  state.storkreds = stk;
+  state.kreds = KREDS_ALL_VALUE;
+  const u=new URL(location.href);
+  u.searchParams.set("storkreds", stk);
+  u.searchParams.set("kreds", KREDS_ALL_VALUE);
+  u.searchParams.delete("kandidat");
+  history.replaceState({}, "", u);
+
+  await loadStorkredsData(stk);
+  const found = state.rows.some(r=>r.kandidat_id===candId);
+  if(found){ selectCandidateById(candId); return true; }
+  return false;
+}
+async function goToCandidateSmart(candId, storkredsHint){
+  // prøv hint først, derefter alle andre storkredse
+  const first = resolveStorkredsName(storkredsHint);
+  const order = first ? [first, ...STORKREDSE.filter(x=>x!==first)] : STORKREDSE.slice();
+  for(const sk of order){
+    try{
+      const ok = await loadStorkredsAndTrySelect(sk, candId);
+      if(ok) return;
+    }catch(_){}
+  }
+  // hvis vi ender her: ikke fundet
+  showError("Kunne ikke finde kandidatudskrift i nogen storkreds.");
+}
+
+/* Bruges i de “hurtige” DK-toplister */
 function gotoStorkreds(storkredsName, candidateId=null){
   if(!storkredsName) return;
   const u=new URL(location.href);
@@ -418,7 +460,7 @@ function clearAll(){
 }
 
 /* ================= NATIONAL ================= */
-/* NYT: prøv Danmark_top50.json først, ellers fallback som før */
+/* Prøv Danmark_top50.json først, ellers fallback som før */
 async function loadNationalData(){
   el("error").textContent="";
   el("storkredstitel").textContent=`(Danmark)`;
@@ -429,8 +471,7 @@ async function loadNationalData(){
     if(r.ok){
       const data = await r.json();
       state.fastTopDK = Array.isArray(data.candidates) ? data.candidates : null;
-      // I DK bruger vi kun top-liste – rens rækker for ikke at trigge partivalg mv.
-      state.rows = [];
+      state.rows = []; // DK: vi viser kun top-liste – ikke partivalg/tabel
       afterDataLoaded();
       return;
     }
@@ -684,7 +725,7 @@ function getOverviewRows(){
 function renderOverview(){
   const isDK = !state.storkreds;
 
-  /* NYT: Brug hurtig JSON i DK hvis den findes */
+  /* Brug hurtig JSON i DK hvis den findes */
   if(isDK && state.fastTopDK && Array.isArray(state.fastTopDK)){
     const list = (state.topListMode === "top10")
       ? state.fastTopDK.slice(0, 10)
@@ -721,11 +762,11 @@ function renderOverview(){
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
         const candId=item.getAttribute('data-cand');
         const hint=item.getAttribute('data-hint') || "";
-        item.addEventListener('click', ()=>toggleCandidateFromTopFast(candId, hint));
-        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTopFast(candId, hint); }});
+        item.addEventListener('click', ()=>goToCandidateSmart(candId, hint));
+        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); goToCandidateSmart(candId, hint); }});
       });
     });
-    return; // vigtigt – brugte den hurtige vej
+    return; // vigtig – brug hurtig vej
   }
 
   // --- eksisterende (langsommere) beregning, uændret ---
@@ -780,7 +821,7 @@ function renderOverview(){
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
     const stk = primaryStorkredsForCandidate(candId, rows);
-    if(stk) gotoStorkreds(stk, candId); // NYT: send kandidat videre
+    if(stk) gotoStorkreds(stk, candId);
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -797,11 +838,6 @@ function toggleCandidateFromTop(candId, rows){
   if(state.selected.size>0){
     document.getElementById('compareSection').scrollIntoView({behavior:'smooth', block:'start'});
   }
-}
-/* NYT: click-handler når vi bruger hurtig DK-liste */
-function toggleCandidateFromTopFast(candId, storkredsHint){
-  if(!storkredsHint){ return; }
-  gotoStorkreds(storkredsHint, candId);
 }
 
 /* Parti-combobox */
@@ -876,7 +912,7 @@ function renderPartyDetail(parti){
   function addCandidate(k){
     if(!state.storkreds){
       const stk = primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows());
-      if(stk) gotoStorkreds(stk, k.kandidat_id); // send kandidat-id
+      if(stk) gotoStorkreds(stk, k.kandidat_id);
       return;
     }
     const check = canAddCandidate(k.kandidat_id);
@@ -902,7 +938,7 @@ function renderPartyDetail(parti){
     const add = div.querySelector("button[data-add]");
     if(add) add.onclick=()=>addCandidate(k);
     const see = div.querySelector("button[data-see]");
-    if(see) see.onclick=()=>addCandidate(k); // i DK-tilfældet hopper funktionen til storkreds
+    if(see) see.onclick=()=>addCandidate(k);
     return div;
   }
 
