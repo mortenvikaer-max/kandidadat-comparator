@@ -1,0 +1,406 @@
+{
+  "scope": "Danmark",
+  "updated": "2025-10-23T18:56:39.769Z",
+  "candidates": [
+    {
+      "kandidat_id": "socialdemokratiet::mette frederiksen",
+      "kandidat_navn": "Mette Frederiksen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 60837,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "danmarksdemokraterne::inger støjberg",
+      "kandidat_navn": "Inger Støjberg",
+      "parti": "Danmarksdemokraterne",
+      "parti_letter": "Æ",
+      "total": 47211,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "moderaterne::lars løkke rasmussen",
+      "kandidat_navn": "Lars Løkke Rasmussen",
+      "parti": "Moderaterne",
+      "parti_letter": "M",
+      "total": 38439,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "sf - socialistisk folkeparti::jacob mark",
+      "kandidat_navn": "Jacob Mark",
+      "parti": "SF - Socialistisk Folkeparti",
+      "parti_letter": "F",
+      "total": 31235,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::magnus heunicke",
+      "kandidat_navn": "Magnus Heunicke",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 22102,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "sf - socialistisk folkeparti::pia olsen dyhr",
+      "kandidat_navn": "Pia Olsen Dyhr",
+      "parti": "SF - Socialistisk Folkeparti",
+      "parti_letter": "F",
+      "total": 18758,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "alternativet::franciska rosenkilde",
+      "kandidat_navn": "Franciska Rosenkilde",
+      "parti": "Alternativet",
+      "parti_letter": "Å",
+      "total": 15699,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "enhedslisten - de rød-grønne::pelle dragsted",
+      "kandidat_navn": "Pelle Dragsted",
+      "parti": "Enhedslisten - De Rød-Grønne",
+      "parti_letter": "Ø",
+      "total": 14129,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::mattias tesfaye",
+      "kandidat_navn": "Mattias Tesfaye",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 13948,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::sophie løhde",
+      "kandidat_navn": "Sophie Løhde",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 12210,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::bjørn brandenborg",
+      "kandidat_navn": "Bjørn Brandenborg",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 11167,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::preben bang henriksen",
+      "kandidat_navn": "Preben Bang Henriksen",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 10644,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::simon kollerup",
+      "kandidat_navn": "Simon Kollerup",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 9947,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::ida auken",
+      "kandidat_navn": "Ida Auken",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 9879,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::marie bjerre",
+      "kandidat_navn": "Marie Bjerre",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 9744,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "enhedslisten - de rød-grønne::rosa lund",
+      "kandidat_navn": "Rosa Lund",
+      "parti": "Enhedslisten - De Rød-Grønne",
+      "parti_letter": "Ø",
+      "total": 9670,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::peter hummelgaard",
+      "kandidat_navn": "Peter Hummelgaard",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 9321,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::kaare dybvad bek",
+      "kandidat_navn": "Kaare Dybvad Bek",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 8891,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::karen ellemann",
+      "kandidat_navn": "Karen Ellemann",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 8716,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::morten bødskov",
+      "kandidat_navn": "Morten Bødskov",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 8489,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::dan jørgensen",
+      "kandidat_navn": "Dan Jørgensen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 8256,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::astrid krag",
+      "kandidat_navn": "Astrid Krag",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 7872,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::bjarne laustsen",
+      "kandidat_navn": "Bjarne Laustsen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 7601,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "danmarksdemokraterne::peter skaarup",
+      "kandidat_navn": "Peter Skaarup",
+      "parti": "Danmarksdemokraterne",
+      "parti_letter": "Æ",
+      "total": 7341,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "radikale venstre::martin lidegaard",
+      "kandidat_navn": "Martin Lidegaard",
+      "parti": "Radikale Venstre",
+      "parti_letter": "B",
+      "total": 7167,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "dansk folkeparti::morten messerschmidt",
+      "kandidat_navn": "Morten Messerschmidt",
+      "parti": "Dansk Folkeparti",
+      "parti_letter": "O",
+      "total": 6722,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::anders kronborg",
+      "kandidat_navn": "Anders Kronborg",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 6497,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::erling bonnesen",
+      "kandidat_navn": "Erling Bonnesen",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 6489,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::trine bramsen",
+      "kandidat_navn": "Trine Bramsen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 6456,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "det konservative folkeparti::mette abildgaard",
+      "kandidat_navn": "Mette Abildgaard",
+      "parti": "Det Konservative Folkeparti",
+      "parti_letter": "C",
+      "total": 6376,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "radikale venstre::samira nawa",
+      "kandidat_navn": "Samira Nawa",
+      "parti": "Radikale Venstre",
+      "parti_letter": "B",
+      "total": 6302,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::kasper roug",
+      "kandidat_navn": "Kasper Roug",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 6278,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::flemming møller mortensen",
+      "kandidat_navn": "Flemming Møller Mortensen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 6194,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "dansk folkeparti::pia kjærsgaard",
+      "kandidat_navn": "Pia Kjærsgaard",
+      "parti": "Dansk Folkeparti",
+      "parti_letter": "O",
+      "total": 6084,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::jacob jensen",
+      "kandidat_navn": "Jacob Jensen",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 5797,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::fie hækkerup",
+      "kandidat_navn": "Fie Hækkerup",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5789,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "frie grønne::sikandar siddique",
+      "kandidat_navn": "Sikandar Siddique",
+      "parti": "Frie Grønne",
+      "parti_letter": "Q",
+      "total": 5625,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "liberal alliance::ole birk olesen",
+      "kandidat_navn": "Ole Birk Olesen",
+      "parti": "Liberal Alliance",
+      "parti_letter": "I",
+      "total": 5488,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::ane halsboe-jørgensen",
+      "kandidat_navn": "Ane Halsboe-Jørgensen",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5469,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::morten dahlin",
+      "kandidat_navn": "Morten Dahlin",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 5466,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::pernille rosenkrantz-theil",
+      "kandidat_navn": "Pernille Rosenkrantz-Theil",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5361,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::torsten schack pedersen",
+      "kandidat_navn": "Torsten Schack Pedersen",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 5248,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::sara emil baaring",
+      "kandidat_navn": "Sara Emil Baaring",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5247,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::mette gjerskov",
+      "kandidat_navn": "Mette Gjerskov",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5244,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "nye borgerlige::kim edberg andersen",
+      "kandidat_navn": "Kim Edberg Andersen",
+      "parti": "Nye Borgerlige",
+      "parti_letter": "D",
+      "total": 5218,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "det konservative folkeparti::rasmus jarlov",
+      "kandidat_navn": "Rasmus Jarlov",
+      "parti": "Det Konservative Folkeparti",
+      "parti_letter": "C",
+      "total": 5216,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "sf - socialistisk folkeparti::karsten hønge",
+      "kandidat_navn": "Karsten Hønge",
+      "parti": "SF - Socialistisk Folkeparti",
+      "parti_letter": "F",
+      "total": 5215,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::frederik vad",
+      "kandidat_navn": "Frederik Vad",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 5082,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "venstre, danmarks liberale parti::lars chr. lilleholt",
+      "kandidat_navn": "Lars Chr. Lilleholt",
+      "parti": "Venstre, Danmarks Liberale Parti",
+      "parti_letter": "V",
+      "total": 5017,
+      "storkreds_hint": null
+    },
+    {
+      "kandidat_id": "socialdemokratiet::rasmus horn langhoff",
+      "kandidat_navn": "Rasmus Horn Langhoff",
+      "parti": "Socialdemokratiet",
+      "parti_letter": "A",
+      "total": 4931,
+      "storkreds_hint": null
+    }
+  ]
+}
