@@ -325,7 +325,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   }
 
   el("btnClearAll")?.addEventListener('click', ()=>{ state.selected.clear(); renderAll(); });
-  document.addEventListener('click',(e)=>{ const box=el('partyCombo'); if(box && !box.contains(e.target)) closePartyMenu(); });
+  // Luk menuen ved klik udenfor – men kun hvis klikket ikke kommer fra knappen/menuen document.addEventListener('click', (e)=>{   const box = el('partyCombo');   if (!box) return;   if (!box.contains(e.target)) closePartyMenu(); });
   setupAddKredsUI();
   renderContextBar();
   updateTopToggleUI();
@@ -745,14 +745,24 @@ function getPartyStats(){
 }
 function renderPartyCombobox(){
   const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
-  if(!stats.length){ btn.disabled=true; btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`; menu.innerHTML=""; return; }
+  if(!stats.length){
+    btn.disabled=true;
+    btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`;
+    menu.innerHTML="";
+    return;
+  }
   btn.disabled=false;
+
   function renderButton(){
-    if(!state.activeParty){ btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`; return; }
+    if(!state.activeParty){
+      btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
+      return;
+    }
     const cur=stats.find(s=>s.parti===state.activeParty);
     const {style,text}=badge(cur?.letter||null);
     btnc.innerHTML=`<span class="vb-badge" style="${style}">${text}</span><span class="truncate">${escapeHtml(state.activeParty)}</span>`;
   }
+
   function renderMenu(){
     menu.innerHTML=stats.map(s=>{
       const {style,text}=badge(s.letter); const sel=s.parti===state.activeParty;
@@ -762,22 +772,45 @@ function renderPartyCombobox(){
         <span class="text-xs text-gray-500">${s.kandidatAntal} kandidater</span>
       </div>`;
     }).join("");
+
+    // Vælg parti + markér valgt option
     menu.querySelectorAll('.vb-option').forEach((opt,i)=>{
-      opt.onclick=()=>{
-        state.activeParty=opt.getAttribute('data-parti'); renderButton(); closePartyMenu(); renderPartyDetail(state.activeParty);
+      opt.onclick=(ev)=>{
+        ev.stopPropagation(); // <- vigtigt: klik i menuen skal ikke lukke den med det samme
+        state.activeParty=opt.getAttribute('data-parti');
+        renderButton();
+        closePartyMenu();
+        renderPartyDetail(state.activeParty);
         menu.querySelectorAll('.vb-option').forEach((x,j)=>x.setAttribute('aria-selected', j===i));
-        const u=new URL(location.href); u.searchParams.set("parti", state.activeParty); u.searchParams.delete("kandidat"); history.replaceState({}, "", u);
+
+        const u=new URL(location.href);
+        u.searchParams.set("parti", state.activeParty);
+        u.searchParams.delete("kandidat");
+        history.replaceState({}, "", u);
       };
     });
   }
-  btn.onclick=()=>{ const open=btn.getAttribute('aria-expanded')==='true'; if(open) closePartyMenu(); else { renderMenu(); openPartyMenu(); } };
+
+  btn.onclick = (e)=>{
+    e.preventDefault();
+    e.stopPropagation(); // <- NØGLEN: undgå at dokumentets klik-handler lukker menuen igen
+    const open = btn.getAttribute('aria-expanded')==='true';
+    if(open) closePartyMenu();
+    else { renderMenu(); openPartyMenu(); }
+  };
+
+  // Stop klik inde i menuen fra at boble op til dokumentet
+  menu.addEventListener('click', (e)=>{ e.stopPropagation(); }, { capture:true });
+
   function openPartyMenu(){ btn.setAttribute('aria-expanded','true'); menu.classList.remove('hidden'); menu.focus(); }
   function closePartyMenu(){ btn.setAttribute('aria-expanded','false'); menu.classList.add('hidden'); }
   window.closePartyMenu=closePartyMenu;
+
   renderButton();
   el("partyDetailHeader").textContent = "Vælg et parti i drop-down menuen.";
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
+
 
 /* Kandidatliste */
 function renderPartyDetail(parti){
