@@ -230,8 +230,9 @@ const state = {
   selectedKredse:new Set(), csvCache:new Map(),
   topListMode:"top10",
   candidateSortMode:"alpha",
-  /* NYT: hurtig DK-topliste hvis Danmark_top50.json findes */
-  fastTopDK: null
+  /* NYT: hurtig DK-top & indeks */
+  fastTopDK: null,         // [{kandidat_id, kandidat_navn, parti, parti_letter?, total, storkreds}, ...]
+  fastIndex: null          // Map(kandidat_id -> storkreds)
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
@@ -267,60 +268,13 @@ function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
   if(!state.selected.has(candId)){
-    state.selected.set(candId, {
-      kandidat_id: candId,
-      kandidat_navn: sample.kandidat_navn,
-      parti: sample.parti
-    });
+    state.selected.set(candId, { kandidat_id: candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
   }
   renderAll();
   const sec = document.getElementById('compareSection');
   if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-/* ————— NYT: robust navigation fra DK → storkreds ————— */
-function normalize(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
-function resolveStorkredsName(hint){
-  if(!hint) return null;
-  const h = normalize(hint);
-  // fuldt match først
-  for(const sk of STORKREDSE){ if(normalize(sk)===h) return sk; }
-  // indeholder/startsWith som fallback
-  for(const sk of STORKREDSE){ const n=normalize(sk); if(n.includes(h) || h.includes(n)) return sk; }
-  return null;
-}
-async function loadStorkredsAndTrySelect(stk, candId){
-  // sæt UI til storkreds + alle kredse
-  el("storkredsSelect").value = stk;
-  populateKredse(stk);
-  state.storkreds = stk;
-  state.kreds = KREDS_ALL_VALUE;
-  const u=new URL(location.href);
-  u.searchParams.set("storkreds", stk);
-  u.searchParams.set("kreds", KREDS_ALL_VALUE);
-  u.searchParams.delete("kandidat");
-  history.replaceState({}, "", u);
-
-  await loadStorkredsData(stk);
-  const found = state.rows.some(r=>r.kandidat_id===candId);
-  if(found){ selectCandidateById(candId); return true; }
-  return false;
-}
-async function goToCandidateSmart(candId, storkredsHint){
-  // prøv hint først, derefter alle andre storkredse
-  const first = resolveStorkredsName(storkredsHint);
-  const order = first ? [first, ...STORKREDSE.filter(x=>x!==first)] : STORKREDSE.slice();
-  for(const sk of order){
-    try{
-      const ok = await loadStorkredsAndTrySelect(sk, candId);
-      if(ok) return;
-    }catch(_){}
-  }
-  // hvis vi ender her: ikke fundet
-  showError("Kunne ikke finde kandidatudskrift i nogen storkreds.");
-}
-
-/* Bruges i de “hurtige” DK-toplister */
 function gotoStorkreds(storkredsName, candidateId=null){
   if(!storkredsName) return;
   const u=new URL(location.href);
@@ -459,26 +413,32 @@ function clearAll(){
   renderAll();
 }
 
-/* ================= NATIONAL ================= */
-/* Prøv Danmark_top50.json først, ellers fallback som før */
+/* ================= NATIONAL (Hele Danmark) ================= */
 async function loadNationalData(){
   el("error").textContent="";
   el("storkredstitel").textContent=`(Danmark)`;
 
-  // 1) Hurtig top-liste via JSON (hvis den findes)
+  /* NYT: forsøg hurtig top-liste via JSON + indeks (ingen scanning) */
   try{
     const r = await fetch(`${BASE_PATH}Danmark_top50.json`, { cache:"no-store" });
     if(r.ok){
       const data = await r.json();
       state.fastTopDK = Array.isArray(data.candidates) ? data.candidates : null;
-      state.rows = []; // DK: vi viser kun top-liste – ikke partivalg/tabel
+      // O(1) map: kandidat_id -> storkreds
+      state.fastIndex = new Map();
+      if (state.fastTopDK) {
+        state.fastTopDK.forEach(c => {
+          if (c && c.kandidat_id && c.storkreds) state.fastIndex.set(c.kandidat_id, c.storkreds);
+        });
+      }
+      state.rows = []; // vi bruger ikke DK-CSV til toplisten
       afterDataLoaded();
       return;
     }
-  }catch(_){ /* ignorer, og prøv CSV */ }
+  }catch(_){ /* ignorer, fald tilbage */ }
 
-  // 2) Fallback: CSV for DK hvis du har det
-  state.fastTopDK = null;
+  // Fallback: originale CSV-forsøg (langsommere)
+  state.fastTopDK = null; state.fastIndex = null;
   const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
   for(const url of candidates){
     try{
@@ -491,8 +451,7 @@ async function loadNationalData(){
       }
     }catch(_){}
   }
-
-  // 3) Sidste fallback: Aggreger alle kredse fra alle storkredse (tungt)
+  // Ultimate fallback: samle alt fra storkredse (tungt)
   const all = [];
   for(const sk of STORKREDSE){
     const kredse = KREDS_BY_STORKREDS[sk] || [];
@@ -725,51 +684,58 @@ function getOverviewRows(){
 function renderOverview(){
   const isDK = !state.storkreds;
 
-  /* Brug hurtig JSON i DK hvis den findes */
-  if(isDK && state.fastTopDK && Array.isArray(state.fastTopDK)){
-    const list = (state.topListMode === "top10")
-      ? state.fastTopDK.slice(0, 10)
-      : state.fastTopDK.slice(0, 50);  // DK: “Alle” = Top 50
-
+  // ---------- DK: brug den hurtige liste hvis vi har den ----------
+  if(isDK && Array.isArray(state.fastTopDK) && state.fastTopDK.length){
     el("top10Scope").textContent = "Danmark";
-    el("top10Title").textContent = (state.topListMode === "top10")
-      ? "Top 10 kandidater (personlige stemmer)"
-      : "Top 50 kandidater (personlige stemmer)";
 
-    function itemHTMLFast(k, idx){
-      const letter = (k.parti_letter || "").toUpperCase();
-      const bg = letter ? (PARTY_COLORS[letter] ? PARTY_COLORS[letter] : "#e5e7eb") : "#e5e7eb";
-      const fg = letter ? "#fff" : "#111827";
-      const badge = `<span class="vb-badge" style="background-color:${bg};color:${fg};border-color:${bg}">${letter || " "}</span>`;
+    const ranked = state.fastTopDK.slice().sort((a,b)=> (b.total||0)-(a.total||0));
+    let list;
+    if(state.topListMode==="top10"){
+      list = ranked.slice(0,10);
+      el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
+    }else{
+      list = ranked.slice(0,50);
+      el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
+    }
+
+    function itemHTML(k, idx){
+      const letter = k.parti_letter && PARTY_COLORS[k.parti_letter] ? k.parti_letter : null;
+      const bd = badge(letter);
       const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-      return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" data-hint="${escapeHtml(k.storkreds_hint||"")}" role="button" tabindex="0" title="Klik for at se i storkreds">
+      return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at se i storkreds">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
           <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
           <div class="text-xs text-gray-500 truncate">${meta}</div>
         </div>
-        ${badge}
+        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
       </li>`;
     }
 
     const half = Math.ceil(list.length/2);
     const left = list.slice(0,half);
     const right = list.slice(half);
-    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTMLFast(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTMLFast(k, i+1+half)).join("");
+    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
 
+    // Klik: direkte hop via fastIndex (O(1))
     ["top10ColLeft","top10ColRight"].forEach(rootId=>{
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
-        const candId=item.getAttribute('data-cand');
-        const hint=item.getAttribute('data-hint') || "";
-        item.addEventListener('click', ()=>goToCandidateSmart(candId, hint));
-        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); goToCandidateSmart(candId, hint); }});
+        const candId = item.getAttribute('data-cand');
+        const go = ()=>{
+          const sk = state.fastIndex ? state.fastIndex.get(candId) : null;
+          if (sk) gotoStorkreds(sk, candId);
+          else showError("Mangler storkreds i Danmark_top50.json for denne kandidat.");
+        };
+        item.addEventListener('click', go);
+        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
       });
     });
-    return; // vigtig – brug hurtig vej
+
+    return; // DK gjort
   }
 
-  // --- eksisterende (langsommere) beregning, uændret ---
+  // ---------- Ikke-DK (eller ingen fastTopDK): original logik ----------
   const rows = getOverviewRows();
   const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
@@ -781,7 +747,7 @@ function renderOverview(){
     el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
   }else{
     if(isDK){
-      list = ranked.slice(0,50); // DK: “Alle” = Top 50
+      list = ranked.slice(0,50); // fallback: DK “Alle” = Top 50
       el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
     }else{
       list = ranked; // storkreds/kreds: vis alle
@@ -820,6 +786,7 @@ function renderOverview(){
 }
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
+    // Fallback-DK (uden fastTopDK): find primær storkreds ved at tælle forekomst i rows
     const stk = primaryStorkredsForCandidate(candId, rows);
     if(stk) gotoStorkreds(stk, candId);
     return;
@@ -912,7 +879,7 @@ function renderPartyDetail(parti){
   function addCandidate(k){
     if(!state.storkreds){
       const stk = primaryStorkredsForCandidate(k.kandidat_id, getOverviewRows());
-      if(stk) gotoStorkreds(stk, k.kandidat_id);
+      if(stk) gotoStorkreds(stk, k.kandidat_id); // send kandidat-id
       return;
     }
     const check = canAddCandidate(k.kandidat_id);
@@ -938,7 +905,7 @@ function renderPartyDetail(parti){
     const add = div.querySelector("button[data-add]");
     if(add) add.onclick=()=>addCandidate(k);
     const see = div.querySelector("button[data-see]");
-    if(see) see.onclick=()=>addCandidate(k);
+    if(see) see.onclick=()=>addCandidate(k); // i DK-tilfældet hopper funktionen til storkreds
     return div;
   }
 
@@ -1142,7 +1109,7 @@ function renderContextBar(){
   parts.push(state.storkreds ? `<span class="crumb" data-nav="dk">Hele Danmark</span>` : `<span class="crumb-strong">Hele Danmark</span>`);
 
   if(state.storkreds){
-    parts.push(`<span class="sep">/</span>`);
+    parts.push(`<span class="sep">/</span>`;
     const isStorkredsAll = !state.kreds || state.kreds===KREDS_ALL_VALUE;
     parts.push(isStorkredsAll
       ? `<span class="crumb-strong">${escapeHtml(state.storkreds)}</span>`
