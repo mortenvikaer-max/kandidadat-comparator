@@ -1177,25 +1177,50 @@ function renderContextBar(){
 
   bar.innerHTML = parts.join("");
 
+  // --- Klik: Hele Danmark (DK) ---
   const dk = bar.querySelector('[data-nav="dk"]');
   dk?.addEventListener('click', async ()=>{
+    // Ryd ALT valg-state, så tidligere kandidater ikke hænger ved
+    state.selected.clear();
+    state.activeParty = "";
+    state.selectedKredse.clear();
+    try { closePartyMenu(); } catch(_) {}
+
+    // Nulstil dropdowns og URL
     el("storkredsSelect").value = DK_VALUE;
-    state.storkreds=""; state.kreds=""; state.selectedKredse.clear();
-    const u=new URL(location.href); u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
+    state.storkreds = "";
+    state.kreds = "";
+    const u = new URL(location.href);
+    u.searchParams.delete("storkreds");
+    u.searchParams.delete("kreds");
+    u.searchParams.delete("kandidat");
+    u.searchParams.delete("parti");
     history.replaceState({}, "", u);
-    await loadNationalData(); renderAll();
+
+    // Indlæs DK og render
+    await loadNationalData();
+    renderAll();
   });
 
+  // --- Klik: Storkreds (fra en bestemt kreds tilbage til "Alle kredse i storkredsen") ---
   const sk = bar.querySelector('[data-nav="storkreds"]');
   sk?.addEventListener('click', async ()=>{
     const s = state.storkreds;
+    try { closePartyMenu(); } catch(_) {}
     el("kredsSelect").value = KREDS_ALL_VALUE;
     state.kreds = KREDS_ALL_VALUE;
-    const u=new URL(location.href); u.searchParams.set("storkreds", s); u.searchParams.set("kreds", KREDS_ALL_VALUE); u.searchParams.delete("kandidat");
+
+    const u = new URL(location.href);
+    u.searchParams.set("storkreds", s);
+    u.searchParams.set("kreds", KREDS_ALL_VALUE);
+    u.searchParams.delete("kandidat");
     history.replaceState({}, "", u);
-    await loadStorkredsData(s); renderAll();
+
+    await loadStorkredsData(s);
+    renderAll();
   });
 }
+
 
 function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
 </script>
