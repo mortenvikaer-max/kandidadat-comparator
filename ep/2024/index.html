@@ -75,6 +75,7 @@
 .details-summary{ cursor:pointer; list-style:none; padding:.75rem 1rem; display:flex; align-items:center; justify-content:space-between; }
 .details-summary::-webkit-details-marker{ display:none; }
 .kreds-list{ padding:.5rem 1rem 1rem; }
+.total-row{ display:flex; align-items:center; justify-content:space-between; padding:.5rem .75rem; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; margin-bottom:.5rem; }
 </style>
 </head>
 
@@ -206,6 +207,10 @@
       <button id="candClose" class="vb-btn" type="button">Luk</button>
     </div>
     <div class="modal-body">
+      <div id="candTotal" class="total-row" aria-live="polite">
+        <span class="text-sm text-gray-600">Stemmer i alt</span>
+        <span class="tabular-nums font-semibold" id="candTotalVal">0</span>
+      </div>
       <div class="text-sm text-gray-600 mb-2">Stemmetal pr. storkreds (klik for at folde kredse ud)</div>
       <div id="candBreakdown" class="space-y-2"></div>
     </div>
@@ -231,6 +236,26 @@ const PARTY_COLORS = {
   "Æ":"#666666","M":"#6f42c1"
 };
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
+
+/* Partinavn → bogstav fallback (hvis CSV mangler parti_bogstav) */
+const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
+const PARTY_LETTERS_BY_NAME = {
+  "socialdemokratiet":"A",
+  "radikale venstre":"B","det radikale venstre":"B",
+  "konservative folkeparti":"C","det konservative folkeparti":"C",
+  "nye borgerlige":"D",
+  "socialistisk folkeparti":"F","sf":"F","sf socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F",
+  "liberal alliance":"I",
+  "venstre":"V","venstre, danmarks liberale parti":"V",
+  "dansk folkeparti":"O",
+  "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
+  "alternativet":"Å",
+  "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
+  "moderaterne":"M",
+  "danmarksdemokraterne":"Æ",
+  "frie grønne":"Q"
+};
+const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
 
 /* Helpers & state */
 const state = {
@@ -267,6 +292,21 @@ function badge(letter){
   const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG;
   const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG;
   return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") };
+}
+
+/* Få partibogstav fra rækker – ellers fallback fra navn */
+function partyLetterFrom(parti, rows){
+  // 1) direkte fra CSV (parti_letter)
+  for(const r of rows){
+    if(r.parti===parti){
+      const L=(r.parti_letter||"").toUpperCase();
+      if(L && PARTY_COLORS[L]) return L;
+    }
+  }
+  // 2) fallback fra navn
+  const mapped = PARTY_LETTERS_BY_NAME_NORM[norm(parti)];
+  if(mapped && PARTY_COLORS[mapped]) return mapped;
+  return null;
 }
 
 /* Loader */
@@ -504,25 +544,6 @@ function totalsByCandidate(rows){
     .sort((a,b)=>b.total-a.total);
 }
 
-function detectPartyLetterFromRowsForParti(p, rows){
-  for(const r of rows){ if(r.parti===p){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } }
-  return null;
-}
-
-function primaryScopeForCandidate(candId, rows){
-  const count=new Map();
-  for(const r of rows){
-    if(r.kandidat_id===candId){
-      const key = `${r.storkreds}::${r.kreds||""}`;
-      count.set(key,(count.get(key)||0)+1);
-    }
-  }
-  if(!count.size) return { storkreds:"", kreds:"" };
-  const [key] = Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0];
-  const [storkreds, kreds] = key.split("::");
-  return { storkreds, kreds };
-}
-
 function renderOverview(){
   const rowsRaw = getActiveRows();
   const isDK = !state.storkreds;
@@ -545,7 +566,7 @@ function renderOverview(){
   }
 
   function itemHTML(k, idx){
-    const letter = detectPartyLetterFromRowsForParti(k.parti, rowsRaw);
+    const letter = partyLetterFrom(k.parti, rowsRaw);
     const bd = badge(letter);
     const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
     const title = isDK ? 'Klik for at se fordeling' : 'Klik for at tilføje til sammenligning';
@@ -609,14 +630,18 @@ function openCandidateModal(candidateId){
   const title = document.getElementById('candTitle');
   const sub = document.getElementById('candSub');
   const body = document.getElementById('candBreakdown');
+  const totalBox = document.getElementById('candTotalVal');
 
   if(!sampleRow){ return; }
   const rowsForLetter = state.rows.length ? state.rows : (state.csvCache.get(sampleRow.storkreds)||[]);
-  const letter = detectPartyLetterFromRowsForParti(sampleRow.parti, rowsForLetter) || "";
+  const letter = partyLetterFrom(sampleRow.parti, rowsForLetter) || "";
   const nameWithLetter = `${sampleRow.kandidat_navn}${letter?` (${letter})`:''}`;
 
   title.textContent = nameWithLetter;
   sub.textContent = sampleRow.parti;
+
+  const grandTotal = items.reduce((acc,it)=>acc+it.total,0);
+  totalBox.textContent = fmt(grandTotal);
 
   body.innerHTML = items.length
     ? items.map(item=>{
@@ -722,7 +747,7 @@ function getPartyStats(){
       map.get(r.kandidat_id).total+=r.stemmer;
     }
     const kandidater=Array.from(map.values());
-    const letter = (()=>{ for(const r of rowsP){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } return null; })();
+    const letter = partyLetterFrom(parti, rowsP);
     res.push({ parti, letter, hasLetter: !!letter, kandidatAntal: kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length, kandidater });
   }
   res.sort((a,b)=>{ if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1; if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da"); return a.parti.localeCompare(b.parti,"da"); });
@@ -794,7 +819,7 @@ function renderPartyDetail(parti){
 
   function addCandidate(k){
     if(!state.storkreds){
-      const { storkreds, kreds } = primaryScopeForCandidate(k.kandidat_id, getActiveRows());
+      const { storkreds, kreds } = { storkreds:"", kreds:"" }; // DK: vi åbner modal via top-listen, her holder vi os i scope
       if(storkreds) gotoScope(storkreds, kreds || null, k.kandidat_id);
       return;
     }
@@ -806,7 +831,7 @@ function renderPartyDetail(parti){
     const listestemmer=isListestemmer(k.kandidat_navn);
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
-    const letterHere = detectPartyLetterFromRowsForParti(k.parti, getActiveRows());
+    const letterHere = partyLetterFrom(k.parti, getActiveRows());
     const navn = `${escapeHtml(k.kandidat_navn)}${letterHere?` (${letterHere})`:''}`;
 
     const div=document.createElement('div');
@@ -847,10 +872,7 @@ function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
 
 function renderSelected(){
   const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
-  function letterForParti(parti){
-    for(const r of getActiveRows()){ if(r.parti===parti){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } }
-    return null;
-  }
+  function letterForParti(parti){ return partyLetterFrom(parti, getActiveRows()); }
   root.innerHTML = sel.map(k=>{
     const L = letterForParti(k.parti);
     const bd=badge(L), total=totals.get(k.kandidat_id)||0;
@@ -907,15 +929,9 @@ function renderPsTable(psList, sel){
     return;
   }
 
-  function letterForParti(parti){
-    for(const r of getActiveRows()){ if(r.parti===parti){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } }
-    return null;
-  }
   const header = sel.map(s=>{
-    const bd = badge(letterForParti(s.parti));
-    const rowsForLetter = getActiveRows();
-    let L = null;
-    for(const r of rowsForLetter){ if(r.parti===s.parti){ const LL=(r.parti_letter||"").toUpperCase(); if(LL && PARTY_COLORS[LL]){ L=LL; break; } } }
+    const L = partyLetterFrom(s.parti, getActiveRows());
+    const bd = badge(L);
     const navn = `${escapeHtml(s.kandidat_navn)}${L?` (${L})`:''}`;
     return `<th class="py-2 pr-3"><div class="flex items-center gap-2">
       <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
