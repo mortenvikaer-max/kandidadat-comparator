@@ -253,6 +253,14 @@
     return null;
   }
 
+  /* ===== Region-lookup (NY) ===== */
+  function findRegionForKommune(kommune){
+    for(const [reg, kommuner] of Object.entries(REGIONS)){
+      if(kommuner.includes(kommune)) return reg;
+    }
+    return "";
+  }
+
   /* ===== URL helpers ===== */
   function getSelectedIds(){ return Array.from(state.selected.keys()); }
   function setSelectedFromIds(idArr){ state.pendingCandidateIds = (idArr||[]).filter(Boolean); }
@@ -334,7 +342,7 @@
         state.candidateSortMode="alpha";
         updateCandSortToggleUI();
         if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true); // aktiv brugerhandling → push
+        persistUrl(true);
       }
     });
     el("btnSortVotes").addEventListener("click", ()=>{
@@ -342,7 +350,7 @@
         state.candidateSortMode="votes";
         updateCandSortToggleUI();
         if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true); // aktiv brugerhandling → push
+        persistUrl(true);
       }
     });
 
@@ -352,7 +360,7 @@
         state.topListMode="top10";
         updateTopToggleUI();
         renderOverview();
-        persistUrl(true); // aktiv brugerhandling → push
+        persistUrl(true);
       }
     });
     el("btnAll").addEventListener("click", ()=>{
@@ -360,11 +368,11 @@
         state.topListMode="all";
         updateTopToggleUI();
         renderOverview();
-        persistUrl(true); // aktiv brugerhandling → push
+        persistUrl(true);
       }
     });
 
-    // Første load: hydrer fra URL eller default
+    // Første load
     await hydrateFromUrl();
 
     el("btnClearAll").onclick=()=>{ state.selected.clear(); renderAll(); persistUrl(false); };
@@ -568,6 +576,24 @@
     }
     return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
   }
+
+  /* NY: fallback-region i primaryKommuneForCandidate */
+  function primaryKommuneForCandidate(candId, rows){
+    const count=new Map(); const reg=new Map();
+    for(const r of rows){
+      if(r.kandidat_id===candId){
+        count.set(r.kommune,(count.get(r.kommune)||0)+1);
+        // CSV kan mangle region => gem det der evt. findes
+        if(r.region) reg.set(r.kommune, r.region);
+      }
+    }
+    if(count.size===0) return null;
+    const [kommune, ] = Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0];
+    const regionFromCsv = reg.get(kommune) || "";
+    const regionFinal = regionFromCsv || findRegionForKommune(kommune); // fallback via REGIONS
+    return { kommune, region: regionFinal };
+  }
+
   function renderOverview(){
     const rows = state.rows || [];
     const atScope = state.kommune ? state.kommune : (state.region? `${state.region}` : 'Danmark');
@@ -607,15 +633,6 @@
         item.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCandidateFromTop(candId, rows); } });
       });
     });
-  }
-
-  // Find kandidatens primære kommune (flest rækker)
-  function primaryKommuneForCandidate(candId, rows){
-    const count=new Map(); const reg=new Map();
-    for(const r of rows){ if(r.kandidat_id===candId){ count.set(r.kommune,(count.get(r.kommune)||0)+1); reg.set(r.kommune, r.region); } }
-    if(count.size===0) return null;
-    const [kommune, ] = Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0];
-    return { kommune, region: reg.get(kommune)||"" };
   }
 
   function toggleCandidateFromTop(candId, rows){
@@ -701,7 +718,6 @@
           state.activeParty=opt.getAttribute('data-parti');
           renderButton(); closePartyMenu(); renderPartyDetail(state.activeParty);
           menu.querySelectorAll('.vb-option').forEach((x,j)=>x.setAttribute('aria-selected', j===i));
-          // parti er ikke et “niveau” → replace
           persistUrl(false);
         };
       });
@@ -819,7 +835,7 @@
     </tr>`;
   }
 
-  /* ===== BROEDKRUMMER ===== */
+  /* ===== BRODKRUMMER ===== */
   function renderContextBar(){
     const bar = document.getElementById('contextBar');
     const parts = [];
