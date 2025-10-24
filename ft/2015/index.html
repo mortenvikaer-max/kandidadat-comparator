@@ -269,6 +269,54 @@ function primaryStorkredsForCandidate(candId, rows){
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
+/* ===== Robust filnavn-match (NYT til 2015) ===== */
+function kredsFilenameVariants(kreds) {
+  const raw = (kreds || "").trim();
+  const forms = new Set([
+    raw,
+    raw.replace(/\s+/g, "_"),
+    raw.replace(/\s+/g, "-"),
+    raw.replace(/\s+/g, ""),
+    raw.toLowerCase(),
+    raw.toLowerCase().replace(/\s+/g, "_"),
+    raw.toLowerCase().replace(/\s+/g, "-"),
+    raw.toLowerCase().replace(/\s+/g, "")
+  ]);
+  if (/\bkredsen$/i.test(raw)) {
+    const base = raw.replace(/\s*kredsen$/i, "").trim();
+    [
+      base,
+      base.replace(/\s+/g, "_"),
+      base.replace(/\s+/g, "-"),
+      base.replace(/\s+/g, ""),
+      base.toLowerCase(),
+      base.toLowerCase().replace(/\s+/g, "_"),
+      base.toLowerCase().replace(/\s+/g, "-"),
+      base.toLowerCase().replace(/\s+/g, "")
+    ].forEach(v => forms.add(v));
+  }
+  return Array.from(forms);
+}
+function kredsUrlCandidates(storkreds, kreds) {
+  const s = encodeURIComponent(storkreds);
+  const variants = kredsFilenameVariants(kreds).map(v => encodeURIComponent(v));
+  const urls = [];
+  for (const v of variants) {
+    urls.push(`${BASE_PATH}${s}/${v}_allepartier.csv`);
+    urls.push(`${BASE_PATH}${s}/${v}.csv`);
+  }
+  return urls;
+}
+async function fetchFirstOkText(urls) {
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (r.ok) return await r.text();
+    } catch (_) {}
+  }
+  throw new Error("not found");
+}
+
 /* NYT: Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
@@ -375,7 +423,7 @@ function initStorkredsDropdown(){
     if(v===DK_VALUE || !v){
       u.searchParams.delete("storkreds"); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
       history.replaceState({}, "", u);
-      el("kredsSelect").disabled=true; el("kredsSelect").innerHTML=`<option value=\"\">(Vælg storkreds for at vælge kreds)</option>`;
+      el("kredsSelect").disabled=true; el("kredsSelect").innerHTML=`<option value="">(Vælg storkreds for at vælge kreds)</option>`;
       state.storkreds=""; await loadNationalData();
     }else{
       state.storkreds=v; populateKredse(v);
@@ -416,7 +464,7 @@ function updateAddKredsUIState(){
 function clearAll(){
   state.rows=[]; state.selected.clear();
   const btn=el("partyButton"), btnc=el("partyButtonContent"); btn.disabled=true; btn.setAttribute('aria-expanded','false');
-  btnc.innerHTML=`<span class=\"vb-badge\" style=\"background:#e5e7eb;color:#111827;border-color:#e5e7eb\"> </span><span class=\"truncate text-gray-500\">Vælg kreds først…</span>`;
+  btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg kreds først…</span>`;
   el("partyMenu").innerHTML=""; el("partyDetailHeader").textContent="Vælg et parti i drop-down menuen.";
   el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   el("storkredstitel").textContent="";
@@ -451,17 +499,23 @@ async function loadNationalData(){
   if(!all.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
 }
 
-/* Data-indlæsning (kreds) */
+/* Data-indlæsning (kreds) — ROBUST */
 async function loadKredsData(storkreds,kreds){
   el("error").textContent="";
   el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-  const candidates=[
-    `${BASE_PATH}${s}/${k}_allepartier.csv`,
-    `${BASE_PATH}${s}/${k}.csv`,
-    `${BASE_PATH}${s}_allepartier.csv`,
-    `${BASE_PATH}${s}.csv`
-  ];
+
+  // Prøv mange filnavne-varianter
+  const urls = kredsUrlCandidates(storkreds, kreds);
+  try {
+    const text = await fetchFirstOkText(urls);
+    parseCsv(text, kreds);
+    afterDataLoaded();
+    return;
+  } catch(e) {}
+
+  // Fallback til evt. storkreds-aggregat
+  const s=encodeURIComponent(storkreds);
+  const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
   for(const url of candidates){
     try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
   }
@@ -527,7 +581,7 @@ function parseCsv(text, kredsNameOverride=null){
   });
 }
 
-/* Ekstra kredse – loader + cache */
+/* Ekstra kredse – loader + cache (robust) */
 async function fetchCsvText(url){ const r = await fetch(url, { cache:"no-store" }); if(!r.ok) throw new Error("404"); return await r.text(); }
 function parseCsvTextToRows(text, kredsNameOverride){
   const res = Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
@@ -560,17 +614,12 @@ function parseCsvTextToRows(text, kredsNameOverride){
 async function loadRowsForKreds(storkreds, kreds){
   const key = `${storkreds}::${kreds}`;
   if(state.csvCache.has(key)) return state.csvCache.get(key);
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-  const candidates=[ `${BASE_PATH}${s}/${k}_allepartier.csv`, `${BASE_PATH}${s}/${k}.csv` ];
-  for(const url of candidates){
-    try{
-      const text = await fetchCsvText(url);
-      const rows = parseCsvTextToRows(text, kreds);
-      state.csvCache.set(key, rows);
-      return rows;
-    }catch(e){}
-  }
-  throw new Error(`Ingen data for ${kreds}`);
+
+  const urls = kredsUrlCandidates(storkreds, kreds);
+  const text = await fetchFirstOkText(urls);
+  const rows = parseCsvTextToRows(text, kreds);
+  state.csvCache.set(key, rows);
+  return rows;
 }
 
 /* Efter data indlæst */
@@ -790,7 +839,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: “Se i storkreds” (sender kandidat-id med); Storkreds/kreds: “Tilføj” */
+/* Kandidatliste – DK: “Se i storkreds”; Storkreds/kreds: “Tilføj” */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
