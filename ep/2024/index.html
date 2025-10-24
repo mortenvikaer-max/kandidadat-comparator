@@ -64,6 +64,17 @@
   50%{ transform:translateX(0%); }
   100%{ transform:translateX(100%); }
 }
+
+/* Modal */
+.modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal-backdrop.open{ display:flex; }
+.modal-card{ background:#fff; border-radius:16px; border:1px solid #e5e7eb; max-width:48rem; width:92vw; max-height:80vh; overflow:auto; box-shadow:0 24px 48px rgba(0,0,0,.18); }
+.modal-head{ padding:1rem 1.25rem; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.modal-body{ padding:1rem 1.25rem; }
+.details-row{ border:1px solid #e5e7eb; border-radius:10px; background:#fff; }
+.details-summary{ cursor:pointer; list-style:none; padding:.75rem 1rem; display:flex; align-items:center; justify-content:space-between; }
+.details-summary::-webkit-details-marker{ display:none; }
+.kreds-list{ padding:.5rem 1rem 1rem; }
 </style>
 </head>
 
@@ -184,6 +195,23 @@
   </section>
 </main>
 
+<!-- Kandidat-modal -->
+<div id="candidateModal" class="modal-backdrop" aria-modal="true" role="dialog" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="min-w-0">
+        <div id="candTitle" class="font-semibold truncate"></div>
+        <div id="candSub" class="text-sm text-gray-500 truncate"></div>
+      </div>
+      <button id="candClose" class="vb-btn" type="button">Luk</button>
+    </div>
+    <div class="modal-body">
+      <div class="text-sm text-gray-600 mb-2">Stemmetal pr. storkreds (klik for at folde kredse ud)</div>
+      <div id="candBreakdown" class="space-y-2"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ====== DATA-STI (EP 2024) ====== */
 /* Root-relativ (skift til '../../data/ep/2024/' hvis du hoster i undermappe) */
@@ -294,6 +322,14 @@ window.addEventListener("DOMContentLoaded", async ()=>{
 
   renderContextBar();
   updateTopToggleUI(); updateCandSortToggleUI();
+
+  // Modal bindings
+  (function bindCandidateModal(){
+    const modal = document.getElementById('candidateModal');
+    document.getElementById('candClose')?.addEventListener('click', closeCandidateModal);
+    modal?.addEventListener('click', (e)=>{ if(e.target===modal) closeCandidateModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeCandidateModal(); });
+  })();
 });
 
 /* UI toggles */
@@ -468,8 +504,12 @@ function totalsByCandidate(rows){
     .sort((a,b)=>b.total-a.total);
 }
 
+function detectPartyLetterFromRowsForParti(p, rows){
+  for(const r of rows){ if(r.parti===p){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } }
+  return null;
+}
+
 function primaryScopeForCandidate(candId, rows){
-  // Find mest almindelige (storkreds,kreds) kombination
   const count=new Map();
   for(const r of rows){
     if(r.kandidat_id===candId){
@@ -504,20 +544,16 @@ function renderOverview(){
     }
   }
 
-  function detectPartyLetterFromRows(p){
-    for(const r of rowsRaw){ if(r.parti===p){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; } }
-    return null;
-  }
-
   function itemHTML(k, idx){
-    const letter = detectPartyLetterFromRows(k.parti);
+    const letter = detectPartyLetterFromRowsForParti(k.parti, rowsRaw);
     const bd = badge(letter);
     const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-    const title = isDK ? 'Klik for at se i storkreds/kreds' : 'Klik for at tilføje til sammenligning';
+    const title = isDK ? 'Klik for at se fordeling' : 'Klik for at tilføje til sammenligning';
+    const navn = `${escapeHtml(k.kandidat_navn)}${letter?` (${letter})`:''}`;
     return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="${title}">
       <span class="rank-pill">${idx}</span>
       <div class="min-w-0 flex-1">
-        <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
+        <div class="font-medium truncate">${navn}</div>
         <div class="text-xs text-gray-500 truncate">${meta}</div>
       </div>
       <span class="vb-badge" style="${bd.style}">${bd.text}</span>
@@ -538,13 +574,101 @@ function renderOverview(){
   bind('topColLeft'); bind('topColRight');
 }
 
+/* ==== Modal: nationalt overblik for kandidat ==== */
+function aggregateCandidateEverywhere(candidateId){
+  const allRows = [];
+  for(const sk of STORKREDSE){
+    const cached = state.csvCache.get(sk);
+    if(cached && cached.length) allRows.push(...cached);
+  }
+  if(!allRows.length) allRows.push(...state.rows);
+
+  const perSK = new Map();
+  let sampleRow = null;
+  for(const r of allRows){
+    if(r.kandidat_id !== candidateId) continue;
+    if(!sampleRow) sampleRow = r;
+    const sk = r.storkreds || '(Ukendt storkreds)';
+    const kr = r.kreds || '(Ukendt kreds)';
+    if(!perSK.has(sk)) perSK.set(sk, { total:0, kredse:new Map() });
+    const bucket = perSK.get(sk);
+    bucket.total += r.stemmer||0;
+    bucket.kredse.set(kr, (bucket.kredse.get(kr)||0) + (r.stemmer||0));
+  }
+
+  const items = Array.from(perSK.entries()).map(([storkreds, data])=>{
+    const kredse = Array.from(data.kredse.entries()).sort((a,b)=>b[1]-a[1]);
+    return { storkreds, total:data.total, kredse };
+  }).sort((a,b)=>b.total-a.total);
+
+  return { items, sampleRow };
+}
+function openCandidateModal(candidateId){
+  const { items, sampleRow } = aggregateCandidateEverywhere(candidateId);
+  const modal = document.getElementById('candidateModal');
+  const title = document.getElementById('candTitle');
+  const sub = document.getElementById('candSub');
+  const body = document.getElementById('candBreakdown');
+
+  if(!sampleRow){ return; }
+  const rowsForLetter = state.rows.length ? state.rows : (state.csvCache.get(sampleRow.storkreds)||[]);
+  const letter = detectPartyLetterFromRowsForParti(sampleRow.parti, rowsForLetter) || "";
+  const nameWithLetter = `${sampleRow.kandidat_navn}${letter?` (${letter})`:''}`;
+
+  title.textContent = nameWithLetter;
+  sub.textContent = sampleRow.parti;
+
+  body.innerHTML = items.length
+    ? items.map(item=>{
+        const sk = item.storkreds;
+        const total = fmt(item.total);
+        const kredsList = item.kredse.map(([k, sum])=>`
+          <div class="flex items-center justify-between py-1">
+            <div class="text-sm">${escapeHtml(k)}</div>
+            <div class="tabular-nums font-medium">${fmt(sum)}</div>
+          </div>
+        `).join('');
+        return `
+          <details class="details-row">
+            <summary class="details-summary">
+              <span class="font-medium">${escapeHtml(sk)}</span>
+              <span class="tabular-nums font-semibold">${total}</span>
+            </summary>
+            <div class="kreds-list">
+              <div class="text-xs text-gray-500 mb-1">Stemmer pr. kreds</div>
+              ${kredsList || `<div class="text-sm text-gray-500">Ingen kredsdata</div>`}
+              <div class="mt-2">
+                <button class="vb-btn" data-goto-stk="${escapeHtml(sk)}">Se i storkreds</button>
+              </div>
+            </div>
+          </details>
+        `;
+      }).join('')
+    : `<div class="text-sm text-gray-500">Ingen data fundet for kandidaten.</div>`;
+
+  body.querySelectorAll('button[data-goto-stk]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const sk = btn.getAttribute('data-goto-stk');
+      closeCandidateModal();
+      gotoScope(sk, null, candidateId);
+    };
+  });
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+}
+function closeCandidateModal(){
+  const modal = document.getElementById('candidateModal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  document.body.style.overflow = '';
+}
+
+/* Klik-adfærd fra top-listen */
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
-    // Hop til kandidatens primære storkreds/kreds
-    const { storkreds, kreds } = primaryScopeForCandidate(candId, rows);
-    if(storkreds){
-      gotoScope(storkreds, kreds || null, candId);
-    }
+    openCandidateModal(candId); // DK: vis modal i stedet for at hoppe
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -607,7 +731,7 @@ function getPartyStats(){
 
 function renderPartyCombobox(){
   const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
-  if(!state.storkreds){ // kun aktiv i storkreds/kreds-visning
+  if(!state.storkreds){
     btn.disabled=true;
     btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg storkreds først…</span>`;
     menu.innerHTML="";
@@ -682,11 +806,14 @@ function renderPartyDetail(parti){
     const listestemmer=isListestemmer(k.kandidat_navn);
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
+    const letterHere = detectPartyLetterFromRowsForParti(k.parti, getActiveRows());
+    const navn = `${escapeHtml(k.kandidat_navn)}${letterHere?` (${letterHere})`:''}`;
+
     const div=document.createElement('div');
     div.className='rounded-xl border px-3 py-2';
     div.innerHTML=`<div class="flex items-center justify-between">
       <div>
-        <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
+        <div class="font-medium">${navn}</div>
         <div class="text-xs text-gray-500">${meta}</div>
       </div>
       <button class="vb-btn" data-add="${k.kandidat_id}">${state.storkreds?'Tilføj':'Se i storkreds'}</button>
@@ -725,13 +852,15 @@ function renderSelected(){
     return null;
   }
   root.innerHTML = sel.map(k=>{
-    const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.kandidat_id)||0;
+    const L = letterForParti(k.parti);
+    const bd=badge(L), total=totals.get(k.kandidat_id)||0;
     const listestemmer=isListestemmer(k.kandidat_navn);
     const totalTekst=listestemmer?`${fmt(total)} ${total===1?'listestemme':'listestemmer'}`:`${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+    const navn = `${escapeHtml(k.kandidat_navn)}${L?` (${L})`:''}`;
     return `<div class="rounded-xl border p-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="vb-badge" style="${bd.style}">${bd.text}</span>
-        <div class="font-medium">${escapeHtml(k.kandidat_navn)} <span class="text-gray-500">(${escapeHtml(k.parti)})</span></div>
+        <div class="font-medium">${navn} <span class="text-gray-500">(${escapeHtml(k.parti)})</span></div>
       </div>
       <div class="flex items-center gap-3">
         <div class="tabular-nums font-medium">${totalTekst}</div>
@@ -784,9 +913,13 @@ function renderPsTable(psList, sel){
   }
   const header = sel.map(s=>{
     const bd = badge(letterForParti(s.parti));
+    const rowsForLetter = getActiveRows();
+    let L = null;
+    for(const r of rowsForLetter){ if(r.parti===s.parti){ const LL=(r.parti_letter||"").toUpperCase(); if(LL && PARTY_COLORS[LL]){ L=LL; break; } } }
+    const navn = `${escapeHtml(s.kandidat_navn)}${L?` (${L})`:''}`;
     return `<th class="py-2 pr-3"><div class="flex items-center gap-2">
       <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
-      <span>${escapeHtml(s.kandidat_navn)} (${escapeHtml(s.parti)})</span></div></th>`;
+      <span>${navn} (${escapeHtml(s.parti)})</span></div></th>`;
   }).join("");
   thead.innerHTML=`<tr class="text-left border-b">
     ${baseCols.map(c=>`<th class="py-2 pr-3">${c}</th>`).join('')}
