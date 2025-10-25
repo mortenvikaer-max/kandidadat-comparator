@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Valgbar – Europa-Parlamentsvalg 2015</title>
+<title>Valgbar – Europa-Parlamentsvalg 2014</title>
 
 <!-- Tailwind CSS (CDN) -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -218,11 +218,11 @@
 </div>
 
 <script>
-/* ====== DATA-STI (EP 2015) ====== */
-/* Root-relativ (skift til '../../data/ep/2015/' hvis du hoster i undermappe) */
-const BASE_PATH = '/data/ep/2015/';
+/* ====== DATA-STI (EP 2014) ====== */
+/* Brug RELATIV sti så det virker på GitHub Pages projekt-sites */
+const BASE_PATH = '../../data/ep/2014/';
 
-/* Storkredse (matcher dine filnavne) */
+/* Storkredse (matcher filnavne som "Københavns_Storkreds_allepartier.csv") */
 const STORKREDSE = [
   "Bornholms Storkreds","Fyns Storkreds","Københavns Omegns Storkreds","Københavns Storkreds",
   "Nordjyllands Storkreds","Nordsjællands Storkreds","Sjællands Storkreds","Sydjyllands Storkreds",
@@ -237,7 +237,7 @@ const PARTY_COLORS = {
 };
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
 
-/* Partinavn → bogstav fallback (med 2015-relevante navne) */
+/* Partinavn → bogstav fallback (2014-relevante navne) */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
 const PARTY_LETTERS_BY_NAME = {
   "socialdemokratiet":"A",
