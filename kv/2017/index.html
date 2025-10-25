@@ -227,6 +227,21 @@
   // Normaliser navn: ",By" -> ", By"
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
+  // --- NY: alias til specielle/ukendte valgsteder i 2017-data ---
+  const VALGSTED_ALIAS = {
+    // 26. findes som ekstra gruppe i CSV'en – sandsynligvis forcentrerede forhånds-/brevstemmer
+    "26.": "Forhåndsstemmer (26.)"
+  };
+
+  // --- NY: rens valgstedsnavn fra 2017-kilden ---
+  function cleanValgsted(s){
+    const raw = canon(s);
+    // Fjern første løbenummer, fx "49. 9. Vesterbro" -> "9. Vesterbro"
+    const cleaned = raw.replace(/^\s*\d+\.\s*/, '').trim();
+    const base = cleaned || raw.trim(); // undgå tomt navn (fx "26.")
+    return VALGSTED_ALIAS[base] || base;
+  }
+
   // Sortering på normaliseret navn
   const sortKandidaterAlpha = (a,b)=>{
     const aName = normalizeCandidateName(a.kandidat_navn);
@@ -267,19 +282,13 @@
 
   function persistUrl(push=false){
     const u=new URL(location.href);
-    // scope
     if(state.region) u.searchParams.set("region", state.region); else u.searchParams.delete("region");
     if(state.kommune) u.searchParams.set("kommune", state.kommune); else u.searchParams.delete("kommune");
-    // parti
     if(state.activeParty) u.searchParams.set("parti", state.activeParty); else u.searchParams.delete("parti");
-    // kandidater
     const candList = getSelectedIds();
     if(candList.length) u.searchParams.set("cand", candList.join(",")); else u.searchParams.delete("cand");
-    // view (kun hvis ikke standard = top10)
     if(state.topListMode !== "top10") u.searchParams.set("view", "top50"); else u.searchParams.delete("view");
-    // sort (kun hvis ikke standard = alpha)
     if(state.candidateSortMode !== "alpha") u.searchParams.set("sort", "votes"); else u.searchParams.delete("sort");
-
     if(push) history.pushState({}, "", u); else history.replaceState({}, "", u);
   }
 
@@ -287,16 +296,14 @@
     const p=new URLSearchParams(location.search);
     const r=p.get("region"); const k=p.get("kommune"); const parti=p.get("parti");
     const cand=(p.get("cand")||"").split(",").map(s=>s.trim()).filter(Boolean);
-    const view=p.get("view"); // top50 | (mangler => top10)
-    const sort=p.get("sort"); // votes | (mangler => alpha)
+    const view=p.get("view");
+    const sort=p.get("sort");
 
-    // påfør visningsvalg før render
     state.topListMode = (view === "top50") ? "all" : "top10";
     state.candidateSortMode = (sort === "votes") ? "votes" : "alpha";
     updateTopToggleUI();
     updateCandSortToggleUI();
 
-    // udfyld dropdowns og load data pr. niveau
     if(r && REGIONS[r]){
       el("regionSelect").value=r; populateKommuner(r); state.region=r;
       if(k && REGIONS[r].includes(k)){ el("kommuneSelect").value=k; state.kommune=k; await loadKommuneData(k); }
@@ -306,7 +313,6 @@
       state.region=""; state.kommune=""; await loadNationalData();
     }
 
-    // parti
     if(state.kommune && parti){
       const stats = getPartyStats();
       if(stats.some(s=>s.parti===parti)){
@@ -322,11 +328,9 @@
       renderPartyCombobox();
     }
 
-    // kandidater
     setSelectedFromIds(cand);
     applyPendingSelections();
 
-    // gentegn
     renderOverview();
     renderAll();
     renderContextBar();
@@ -336,7 +340,6 @@
   window.addEventListener("DOMContentLoaded", async ()=>{
     renderLanding(); initRegionDropdown();
 
-    // Sorteringsknapper
     el("btnSortAlpha").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="alpha"){
         state.candidateSortMode="alpha";
@@ -354,7 +357,6 @@
       }
     });
 
-    // Top 10 / Top 50
     el("btnTop10").addEventListener("click", ()=>{
       if(state.topListMode!=="top10"){
         state.topListMode="top10";
@@ -372,7 +374,6 @@
       }
     });
 
-    // Første load
     await hydrateFromUrl();
 
     el("btnClearAll").onclick=()=>{ state.selected.clear(); renderAll(); persistUrl(false); };
@@ -381,7 +382,6 @@
 
     renderContextBar();
 
-    // Back/Forward
     window.addEventListener('popstate', ()=>{ hydrateFromUrl(); });
   });
 
@@ -421,7 +421,6 @@
         if(!val) return;
         const hit = Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
         if(hit){
-          // navigation → push
           el('regionSelect').value=hit.r; populateKommuner(hit.r);
           el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k;
           persistUrl(true);
@@ -467,7 +466,7 @@
   }
   function resetPartyUI(){
     const btn=el("partyButton"), btnc=el("partyButtonContent");
-    const disabled = !state.kommune; // kun aktiv i kommunevisning
+    const disabled = !state.kommune;
     btn.disabled = disabled; btn.setAttribute('aria-expanded','false');
     btnc.innerHTML = disabled
       ? `<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg kommune først…</span>`
@@ -485,7 +484,9 @@
     const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
     const fallbackRegion = fallbackKommune ? findRegionForKommune(fallbackKommune) : "";
     return res.data.map(r=>{
-      const valgsted_navn = canon(r['afstemningsområde'] || r.valgsted_navn || r.sted_navn || "");
+      const rawValgsted = canon(r['afstemningsområde'] || r.valgsted_navn || r.sted_navn || "");
+      const valgsted_navn = cleanValgsted(rawValgsted);
+
       const partiNavn = canon(r.parti || r.listenavn || "");
       const kandidatNavn = normalizeCandidateName(canon(r.kandidat_navn || r.navn || ""));
       const partiBogstav = canon(r.parti_bogstav || r.listebogstav || r['bogstavbetegnelse'] || "");
@@ -513,7 +514,6 @@
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
     const safe=encodeURIComponent(k);
-    // 2017: forsøg samme navngivning som 2021 for enkelhed
     const candidates=[`${BASE_PATH}${safe}_allepartier.csv`, `${BASE_PATH}${safe}.csv`];
     for(const url of candidates){
       try{ const text = await fetchCsvText(url); const rows = parseCsvTextToRows(text, k); state.csvCache.set(k, rows); return rows; }catch(_){ }
@@ -553,7 +553,6 @@
   }
 
   function afterDataLoaded(){
-    // pending enkelt-id (legacy)
     if(state.pendingCandidateId){
       const sample = state.rows.find(r=>r.kandidat_id===state.pendingCandidateId);
       if(sample){
@@ -561,11 +560,8 @@
       }
       state.pendingCandidateId = null;
     }
-
-    // pending liste fra URL
     applyPendingSelections();
 
-    // Partier kun aktivt i kommunevisning
     resetPartyUI();
     if(state.kommune) renderPartyCombobox();
 
