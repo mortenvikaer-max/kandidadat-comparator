@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Valgbar – Europa-Parlamentsvalg 2024</title>
+<title>Valgbar – Europa-Parlamentsvalg 2019</title>
 
 <!-- Tailwind CSS (CDN) -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -218,9 +218,9 @@
 </div>
 
 <script>
-/* ====== DATA-STI (EP 2024) ====== */
-/* Root-relativ (skift til '../../data/ep/2024/' hvis du hoster i undermappe) */
-const BASE_PATH = '/data/ep/2024/';
+/* ====== DATA-STI (EP 2019) ====== */
+/* Root-relativ (skift til '../../data/ep/2019/' hvis du hoster i undermappe) */
+const BASE_PATH = '/data/ep/2019/';
 
 /* Storkredse (matcher dine filnavne) */
 const STORKREDSE = [
@@ -233,11 +233,11 @@ const STORKREDSE = [
 const PARTY_COLORS = {
   "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3",
   "O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800",
-  "Æ":"#666666","M":"#6f42c1"
+  "Æ":"#666666","M":"#6f42c1","N":"#009688" /* Folkebevægelsen mod EU (2019) */
 };
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
 
-/* Partinavn → bogstav fallback (hvis CSV mangler parti_bogstav) */
+/* Partinavn → bogstav fallback (inkl. 2019-specifikke) */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
 const PARTY_LETTERS_BY_NAME = {
   "socialdemokratiet":"A",
@@ -253,7 +253,8 @@ const PARTY_LETTERS_BY_NAME = {
   "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
   "moderaterne":"M",
   "danmarksdemokraterne":"Æ",
-  "frie grønne":"Q"
+  "frie grønne":"Q",
+  "folkebevægelsen mod eu":"N","folkebevaegelsen mod eu":"N"
 };
 const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
 
@@ -819,7 +820,7 @@ function renderPartyDetail(parti){
 
   function addCandidate(k){
     if(!state.storkreds){
-      const { storkreds, kreds } = { storkreds:"", kreds:"" }; // DK: vi åbner modal via top-listen, her holder vi os i scope
+      const { storkreds, kreds } = { storkreds:"", kreds:"" }; // DK: modal bruges via toplisten
       if(storkreds) gotoScope(storkreds, kreds || null, k.kandidat_id);
       return;
     }
