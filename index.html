@@ -14,7 +14,6 @@
       background: linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%);
       color:#fff;
     }
-    /* Række-stil (accordion) */
     .vb-row{
       background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
       border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04);
@@ -22,11 +21,9 @@
     .vb-row:hover{ box-shadow:0 4px 14px rgba(0,0,0,.06); }
     .vb-chevron{ transition: transform .2s ease; }
     .vb-open .vb-chevron{ transform: rotate(180deg); }
-    /* Smooth fold-ud */
     .vb-body{ overflow:hidden; transition:grid-template-rows .25s ease, padding .2s ease; display:grid; grid-template-rows:0fr; }
     .vb-open .vb-body{ grid-template-rows:1fr; }
     .vb-body > div{ min-height:0; }
-    /* År-knapper */
     .vb-yearbtn{
       display:flex; align-items:center; justify-content:center;
       padding:.8rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fff; font-weight:600;
@@ -68,32 +65,31 @@
       ft: [2022, 2019, 2015],
       kv: [2021, 2017, 2013],
       rv: [2021, 2017, 2013],
-      ep: [2024, 2019, 2014]
+      ep: [2024, 2019, 2014] // <-- 2014 (ikke 2015)
     };
 
     // Brug relative stier så de virker i undermapper
-  const DEST = {
-  kv: { perYear: {
-    2021: 'kv/2021/',
-    2017: 'kv/2017/'
-    // 2013: 'kv/2013/'  // tilføj hvis du har den
-  }},
-  ft: { perYear: {
-    2022: 'ft/2022/',
-    2019: 'ft/2019/',
-    2015: 'ft/2015/'
-  }},
-  rv: { perYear: {
-    // udfyld hvis du har sider for RV: 2021: 'rv/2021/' osv.
-  }},
-  ep: { perYear: {
-    2024: 'ep/2024/',
-    2019: 'ep/2019/'
-    2014: 'ep/2014/'
-  }}
-};
-}
-    
+    const DEST = {
+      kv: { perYear: {
+        2021: 'kv/2021/',
+        2017: 'kv/2017/'
+        // 2013: 'kv/2013/'  // tilføj hvis du har den
+      }},
+      ft: { perYear: {
+        2022: 'ft/2022/',
+        2019: 'ft/2019/',
+        2015: 'ft/2015/'
+      }},
+      rv: { perYear: {
+        // udfyld hvis du har sider for RV: fx 2021: 'rv/2021/'
+      }},
+      ep: { perYear: {
+        2024: 'ep/2024/',
+        2019: 'ep/2019/',
+        2014: 'ep/2014/'   // <-- korrekt sti
+      }}
+    };
+
     const TITLES = {
       ft:'Folketingsvalg', kv:'Kommunalvalg', rv:'Regionsrådsvalg', ep:'Europa-Parlamentsvalg'
     };
