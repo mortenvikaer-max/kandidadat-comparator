@@ -88,34 +88,50 @@
   <div id="contextBar" class="context-bar"></div>
 
   <!-- LANDING (søg + dropdowns) -->
-  <section id="landing" class="vb-card p-4 space-y-4">
-    <div class="flex flex-col md:grid md:grid-cols-4 md:items-end gap-3">
-      <!-- NYT: Søg kandidat -->
-      <div class="relative md:col-span-2">
-        <label class="text-sm text-gray-600">Søg kandidat</label>
-        <input id="candidateSearch" type="text" class="w-full mt-1 rounded-xl border p-2"
-               placeholder="Skriv fx 'Jensen' eller 'Pia Kjærsgaard'…" autocomplete="off" />
-        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
-             aria-labelledby="candidateSearch" style="max-width:36rem"></div>
-      </div>
+<section id="landing" class="vb-card p-4 space-y-4">
+  <!-- 2 kolonner på md+ -->
+  <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
 
-      <!-- Eksisterende: Søg kommune -->
-      <div class="flex-1">
-        <label class="text-sm text-gray-600">Søg kommune</label>
-        <input id="kommuneSearch" type="text" class="w-full mt-1 rounded-xl border p-2" placeholder="Start med at skrive fx Aarhus, Odense, København…" />
-      </div>
-
-      <div class="w-full md:w-80">
-        <label class="text-sm text-gray-600">Region</label>
-        <select id="regionSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
-      </div>
-      <div class="w-full md:w-[28rem] md:col-span-2">
-        <label class="text-sm text-gray-600">Kommune</label>
-        <select id="kommuneSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
-      </div>
+    <!-- Række 1: Søg kandidat -->
+    <div class="relative">
+      <label class="text-sm text-gray-600">Søg kandidat</label>
+      <input id="candidateSearch" type="text"
+             class="w-full mt-1 rounded-xl border p-2"
+             placeholder="Skriv fx 'Mette' eller 'Pia'…"
+             autocomplete="off" />
+      <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
+           aria-labelledby="candidateSearch" style="max-width:36rem"></div>
     </div>
-    <p class="text-sm text-gray-600">Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne. Nedenfor vises Top 10 kandidater for det valgte område (som udgangspunkt: Hele Danmark).</p>
-  </section>
+
+    <!-- Række 1: Søg kommune -->
+    <div>
+      <label class="text-sm text-gray-600">Søg kommune</label>
+      <input id="kommuneSearch" type="text"
+             class="w-full mt-1 rounded-xl border p-2"
+             placeholder="Start med at skrive fx Aarhus, Odense, København…" />
+    </div>
+
+    <!-- Række 2: Region -->
+    <div>
+      <label class="text-sm text-gray-600">Region</label>
+      <select id="regionSelect"
+              class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+    </div>
+
+    <!-- Række 2: Kommune -->
+    <div>
+      <label class="text-sm text-gray-600">Kommune</label>
+      <select id="kommuneSelect"
+              class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
+    </div>
+  </div>
+
+  <p class="text-sm text-gray-600">
+    Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne.
+    Nedenfor vises Top 10 kandidater for det valgte område.
+  </p>
+</section>
+
 
   <!-- TOP 10/50 -->
   <section id="overviewTop" class="vb-card p-4">
