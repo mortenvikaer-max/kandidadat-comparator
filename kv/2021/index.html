@@ -89,21 +89,32 @@
 
   <!-- LANDING (søg + dropdowns) -->
   <section id="landing" class="vb-card p-4 space-y-4">
-    <div class="flex flex-col md:flex-row md:items-end gap-3">
+    <div class="flex flex-col md:grid md:grid-cols-4 md:items-end gap-3">
+      <!-- NYT: Søg kandidat -->
+      <div class="relative md:col-span-2">
+        <label class="text-sm text-gray-600">Søg kandidat</label>
+        <input id="candidateSearch" type="text" class="w-full mt-1 rounded-xl border p-2"
+               placeholder="Skriv fx 'Jensen' eller 'Pia Kjærsgaard'…" autocomplete="off" />
+        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
+             aria-labelledby="candidateSearch" style="max-width:36rem"></div>
+      </div>
+
+      <!-- Eksisterende: Søg kommune -->
       <div class="flex-1">
         <label class="text-sm text-gray-600">Søg kommune</label>
         <input id="kommuneSearch" type="text" class="w-full mt-1 rounded-xl border p-2" placeholder="Start med at skrive fx Aarhus, Odense, København…" />
       </div>
+
       <div class="w-full md:w-80">
         <label class="text-sm text-gray-600">Region</label>
         <select id="regionSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
       </div>
-      <div class="w-full md:w-[28rem]">
+      <div class="w-full md:w-[28rem] md:col-span-2">
         <label class="text-sm text-gray-600">Kommune</label>
         <select id="kommuneSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
       </div>
     </div>
-    <p class="text-sm text-gray-600">Vælg en region og/eller kommune – eller begynd at skrive i søgefeltet. Nedenfor vises Top 10 kandidater for det valgte område (som udgangspunkt: Hele Danmark).</p>
+    <p class="text-sm text-gray-600">Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne. Nedenfor vises Top 10 kandidater for det valgte område (som udgangspunkt: Hele Danmark).</p>
   </section>
 
   <!-- TOP 10/50 -->
@@ -412,11 +423,53 @@
     el('regionSelect')?.removeAttribute('disabled');
   }
 
-  /* ===== LANDING UI ===== */
+  /* ===== Kandidatsøgning helpers ===== */
+  const fold = (s) => (s||"").toString()
+    .normalize("NFD").replace(/\p{Diacritic}/gu,"")
+    .toLowerCase().trim();
+
+  function buildCandidateList(rows){
+    const m = new Map();
+    for(const r of rows){
+      if(isListestemmer(r.kandidat_navn)) continue;
+      if(!m.has(r.kandidat_id)){
+        m.set(r.kandidat_id, { kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
+      }
+    }
+    return Array.from(m.values());
+  }
+
+  function rankCandidates(cands, q){
+    const Q = fold(q);
+    if(!Q) return [];
+    return cands.map(c=>{
+      const name = normalizeCandidateName(c.kandidat_navn);
+      const f = fold(name);
+      let score = -Infinity;
+
+      if(f.startsWith(Q)) score = 300 - (f.length - Q.length);
+      else{
+        const hasWordStart = f.split(/\s+/).some(w=>w.startsWith(Q));
+        if(hasWordStart) score = 200 - f.indexOf(Q);
+        else if(f.includes(Q)) score = 100 - f.indexOf(Q);
+      }
+
+      const pf = fold(c.parti);
+      if(pf.startsWith(Q) || pf.includes("("+Q+")")) score += 20;
+
+      return { ...c, _score: score, _name: name };
+    })
+    .filter(x=>x._score>-Infinity)
+    .sort((a,b)=> b._score - a._score || a._name.localeCompare(b._name, "da"))
+    .slice(0, 15);
+  }
+
+  /* ===== LANDING UI (inkl. ny kandidatsøgning) ===== */
   function renderLanding(){
-    const input = el('kommuneSearch');
-    if(input){
-      input.addEventListener('input', (e)=>{
+    // Kommune-søgning (uændret)
+    const inputK = el('kommuneSearch');
+    if(inputK){
+      inputK.addEventListener('input', (e)=>{
         const val=(e.target.value||'').toLowerCase();
         if(!val) return;
         const hit = Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
@@ -429,6 +482,95 @@
         }
       });
     }
+
+    // NYT: Kandidat-søgning
+    const input = el('candidateSearch');
+    const menu  = el('candidateMenu');
+    let activeIndex = -1;
+
+    function closeMenu(){ menu.classList.add('hidden'); activeIndex = -1; }
+    function openMenu(){ menu.classList.remove('hidden'); }
+
+    function ensureCandListUpToDate(){
+      // bygd ved brug
+    }
+
+    function renderMenuFor(query){
+      const cands = buildCandidateList(state.rows || []);
+      const results = rankCandidates(cands, query);
+      if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
+
+      menu.innerHTML = results.map((c,i)=>{
+        const letter = detectPartyLetter((state.rows||[]).filter(r=>r.parti===c.parti));
+        const bd = badge(letter);
+        const sub = `${escapeHtml(c.parti)}`;
+        return `<div class="vb-option" role="option" data-idx="${i}" data-cand="${escapeHtml(c.kandidat_id)}" aria-selected="${i===activeIndex}">
+          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          <span class="flex-1">
+            <span class="font-medium">${escapeHtml(normalizeCandidateName(c.kandidat_navn))}</span><br/>
+            <span class="text-xs text-gray-500">${sub}</span>
+          </span>
+        </div>`;
+      }).join("");
+
+      menu.querySelectorAll('.vb-option').forEach(opt=>{
+        opt.onclick = ()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
+      });
+
+      openMenu();
+    }
+
+    function selectByIndex(i){
+      const cands = buildCandidateList(state.rows || []);
+      const results = rankCandidates(cands, input.value);
+      const sel = results[i];
+      if(!sel) return;
+      toggleCandidateFromTop(sel.kandidat_id, state.rows || []);
+      closeMenu();
+      input.value = "";
+    }
+
+    // Debounce
+    let t=null;
+    input?.addEventListener('input', ()=>{
+      const q = input.value.trim();
+      if(t) clearTimeout(t);
+      if(!q){ closeMenu(); return; }
+      t = setTimeout(()=>renderMenuFor(q), 120);
+    });
+
+    // Tastatur-navigation
+    input?.addEventListener('keydown', (e)=>{
+      const results = rankCandidates(buildCandidateList(state.rows||[]), input.value);
+      if(e.key==='ArrowDown'){
+        e.preventDefault();
+        if(!results.length) return;
+        activeIndex = (activeIndex+1) % results.length;
+        renderMenuFor(input.value);
+        const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
+        if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+      }else if(e.key==='ArrowUp'){
+        e.preventDefault();
+        if(!results.length) return;
+        activeIndex = (activeIndex<=0 ? results.length-1 : activeIndex-1);
+        renderMenuFor(input.value);
+        const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
+        if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+      }else if(e.key==='Enter'){
+        if(!menu.classList.contains('hidden')){
+          e.preventDefault();
+          selectByIndex(activeIndex>=0 ? activeIndex : 0);
+        }
+      }else if(e.key==='Escape'){
+        closeMenu();
+      }
+    });
+
+    // Luk dropdown ved klik udenfor
+    document.addEventListener('click',(e)=>{
+      const box = el('candidateSearch')?.parentElement;
+      if(box && !box.contains(e.target)) closeMenu();
+    });
   }
 
   /* ===== DROPDOWNS ===== */
@@ -551,6 +693,9 @@
     renderOverview();
     renderAll();
     renderContextBar();
+
+    // NYT: luk åben kandidat-menu ved dataskift
+    document.getElementById('candidateMenu')?.classList.add('hidden');
   }
 
   function applyPendingSelections(){
