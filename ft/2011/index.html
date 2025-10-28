@@ -48,7 +48,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
 .cell-na{ color:#9ca3af; }
 
-/* Loader */
+/* ===== Loader ===== */
 .loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
 .progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
 .progress::after{
@@ -79,18 +79,37 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
   <div id="contextBar" class="context-bar"></div>
 
-  <section class="vb-card p-4 space-y-3">
-    <div class="mt-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div>
-        <label class="text-sm text-gray-600">Storkreds</label>
-        <select id="storkredsSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
-      </div>
-      <div class="md:col-span-2">
-        <label class="text-sm text-gray-600">Kreds</label>
-        <select id="kredsSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
-      </div>
+  <!-- LANDING: 2×2 layout (Søg kandidat | Storkreds / Kreds på linjen under) -->
+<section class="vb-card p-4 space-y-3">
+  <div class="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
+
+    <!-- Række 1: Søg kandidat (fuld bredde) -->
+    <div class="relative md:col-span-2">
+      <label class="text-sm text-gray-600">Søg kandidat</label>
+      <input id="candidateSearch" type="text"
+             class="w-full mt-1 rounded-xl border p-2"
+             placeholder="Skriv fx 'Jensen' eller 'Helle Thorning'…"
+             autocomplete="off" />
+      <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
+           aria-labelledby="candidateSearch" style="max-width:48rem"></div>
     </div>
-  </section>
+
+    <!-- Række 2: Storkreds (venstre) -->
+    <div>
+      <label class="text-sm text-gray-600">Storkreds</label>
+      <select id="storkredsSelect"
+              class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+    </div>
+
+    <!-- Række 2: Kreds (højre) -->
+    <div>
+      <label class="text-sm text-gray-600">Kreds</label>
+      <select id="kredsSelect"
+              class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
+    </div>
+  </div>
+</section>
+
 
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
@@ -192,7 +211,7 @@ const STORKREDSE = [
   "Vestjyllands Storkreds","Østjyllands Storkreds"
 ];
 
-/* Kredse – visningsnavne */
+/* Kredse – visningsnavne (samme opdeling som nyere sider for konsistens) */
 const KREDS_BY_STORKREDS = {
   "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
   "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
@@ -223,34 +242,22 @@ function inferStorkredsFromKreds(kredsNavn){
   return KREDS_TO_STORKREDS.get((kredsNavn||"").toString().trim()) || "";
 }
 
-/* ---------- PARTIER / FARVER / ALIAS (2011) ---------- */
+/* ---------- PARTIER / FARVER / ALIAS ---------- */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
-
-/* Farver for 2011-relevante bogstaver + neutral badge til uafhængige/uden for parti */
-const PARTY_COLORS = {
-  "A":"#e03a3e", // Socialdemokratiet
-  "B":"#712082", // Radikale
-  "C":"#2e7d32", // Konservative
-  "F":"#e5003d", // SF
-  "I":"#00a0e3", // LA
-  "K":"#ff9800", // KD
-  "O":"#0044aa", // DF
-  "V":"#1b5eaa", // Venstre
-  "Ø":"#c8102e"  // Enhedslisten
-};
-
+/* Robust farvekort inkl. nyere bogstaver (hvis de skulle stå i datafilerne) */
+const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
 const PARTY_LETTERS_BY_NAME = {
-  "socialdemokratiet":"A",
-  "radikale venstre":"B","det radikale venstre":"B",
-  "det konservative folkeparti":"C","konservative folkeparti":"C",
-  "sf":"F","socialistisk folkeparti":"F","sf socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F",
-  "liberal alliance":"I",
-  "kristendemokraterne":"K","kd kristendemokraterne":"K","kd - kristendemokraterne":"K",
+  "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
+  "konservative folkeparti":"C","det konservative folkeparti":"C",
+  "sf":"F","socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F","sf socialistisk folkeparti":"F",
+  "liberal alliance":"I","venstre, danmarks liberale parti":"V","venstre":"V",
   "dansk folkeparti":"O",
-  "venstre":"V","venstre, danmarks liberale parti":"V",
-  "enhedslisten":"Ø","enhedslisten de rød grønne":"Ø","enhedslisten - de rød-grønne":"Ø",
-  /* Uden for parti / uafhængige (intet bogstav) */
-  "uden for parti":"", "uafhængig":"", "uafhængig kandidat":""
+  "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
+  /* Alternativet kom i 2015, men mappes robust hvis findes i data: */
+  "alternativet":"Å",
+  "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
+  /* nyere – tåles hvis i datasæt: */
+  "moderaterne":"M","danmarksdemokraterne":"Æ","frie grønne":"Q","nye borgerlige":"D"
 };
 const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
@@ -283,12 +290,7 @@ const sortKandidaterVotes = (a,b)=>{
   return a.kandidat_navn.localeCompare(b.kandidat_navn, "da");
 };
 
-function badge(letter){
-  const has = !!(letter && PARTY_COLORS[letter]);
-  const bg = has ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG;
-  const fg = has ? "#fff" : DEFAULT_BADGE_FG;
-  return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") };
-}
+function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
 /* Loader */
 function showLoading(msg = "Indlæser…") {
@@ -324,15 +326,10 @@ function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
   if(!state.selected.has(candId)){
-    state.selected.set(candId, {
-      kandidat_id: candId,
-      kandidat_navn: sample.kandidat_navn,
-      parti: sample.parti
-    });
+    state.selected.set(candId, { kandidat_id: candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
   }
   renderAll();
-  const sec = document.getElementById('compareSection');
-  if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('compareSection')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function gotoStorkreds(storkredsName, candidateId=null){
@@ -351,19 +348,54 @@ function gotoStorkreds(storkredsName, candidateId=null){
   });
 }
 
+/* ===== Kandidat-søgning helpers ===== */
+const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
+
+function buildCandidateList(rows){
+  const m = new Map();
+  for(const r of rows){
+    if(isListestemmer(r.kandidat_navn)) continue;
+    if(!m.has(r.kandidat_id)){
+      m.set(r.kandidat_id, { kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
+    }
+  }
+  return Array.from(m.values());
+}
+function rankCandidates(cands, q){
+  const Q = fold(q);
+  if(!Q) return [];
+  return cands.map(c=>{
+    const name = c.kandidat_navn;
+    const f = fold(name);
+    let score = -Infinity;
+
+    if(f.startsWith(Q)) score = 300 - (f.length - Q.length);
+    else{
+      const hasWordStart = f.split(/\s+/).some(w=>w.startsWith(Q));
+      if(hasWordStart) score = 200 - f.indexOf(Q);
+      else if(f.includes(Q)) score = 100 - f.indexOf(Q);
+    }
+
+    const pf = fold(c.parti);
+    if(pf.startsWith(Q) || pf.includes("("+Q+")")) score += 20;
+
+    return { ...c, _score: score, _name: name };
+  })
+  .filter(x=>x._score>-Infinity)
+  .sort((a,b)=> b._score - a._score || a._name.localeCompare(b._name, "da"))
+  .slice(0, 15);
+}
+
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
+  initCandidateSearch();
 
   el("btnTop10").addEventListener("click", ()=>{ state.topListMode="top10"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
   el("btnAll").addEventListener("click", ()=>{ state.topListMode="all"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
 
-  el("btnSortAlpha").addEventListener("click", ()=>{
-    state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty);
-  });
-  el("btnSortVotes").addEventListener("click", ()=>{
-    state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty);
-  });
+  el("btnSortAlpha").addEventListener("click", ()=>{ state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); });
+  el("btnSortVotes").addEventListener("click", ()=>{ state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); });
 
   const p=new URLSearchParams(location.search), s=p.get("storkreds"), k=p.get("kreds"), cand=p.get("kandidat");
   if(s && STORKREDSE.includes(s)){
@@ -495,24 +527,17 @@ async function loadNationalData(){
     const allRows = [];
     const tasks = [];
     for(const sk of STORKREDSE){
-      const kredse = KREDS_BY_STORKREDS[sk] || [];
+      const kredse = (KREDS_BY_STORKREDS[sk]||[]);
       for(const k of kredse){
         tasks.push((async ()=>{
-          try{
-            const rows = await loadRowsForKreds(sk, k); // cacher også
-            return rows;
-          }catch(_){
-            return [];
-          }
+          try{ return await loadRowsForKreds(sk, k); }catch(_){ return []; }
         })());
       }
     }
     const BATCH_SIZE = 6;
     for(const batch of chunkArray(tasks, BATCH_SIZE)){
       const settled = await Promise.allSettled(batch);
-      for(const res of settled){
-        if(res.status === "fulfilled" && Array.isArray(res.value)) allRows.push(...res.value);
-      }
+      for(const res of settled){ if(res.status==="fulfilled" && Array.isArray(res.value)) allRows.push(...res.value); }
     }
 
     for(const sk of STORKREDSE){
@@ -550,7 +575,7 @@ async function loadKredsData(storkreds,kreds){
   }
 }
 
-/* “Hele storkredsen” + cache __ALL__ – fallback */
+/* “Hele storkredsen” + cache __ALL__ – parallel fallback */
 async function loadStorkredsData(storkreds){
   showLoading(`Indlæser…`);
   try{
@@ -567,13 +592,10 @@ async function loadStorkredsData(storkreds){
       }catch(e){}
     }
 
-    // Fallback: hent alle kredse i storkredsen i parallelle batches
     const kredse = KREDS_BY_STORKREDS[storkreds] || [];
     if(kredse.length){
       const all = [];
-      const tasks = kredse.map(k => (async ()=>{
-        try{ return await loadRowsForKreds(storkreds, k); }catch(_){ return []; }
-      })());
+      const tasks = kredse.map(k => (async ()=>{ try{ return await loadRowsForKreds(storkreds, k); }catch(_){ return []; } })());
       const BATCH_SIZE = 6;
       for(const batch of chunkArray(tasks, BATCH_SIZE)){
         const settled = await Promise.allSettled(batch);
@@ -599,14 +621,13 @@ function parseCsv(text, kredsNameOverride=null){
     if (navnLower==="partiliste" || navnLower==="listestemmer" || navnLower==="liste") kandidatNavn = "Partiliste";
     const parti = canon(r.parti);
     const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
-    const inferredByName = PARTY_LETTERS_BY_NAME_NORM[norm(parti)] || "";
-    const L = (canon(rawLetter).toUpperCase() || inferredByName || "").trim();
+    const L = canon(rawLetter).toUpperCase();
     const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
 
     const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
     const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
 
-    const kandidat_id = `${(parti||"").toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+    const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -614,7 +635,7 @@ function parseCsv(text, kredsNameOverride=null){
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
       kandidat_navn: kandidatNavn,
-      parti: parti || "Uden for parti",
+      parti,
       parti_letter,
       stemmer: Number(r.stemmer||0)||0
     };
@@ -631,14 +652,13 @@ function parseCsvTextToRows(text, kredsNameOverride){
     if (["partiliste","listestemmer","liste"].includes(navnLower)) kandidatNavn = "Partiliste";
     const parti = canon(r.parti);
     const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
-    const inferredByName = PARTY_LETTERS_BY_NAME_NORM[norm(parti)] || "";
-    const L = (canon(rawLetter).toUpperCase() || inferredByName || "").trim();
+    const L = canon(rawLetter).toUpperCase();
     const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
 
     const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
     const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
 
-    const kandidat_id = `${(parti||"").toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+    const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -646,7 +666,7 @@ function parseCsvTextToRows(text, kredsNameOverride){
       valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
       kandidat_id,
       kandidat_navn: kandidatNavn,
-      parti: parti || "Uden for parti",
+      parti,
       parti_letter,
       stemmer: Number(r.stemmer||0)||0
     };
@@ -671,6 +691,8 @@ async function loadRowsForKreds(storkreds, kreds){
 /* Efter data indlæst */
 function afterDataLoaded(){
   state.activeParty=""; renderPartyCombobox(); renderAll(); updateAddKredsUIState(); renderContextBar();
+  // Luk evt. åben kandidat-menu ved dataskift
+  document.getElementById('candidateMenu')?.classList.add('hidden');
 }
 
 /* Parti-stats */
@@ -678,7 +700,11 @@ function detectPartyLetter(parti, rowsForParti){
   for(const r of rowsForParti){ const L=(r.parti_letter||"").toUpperCase(); if(L && PARTY_COLORS[L]) return L; }
   const keyNorm = norm(parti), mapped = PARTY_LETTERS_BY_NAME_NORM[keyNorm];
   if(mapped && PARTY_COLORS[mapped]) return mapped;
-  return null; // Uden for parti eller ukendt -> neutral badge
+  if(keyNorm.includes("socialistisk folkeparti") || keyNorm==="sf") return "F";
+  if(keyNorm.includes("danmarksdemokraterne")) return "Æ";
+  if(keyNorm.includes("frie grønne")) return "Q";
+  if(keyNorm.includes("nye borgerlige")) return "D";
+  return null;
 }
 function getActiveRows(){
   if(!state.selectedKredse || state.selectedKredse.size===0) return state.rows;
@@ -740,7 +766,7 @@ function showError(msg){
   if(msg){ setTimeout(()=>{ if(el("error").textContent===msg) el("error").textContent=""; }, 6000); }
 }
 
-/* Top 10 / Alle */
+/* Top 10 / Alle / Top 50 */
 function totalsByCandidate(rows){
   const m=new Map();
   for(const r of rows){
@@ -884,7 +910,7 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste – DK: “Se i storkreds”; Storkreds/kreds: “Tilføj” */
+/* Kandidatliste */
 function renderPartyDetail(parti){
   const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
@@ -1124,7 +1150,7 @@ function renderExtraKredsChips(){
   });
 }
 
-/* “Hvor er jeg?” bar – klikbar sti (inkl. DK-bugfix) */
+/* “Hvor er jeg?” bar – klikbar sti */
 function renderContextBar(){
   const bar = document.getElementById('contextBar');
   const parts = [];
@@ -1145,7 +1171,7 @@ function renderContextBar(){
 
   bar.innerHTML = parts.join("");
 
-  // Klik: Hele Danmark
+  // DK
   const dk = bar.querySelector('[data-nav="dk"]');
   dk?.addEventListener('click', async ()=>{
     state.selected.clear();
@@ -1156,7 +1182,7 @@ function renderContextBar(){
     el("storkredsSelect").value = DK_VALUE;
     state.storkreds = "";
     state.kreds = "";
-    const u=new URL(location.href);
+    const u = new URL(location.href);
     u.searchParams.delete("storkreds");
     u.searchParams.delete("kreds");
     u.searchParams.delete("kandidat");
@@ -1167,7 +1193,7 @@ function renderContextBar(){
     renderAll();
   });
 
-  // Klik: Storkreds (tilbage til “Alle kredse i storkredsen”)
+  // Storkreds breadcrumb (til “Alle kredse i storkredsen”)
   const sk = bar.querySelector('[data-nav="storkreds"]');
   sk?.addEventListener('click', async ()=>{
     const s = state.storkreds;
@@ -1183,6 +1209,97 @@ function renderContextBar(){
 
     await loadStorkredsData(s);
     renderAll();
+  });
+}
+
+/* Kandidat-søgefelt (UI + interaktion) */
+function initCandidateSearch(){
+  const input = el('candidateSearch');
+  const menu  = el('candidateMenu');
+  let activeIndex = -1;
+
+  function closeMenu(){ menu.classList.add('hidden'); activeIndex = -1; }
+  function openMenu(){ menu.classList.remove('hidden'); }
+
+  function renderMenuFor(query){
+    const scopeRows = getOverviewRows();      // bredt nok til DK / storkreds-alle
+    const cands = buildCandidateList(scopeRows);
+    const results = rankCandidates(cands, query);
+    if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
+
+    menu.innerHTML = results.map((c,i)=>{
+      const letter = detectPartyLetter(c.parti, scopeRows.filter(r=>r.parti===c.parti));
+      const bd = badge(letter);
+      const sub = `${escapeHtml(c.parti)}`;
+      return `<div class="vb-option" role="option" data-idx="${i}" data-cand="${escapeHtml(c.kandidat_id)}" aria-selected="${i===activeIndex}">
+        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+        <span class="flex-1">
+          <span class="font-medium">${escapeHtml(c.kandidat_navn)}</span><br/>
+          <span class="text-xs text-gray-500">${sub}</span>
+        </span>
+      </div>`;
+    }).join("");
+
+    menu.querySelectorAll('.vb-option').forEach(opt=>{
+      opt.onclick = ()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
+    });
+
+    openMenu();
+  }
+
+  function selectByIndex(i){
+    const scopeRows = getOverviewRows();
+    const cands = buildCandidateList(scopeRows);
+    const results = rankCandidates(cands, input.value);
+    const sel = results[i];
+    if(!sel) return;
+
+    // DK -> hop til storkreds; ellers tilføj
+    toggleCandidateFromTop(sel.kandidat_id, scopeRows);
+    closeMenu();
+    input.value = "";
+  }
+
+  // Debounce input
+  let t=null;
+  input?.addEventListener('input', ()=>{
+    const q = input.value.trim();
+    if(t) clearTimeout(t);
+    if(!q){ closeMenu(); return; }
+    t = setTimeout(()=>renderMenuFor(q), 120);
+  });
+
+  // Tastatur-navigation
+  input?.addEventListener('keydown', (e)=>{
+    const results = rankCandidates(buildCandidateList(getOverviewRows()), input.value);
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      if(!results.length) return;
+      activeIndex = (activeIndex+1) % results.length;
+      renderMenuFor(input.value);
+      const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
+      if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+    }else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!results.length) return;
+      activeIndex = (activeIndex<=0 ? results.length-1 : activeIndex-1);
+      renderMenuFor(input.value);
+      const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
+      if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+    }else if(e.key==='Enter'){
+      if(!menu.classList.contains('hidden')){
+        e.preventDefault();
+        selectByIndex(activeIndex>=0 ? activeIndex : 0);
+      }
+    }else if(e.key==='Escape'){
+      closeMenu();
+    }
+  });
+
+  // Luk dropdown ved klik udenfor
+  document.addEventListener('click',(e)=>{
+    const box = el('candidateSearch')?.parentElement;
+    if(box && !box.contains(e.target)) closeMenu();
   });
 }
 
