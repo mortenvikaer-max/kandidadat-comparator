@@ -235,7 +235,6 @@
 
 <script>
 /* ====== DATA-STI (EP 2024) ====== */
-/* Root-relativ (skift til '../../data/ep/2024/' hvis du hoster i undermappe) */
 const BASE_PATH = '/data/ep/2024/';
 
 /* Storkredse (matcher dine filnavne) */
@@ -395,7 +394,7 @@ function initCandidateSearch(){
     menu.innerHTML = results.map((c,i)=>{
       const L   = partyLetterFrom(c.parti, scopeRows);
       const bd  = badge(L);
-      const navn= `${escapeHtml(c.kandidat_navn)}${L?` (${L})`:''}`;
+      const navn= `${escapeHtml(c.kandidat_navn)}`; // ← INGEN (bogstav)
       return `<div class="vb-option" role="option" data-idx="${i}" data-cand="${escapeHtml(c.kandidat_id)}" aria-selected="${i===activeIndex}">
         <span class="vb-badge" style="${bd.style}">${bd.text}</span>
         <span class="flex-1">
@@ -520,7 +519,6 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   const p=new URLSearchParams(location.search), s=p.get("storkreds"), k=p.get("kreds");
   const candOld = p.get("kandidat");
   const candMany = (p.get("kandidater")||"").split(',').map(x=>x.trim()).filter(Boolean);
-  // Pre-markér valgte fra URL (midlertidigt uden navn/parti – hydrer efter load)
   const initIds = new Set([ ...(candOld? [candOld]: []), ...candMany ]);
   initIds.forEach(id=>{
     if(!state.selected.has(id)) state.selected.set(id, { kandidat_id:id, kandidat_navn:"", parti:"" });
@@ -530,7 +528,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     el("storkredsSelect").value = s;
     state.storkreds = s;
     await loadStorkredsData(s);
-    populateKredsDropdown(); // efter load
+    populateKredsDropdown();
     if(k && k!=="__ALL__"){
       el("kredsSelect").value = k;
       state.kreds = k;
@@ -546,7 +544,6 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     await loadNationalData();
   }
 
-  // Hydrer selection + sørg for at URL bruger 'kandidater' fremfor gammel 'kandidat'
   hydrateSelectedFromRows();
   const u = new URL(location.href);
   u.searchParams.delete("kandidat");
@@ -598,7 +595,6 @@ function initStorkredsDropdown(){
     if(!v){
       u.searchParams.delete("storkreds");
       u.searchParams.delete("kreds");
-      // behold kandidater i URL
       history.replaceState({}, "", u);
       state.storkreds=""; await loadNationalData();
     }else{
@@ -608,7 +604,7 @@ function initStorkredsDropdown(){
       state.storkreds=v; await loadStorkredsData(v); populateKredsDropdown();
     }
     setAreaTitle();
-    hydrateSelectedFromRows(); // opdatér navne/parti hvis muligt i ny scope
+    hydrateSelectedFromRows();
     syncSelectedToUrl();
     renderAll();
   };
@@ -783,7 +779,7 @@ function renderOverview(){
     const bd = badge(letter);
     const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
     const title = isDK ? 'Klik for at se fordeling' : 'Klik for at tilføje til sammenligning';
-    const navn = `${escapeHtml(k.kandidat_navn)}${letter?` (${letter})`:''}`;
+    const navn = `${escapeHtml(k.kandidat_navn)}`; // ← INGEN (bogstav)
     return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="${title}">
       <span class="rank-pill">${idx}</span>
       <div class="min-w-0 flex-1">
@@ -847,10 +843,10 @@ function openCandidateModal(candidateId){
 
   if(!sampleRow){ return; }
   const rowsForLetter = state.rows.length ? state.rows : (state.csvCache.get(sampleRow.storkreds)||[]);
-  const letter = partyLetterFrom(sampleRow.parti, rowsForLetter) || "";
-  const nameWithLetter = `${sampleRow.kandidat_navn}${letter?` (${letter})`:''}`;
+  /* vi bruger ikke (bogstav) efter navnet i titlen */
+  const nameOnly = sampleRow.kandidat_navn;
 
-  title.textContent = nameWithLetter;
+  title.textContent = nameOnly;
   sub.textContent = sampleRow.parti;
 
   const grandTotal = items.reduce((acc,it)=>acc+it.total,0);
@@ -906,7 +902,7 @@ function closeCandidateModal(){
 /* Klik-adfærd fra top-listen */
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
-    openCandidateModal(candId); // DK: vis modal i stedet for at hoppe
+    openCandidateModal(candId);
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -930,7 +926,6 @@ function selectCandidateById(candId){
     state.selected.set(candId, { kandidat_id:candId, ...base });
     syncSelectedToUrl();
   }else if(sample){
-    // opdatér evt. tomme felter
     const cur = state.selected.get(candId);
     if(!cur.kandidat_navn || !cur.parti){
       state.selected.set(candId, { kandidat_id:candId, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
@@ -942,7 +937,6 @@ function selectCandidateById(candId){
 }
 
 function gotoScope(storkredsName, kredsName=null, candidateId=null){
-  // Sikr at kandidat er valgt (hvis kaldt fra modal)
   if(candidateId && !state.selected.has(candidateId)){
     state.selected.set(candidateId, { kandidat_id:candidateId, kandidat_navn:"", parti:"" });
   }
@@ -950,7 +944,7 @@ function gotoScope(storkredsName, kredsName=null, candidateId=null){
   const u=new URL(location.href);
   u.searchParams.set("storkreds", storkredsName);
   if(kredsName) u.searchParams.set("kreds", kredsName); else u.searchParams.set("kreds","__ALL__");
-  u.searchParams.delete("kandidat"); // vi bruger 'kandidater' nu
+  u.searchParams.delete("kandidat");
   history.replaceState({}, "", u);
 
   el("storkredsSelect").value = storkredsName;
@@ -1065,7 +1059,7 @@ function renderPartyDetail(parti){
     const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
     const letterHere = partyLetterFrom(k.parti, getActiveRows());
-    const navn = `${escapeHtml(k.kandidat_navn)}${letterHere?` (${letterHere})`:''}`;
+    const navn = `${escapeHtml(k.kandidat_navn)}`; // ← INGEN (bogstav)
 
     const div=document.createElement('div');
     div.className='rounded-xl border px-3 py-2';
@@ -1111,7 +1105,7 @@ function renderSelected(){
     const bd=badge(L), total=totals.get(k.kandidat_id)||0;
     const listestemmer=isListestemmer(k.kandidat_navn);
     const totalTekst=listestemmer?`${fmt(total)} ${total===1?'listestemme':'listestemmer'}`:`${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
-    const navn = `${escapeHtml(k.kandidat_navn || k.kandidat_id.split('::')[1] || 'Ukendt kandidat')}${L?` (${L})`:''}`;
+    const navn = `${escapeHtml(k.kandidat_navn || k.kandidat_id.split('::')[1] || 'Ukendt kandidat')}`; // ← INGEN (bogstav)
     return `<div class="rounded-xl border p-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="vb-badge" style="${bd.style}">${bd.text}</span>
@@ -1165,7 +1159,7 @@ function renderPsTable(psList, sel){
   const header = sel.map(s=>{
     const L = partyLetterFrom(s.parti, getActiveRows());
     const bd = badge(L);
-    const navn = `${escapeHtml(s.kandidat_navn || s.kandidat_id.split('::')[1] || '')}${L?` (${L})`:''}`;
+    const navn = `${escapeHtml(s.kandidat_navn || s.kandidat_id.split('::')[1] || '')}`; // ← INGEN (bogstav)
     return `<th class="py-2 pr-3"><div class="flex items-center gap-2">
       <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
       <span>${navn} (${escapeHtml(s.parti||'')})</span></div></th>`;
