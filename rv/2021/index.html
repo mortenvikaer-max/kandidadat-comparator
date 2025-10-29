@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Valgbar – Regionsrådsvalg 2021</title>
 
-  <!-- Tailwind CSS (CDN) -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- PapaParse (CSV) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <!-- SheetJS (XLSX) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -80,7 +82,7 @@
   </div>
 
   <div class="mx-auto max-w-6xl px-4 pb-4">
-    <div class="text-white/90 text-base md:text-lg">Vælg en kommune og få overblik over partier og kandidater.</div>
+    <div class="text-white/90 text-base md:text-lg">Vælg en region og/eller kommune – og få overblik over partier og kandidater.</div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 </header>
@@ -90,50 +92,45 @@
   <div id="contextBar" class="context-bar"></div>
 
   <!-- LANDING (søg + dropdowns) -->
-<section id="landing" class="vb-card p-4 space-y-4">
-  <!-- 2 kolonner på md+ -->
-  <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
+  <section id="landing" class="vb-card p-4 space-y-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
+      <!-- Søg kandidat -->
+      <div class="relative">
+        <label class="text-sm text-gray-600">Søg kandidat</label>
+        <input id="candidateSearch" type="text"
+               class="w-full mt-1 rounded-xl border p-2"
+               placeholder="Indtast kandidatnavn…"
+               autocomplete="off" />
+        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
+             aria-labelledby="candidateSearch" style="max-width:36rem"></div>
+      </div>
 
-    <!-- Række 1: Søg kandidat -->
-    <div class="relative">
-      <label class="text-sm text-gray-600">Søg kandidat</label>
-      <input id="candidateSearch" type="text"
-             class="w-full mt-1 rounded-xl border p-2"
-             placeholder="Indtast kandidatnavn…"
-             autocomplete="off" />
-      <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
-           aria-labelledby="candidateSearch" style="max-width:36rem"></div>
+      <!-- Søg kommune -->
+      <div>
+        <label class="text-sm text-gray-600">Søg kommune</label>
+        <input id="kommuneSearch" type="text"
+               class="w-full mt-1 rounded-xl border p-2"
+               placeholder="Start med at skrive fx Aarhus, Odense, København…" />
+      </div>
+
+      <!-- Region -->
+      <div>
+        <label class="text-sm text-gray-600">Region</label>
+        <select id="regionSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+      </div>
+
+      <!-- Kommune -->
+      <div>
+        <label class="text-sm text-gray-600">Kommune</label>
+        <select id="kommuneSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
+      </div>
     </div>
 
-    <!-- Række 1: Søg kommune -->
-    <div>
-      <label class="text-sm text-gray-600">Søg kommune</label>
-      <input id="kommuneSearch" type="text"
-             class="w-full mt-1 rounded-xl border p-2"
-             placeholder="Start med at skrive fx Aarhus, Odense, København…" />
-    </div>
-
-    <!-- Række 2: Region -->
-    <div>
-      <label class="text-sm text-gray-600">Region</label>
-      <select id="regionSelect"
-              class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
-    </div>
-
-    <!-- Række 2: Kommune -->
-    <div>
-      <label class="text-sm text-gray-600">Kommune</label>
-      <select id="kommuneSelect"
-              class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
-    </div>
-  </div>
-
-  <p class="text-sm text-gray-600">
-    Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne.
-    Nedenfor vises Top 10 kandidater for det valgte område.
-  </p>
-</section>
-
+    <p class="text-sm text-gray-600">
+      Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne.
+      Nedenfor vises Top 10 kandidater for det valgte område.
+    </p>
+  </section>
 
   <!-- TOP 10/50 -->
   <section id="overviewTop" class="vb-card p-4">
@@ -148,7 +145,7 @@
       </div>
     </div>
 
-    <!-- Loader bar -->
+    <!-- Loader -->
     <div id="loader" class="loader-wrap hidden" aria-live="polite">
       <div class="progress w-48 rounded-full"></div>
       <span>Indlæser…</span>
@@ -221,10 +218,10 @@
 </main>
 
 <script>
-  /* ===== DATA-STI (Regionsrådsvalg) ===== */
+  /* ===== DATA-STI (Regionsrådsvalg 2021) ===== */
   const BASE_PATH = '../../data/rv/2021/';
 
-  /* Regioner & kommuner (samme som KV 2021) */
+  /* Regioner & kommuner (mappenavne som ønsket) */
   const REGIONS = {
     "Region Hovedstaden": ["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
     "Region Sjælland": ["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
@@ -233,7 +230,7 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  /* Partifarver (som KV 2021) */
+  /* Partifarver (samme som KV/FT opsætning) */
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
@@ -253,10 +250,10 @@
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; };
 
-  // Normaliser navn: ",By" -> ", By"
+  /* Normaliser kandidatnavn: ",By" -> ", By" (bevarer din visuelle stil) */
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  // Sortering på normaliseret navn
+  /* Sortering */
   const sortKandidaterAlpha = (a,b)=>{
     const aName = normalizeCandidateName(a.kandidat_navn);
     const bName = normalizeCandidateName(b.kandidat_navn);
@@ -282,7 +279,7 @@
     return null;
   }
 
-  /* Region-lookup */
+  /* Region-lookup (bruges bl.a. i filsti-helpers) */
   function findRegionForKommune(kommune){
     for(const [reg, kommuner] of Object.entries(REGIONS)){
       if(kommuner.includes(kommune)) return reg;
@@ -290,7 +287,7 @@
     return "";
   }
 
-  /* URL helpers */
+  /* URL helpers (samme adfærd som KV-siden) */
   function getSelectedIds(){ return Array.from(state.selected.keys()); }
   function setSelectedFromIds(idArr){ state.pendingCandidateIds = (idArr||[]).filter(Boolean); }
 
@@ -329,17 +326,9 @@
     if(state.kommune && parti){
       const stats = getPartyStats();
       if(stats.some(s=>s.parti===parti)){
-        state.activeParty = parti;
-        renderPartyCombobox();
-        renderPartyDetail(parti);
-      } else {
-        state.activeParty = "";
-        renderPartyCombobox();
-      }
-    }else{
-      state.activeParty="";
-      renderPartyCombobox();
-    }
+        state.activeParty = parti; renderPartyCombobox(); renderPartyDetail(parti);
+      } else { state.activeParty = ""; renderPartyCombobox(); }
+    }else{ state.activeParty=""; renderPartyCombobox(); }
 
     setSelectedFromIds(cand);
     applyPendingSelections();
@@ -355,36 +344,22 @@
 
     el("btnSortAlpha").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="alpha"){
-        state.candidateSortMode="alpha";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
+        state.candidateSortMode="alpha"; updateCandSortToggleUI();
+        if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);
       }
     });
     el("btnSortVotes").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="votes"){
-        state.candidateSortMode="votes";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
+        state.candidateSortMode="votes"; updateCandSortToggleUI();
+        if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);
       }
     });
 
     el("btnTop10").addEventListener("click", ()=>{
-      if(state.topListMode!=="top10"){
-        state.topListMode="top10";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
+      if(state.topListMode!=="top10"){ state.topListMode="top10"; updateTopToggleUI(); renderOverview(); persistUrl(true); }
     });
     el("btnAll").addEventListener("click", ()=>{
-      if(state.topListMode!=="all"){
-        state.topListMode="all";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
+      if(state.topListMode!=="all"){ state.topListMode="all"; updateTopToggleUI(); renderOverview(); persistUrl(true); }
     });
 
     await hydrateFromUrl();
@@ -394,7 +369,6 @@
     document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closePartyMenu(); });
 
     renderContextBar();
-
     window.addEventListener('popstate', ()=>{ hydrateFromUrl(); });
   });
 
@@ -426,9 +400,7 @@
   }
 
   /* Kandidatsøgning helpers */
-  const fold = (s) => (s||"").toString()
-    .normalize("NFD").replace(/\p{Diacritic}/gu,"")
-    .toLowerCase().trim();
+  const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
 
   function buildCandidateList(rows){
     const m = new Map();
@@ -448,17 +420,14 @@
       const name = normalizeCandidateName(c.kandidat_navn);
       const f = fold(name);
       let score = -Infinity;
-
       if(f.startsWith(Q)) score = 300 - (f.length - Q.length);
       else{
         const hasWordStart = f.split(/\s+/).some(w=>w.startsWith(Q));
         if(hasWordStart) score = 200 - f.indexOf(Q);
         else if(f.includes(Q)) score = 100 - f.indexOf(Q);
       }
-
       const pf = fold(c.parti);
       if(pf.startsWith(Q) || pf.includes("("+Q+")")) score += 20;
-
       return { ...c, _score: score, _name: name };
     })
     .filter(x=>x._score>-Infinity)
@@ -466,23 +435,22 @@
     .slice(0, 15);
   }
 
-  /* LANDING UI (inkl. kandidatsøgning) */
+  /* LANDING UI */
   function renderLanding(){
     const inputK = el('kommuneSearch');
     if(inputK){
       inputK.addEventListener('input', (e)=>{
-        const val=(e.target.value||'').toLowerCase();
-        if(!val) return;
+        const val=(e.target.value||'').toLowerCase(); if(!val) return;
         const hit = Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
         if(hit){
           el('regionSelect').value=hit.r; populateKommuner(hit.r);
           el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k;
-          persistUrl(true);
-          loadKommuneData(hit.k);
+          persistUrl(true); loadKommuneData(hit.k);
         }
       });
     }
 
+    // Kandidatsøgning
     const input = el('candidateSearch');
     const menu  = el('candidateMenu');
     let activeIndex = -1;
@@ -494,7 +462,6 @@
       const cands = buildCandidateList(state.rows || []);
       const results = rankCandidates(cands, query);
       if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
-
       menu.innerHTML = results.map((c,i)=>{
         const letter = detectPartyLetter((state.rows||[]).filter(r=>r.parti===c.parti));
         const bd = badge(letter);
@@ -507,22 +474,15 @@
           </span>
         </div>`;
       }).join("");
-
-      menu.querySelectorAll('.vb-option').forEach(opt=>{
-        opt.onclick = ()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
-      });
-
+      menu.querySelectorAll('.vb-option').forEach(opt=>{ opt.onclick = ()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10)); });
       openMenu();
     }
 
     function selectByIndex(i){
       const cands = buildCandidateList(state.rows || []);
       const results = rankCandidates(cands, input.value);
-      const sel = results[i];
-      if(!sel) return;
-      toggleCandidateFromTop(sel.kandidat_id, state.rows || []);
-      closeMenu();
-      input.value = "";
+      const sel = results[i]; if(!sel) return;
+      toggleCandidateFromTop(sel.kandidat_id, state.rows || []); closeMenu(); input.value = "";
     }
 
     let t=null;
@@ -532,37 +492,23 @@
       if(!q){ closeMenu(); return; }
       t = setTimeout(()=>renderMenuFor(q), 120);
     });
-
     input?.addEventListener('keydown', (e)=>{
       const results = rankCandidates(buildCandidateList(state.rows||[]), input.value);
       if(e.key==='ArrowDown'){
-        e.preventDefault();
-        if(!results.length) return;
-        activeIndex = (activeIndex+1) % results.length;
-        renderMenuFor(input.value);
+        e.preventDefault(); if(!results.length) return;
+        activeIndex = (activeIndex+1) % results.length; renderMenuFor(input.value);
         const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
         if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
       }else if(e.key==='ArrowUp'){
-        e.preventDefault();
-        if(!results.length) return;
-        activeIndex = (activeIndex<=0 ? results.length-1 : activeIndex-1);
-        renderMenuFor(input.value);
+        e.preventDefault(); if(!results.length) return;
+        activeIndex = (activeIndex<=0 ? results.length-1 : activeIndex-1); renderMenuFor(input.value);
         const opt = menu.querySelector(`[data-idx="${activeIndex}"]`);
         if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
       }else if(e.key==='Enter'){
-        if(!menu.classList.contains('hidden')){
-          e.preventDefault();
-          selectByIndex(activeIndex>=0 ? activeIndex : 0);
-        }
-      }else if(e.key==='Escape'){
-        closeMenu();
-      }
+        if(!menu.classList.contains('hidden')){ e.preventDefault(); selectByIndex(activeIndex>=0 ? activeIndex : 0); }
+      }else if(e.key==='Escape'){ closeMenu(); }
     });
-
-    document.addEventListener('click',(e)=>{
-      const box = el('candidateSearch')?.parentElement;
-      if(box && !box.contains(e.target)) closeMenu();
-    });
+    document.addEventListener('click',(e)=>{ const box = el('candidateSearch')?.parentElement; if(box && !box.contains(e.target)) closeMenu(); });
   }
 
   /* DROPDOWNS */
@@ -585,13 +531,8 @@
     ksel.innerHTML=`<option value="">Vælg kommune…</option>`+kommuner.map(k=>`<option value="${k}">${k}</option>`).join("");
     ksel.onchange=()=>{
       const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
-      if(k){
-        persistUrl(true);
-        loadKommuneData(k);
-      }else{
-        persistUrl(true);
-        loadRegionData(state.region);
-      }
+      if(k){ persistUrl(true); loadKommuneData(k); }
+      else { persistUrl(true); loadRegionData(state.region); }
       renderContextBar();
     };
   }
@@ -601,7 +542,7 @@
   }
   function resetPartyUI(){
     const btn=el("partyButton"), btnc=el("partyButtonContent");
-    const disabled = !state.kommune;
+    const disabled = !state.kommune; // kun aktiv i kommunevisning
     btn.disabled = disabled; btn.setAttribute('aria-expanded','false');
     btnc.innerHTML = disabled
       ? `<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg kommune først…</span>`
@@ -611,80 +552,76 @@
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
 
-  /* ===== DATA (XLSX + CSV) ===== */
-  async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
-  async function fetchArrayBuffer(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.arrayBuffer(); }
+  /* ======== DATAINDLÆSNING: XLSX + CSV + regions-undermapper ======== */
 
-  // Parser til XLSX-ark med kolonner: Kommune, Afstemningsområde, Bogstavbetegnelse, Listenavn, Navn, Stemmetal
-  function parseXlsxToRows(buf){
-    const wb = XLSX.read(buf, { type:'array' });
-    // tag første ark
-    const wsName = wb.SheetNames[0];
-    const ws = wb.Sheets[wsName];
-    const json = XLSX.utils.sheet_to_json(ws, { defval:"" }); // array af objekter med kolonnenavne
-    return json.map(r=>{
-      const kommune = canon(r.Kommune || r.kommune || "");
-      const afst = canon(r.Afstemningsområde || r["Afstemningsområde"] || r.valgsted || r.valgsted_navn || "");
-      const bogstav = canon(r.Bogstavbetegnelse || r["Bogstavbetegnelse"] || r.parti_bogstav || r.listebogstav || "");
-      const parti = canon(r.Listenavn || r["Listenavn"] || r.parti || "");
-      let navn = canon(r.Navn || r["Navn"] || r.kandidat_navn || "");
-      // "Listestemmer" -> "Partiliste"
-      if(navn.toLowerCase() === "listestemmer" || navn.toLowerCase() === "liste") navn = "Partiliste";
-      const stemmer = Number(r.Stemmetal || r["Stemmetal"] || r.stemmer || 0) || 0;
-
-      const region = findRegionForKommune(kommune) || canon(r.Region || r["Region"] || "");
-      const valgsted_id = afst || ""; // brug navnet som id (unik pr. kommune)
-      const kandidat_id = `${parti.toLowerCase()}::${navn.toLowerCase()}`;
-
-      return {
-        region,
-        kommune,
-        valgsted_id,
-        valgsted_navn: afst,
-        kandidat_id,
-        kandidat_navn: navn,
-        parti: parti,
-        parti_bogstav: bogstav,
-        stemmer
-      };
-    });
+  // Fælles fetch-hjælpere
+  async function fetchArrayBuffer(url){
+    const r = await fetch(url, { cache:"no-store" });
+    if(!r.ok) throw new Error("404");
+    return await r.arrayBuffer();
+  }
+  async function fetchText(url){
+    const r = await fetch(url, { cache:"no-store" });
+    if(!r.ok) throw new Error("404");
+    return await r.text();
   }
 
-  // Parser til CSV med samme kolonner (semikolon-sep. understøttes af Papa)
+  // Parser til XLSX (robuste aliaser til kolonnenavne)
+  function parseXlsxToRows(buf){
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    return rows.map(r => ({
+      region: canon(r.Region || r.region || ""),
+      kommune: canon(r.Kommune || r.kommune || ""),
+      valgsted_id: canon(r.Valgsted_ID || r.ValgstedId || r.Afstemningssted_ID || r.Afstemningsområde_ID || r.valgsted_id || r.sted_id || ""),
+      valgsted_navn: canon(r.Valgsted || r.Valgsted_Navn || r.Afstemningssted || r.Afstemningsområde || r.valgsted_navn || r.sted_navn || ""),
+      kandidat_id: canon(r.Kandidat_ID || r.kandidat_id || r.Kandidat || r.kandidat_navn || r.Navn || ""),
+      kandidat_navn: normalizeCandidateName(canon(r.Navn || r.Kandidat || r.kandidat_navn || r.kandidat_id || "")),
+      parti: canon(r.Listenavn || r.Parti || r.parti || ""),
+      parti_bogstav: canon(r.Bogstavbetegnelse || r.Listebogstav || r.parti_bogstav || r.listebogstav || ""),
+      stemmer: Number(r.Stemmetal || r.stemmer || r.Stemmer || 0) || 0
+    }));
+  }
+
+  // Parser til CSV (identisk struktur som ovenfor)
   function parseCsvTextToRows(text){
     const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
-    return res.data.map(r=>{
-      const kommune = canon(r.kommune || r["kommune"] || "");
-      const afst = canon(r.afstemningsområde || r.valgsted_navn || r.sted_navn || "");
-      const bogstav = canon(r.bogstavbetegnelse || r.parti_bogstav || r.listebogstav || "");
-      const parti = canon(r.listenavn || r.parti || "");
-      let navn = canon(r.navn || r.kandidat_navn || "");
-      if(navn.toLowerCase()==="listestemmer" || navn.toLowerCase()==="liste") navn = "Partiliste";
-      const stemmer = Number(r.stemmetal || r.stemmer || 0) || 0;
-
-      const region = findRegionForKommune(kommune) || canon(r.region || "");
-      const valgsted_id = canon(r.valgsted_id || r.sted_id || afst);
-      const kandidat_id = `${parti.toLowerCase()}::${navn.toLowerCase()}`;
-
-      return {
-        region,
-        kommune,
-        valgsted_id,
-        valgsted_navn: afst,
-        kandidat_id,
-        kandidat_navn: navn,
-        parti: parti,
-        parti_bogstav: bogstav,
-        stemmer
-      };
-    });
+    return res.data.map(r=>({
+      region: canon(r.region||""),
+      kommune: canon(r.kommune||""),
+      valgsted_id: canon(r.valgsted_id||r.sted_id||""),
+      valgsted_navn: canon(r.valgsted_navn||r.sted_navn||""),
+      kandidat_id: canon(r.kandidat_id||r.kandidat_navn||""),
+      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn||"")),
+      parti: canon(r.parti||""),
+      parti_bogstav: canon(r.parti_bogstav||r.listebogstav||""),
+      stemmer: Number(r.stemmer||0)||0
+    }));
   }
 
+  // Henter én kommunes data – prøver XLSX først, derefter CSV – både i rod og i region-underfolder
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
-    const safe=encodeURIComponent(k);
-    const candidatesXlsx=[`${BASE_PATH}${safe}.xlsx`, `${BASE_PATH}${safe}_allepartier.xlsx`];
-    const candidatesCsv =[`${BASE_PATH}${safe}_allepartier.csv`, `${BASE_PATH}${safe}.csv`];
+
+    const safe = encodeURIComponent(k);
+    const regName = findRegionForKommune(k);
+    const regSafe = encodeURIComponent(regName || "");
+
+    const candidatesXlsx = [
+      `${BASE_PATH}${safe}.xlsx`,
+      `${BASE_PATH}${safe}_allepartier.xlsx`,
+      // region-underfoldere
+      `${BASE_PATH}${regSafe}/${safe}.xlsx`,
+      `${BASE_PATH}${regSafe}/${safe}_allepartier.xlsx`,
+    ];
+    const candidatesCsv = [
+      `${BASE_PATH}${safe}_allepartier.csv`,
+      `${BASE_PATH}${safe}.csv`,
+      // region-underfoldere
+      `${BASE_PATH}${regSafe}/${safe}_allepartier.csv`,
+      `${BASE_PATH}${regSafe}/${safe}.csv`,
+    ];
 
     // Prøv XLSX først
     for(const url of candidatesXlsx){
@@ -707,6 +644,7 @@
     throw new Error('not found');
   }
 
+  // Områdeloaders
   async function loadNationalData(){
     try{
       showLoading();
@@ -734,7 +672,7 @@
       const rows = await loadRowsForKommune(k);
       state.rows = rows; afterDataLoaded();
     }catch(e){
-      el("error").textContent=`Kunne ikke finde data for ${k}. Forventede fx /${BASE_PATH}${k}.xlsx eller ${k}_allepartier.csv`;
+      el("error").textContent=`Kunne ikke finde data for ${k}. Forsøgte både XLSX og CSV i /${BASE_PATH} samt i regions-undermapper.`;
     }finally{ hideLoading(); }
   }
 
@@ -746,7 +684,6 @@
       }
       state.pendingCandidateId = null;
     }
-
     applyPendingSelections();
 
     resetPartyUI();
@@ -784,6 +721,7 @@
     return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
   }
 
+  // Primær kommune for kandidat (til hop fra DK/region → kommune)
   function primaryKommuneForCandidate(candId, rows){
     const count=new Map(); const reg=new Map();
     for(const r of rows){
@@ -961,7 +899,7 @@
     rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
-  /* SAMLET RENDER */
+  /* SAMLET RENDER / TABEL */
   function renderAll(){
     renderSelected();
     renderPsTable(getPollingStations(), getSelectedOrdered());
@@ -1013,8 +951,7 @@
     const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
     if(!sel.length){
       thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th></tr>`;
-      tbody.innerHTML=""; tfoot.innerHTML="";
-      return;
+      tbody.innerHTML=""; tfoot.innerHTML=""; return;
     }
     const header = sel.map(s=>{
       const stat = state.kommune ? getPartyStats().find(x=>x.parti===s.parti) : null;
