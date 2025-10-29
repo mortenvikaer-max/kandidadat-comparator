@@ -192,7 +192,7 @@
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
-  /* State & helpers (samme som 2021) */
+  /* State & helpers */
   const state = { rows:[], region:"", kommune:"", activeParty:"", selected:new Map(), candidateSortMode:"alpha", topListMode:"top10", csvCache:new Map(), isLoading:false, pendingCandidateId:null, pendingCandidateIds:[] };
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
@@ -327,7 +327,7 @@
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
 
-  /* ===== DATA: XLSX + CSV + regions-undermapper + “vedhæftede typedata” aliaser ===== */
+  /* ===== DATA: XLSX + CSV + regions-undermapper + robuste valgstedsfelter ===== */
 
   async function fetchArrayBuffer(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.arrayBuffer(); }
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
@@ -349,23 +349,62 @@
   }
 
   function parseCsvTextToRows(text){
-    // Tillad ; eller , og BOM
     const res = Papa.parse(text, {
       header:true, skipEmptyLines:true,
       transformHeader:h=>canon(h.toLowerCase()),
       delimitersToGuess:[",",";","\t","|"]
     });
-    return res.data.map(r=>({
-      region: canon(r.region || r[""] || ""),
-      kommune: canon(r.kommune || ""),
-      valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.afstemningsområde_id || r.sted_id || ""),
-      valgsted_navn: canon(r.valgsted_navn || r.afstemningssted || r.afstemningsområde || r.sted_navn || ""),
-      kandidat_id: canon(r.kandidat_id || r.kandidat || r.navn || r.kandidat_navn || ""),
-      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn || r.kandidat || r.navn || r.kandidat_id || "")),
-      parti: canon(r.parti || r.listenavn || ""),
-      parti_bogstav: canon(r.parti_bogstav || r.listebogstav || r.bogstavbetegnelse || ""),
-      stemmer: Number(r.stemmer || r.stemmetal || r.stemmer_i_alt || 0) || 0
-    }));
+
+    function splitIdFromName(navn){
+      const m = (navn||"").match(/^\s*([0-9]+(?:\.[0-9]+)*)\s*[.\-–—]?\s*(.*)$/);
+      if(m) return { id: m[1], name: m[2] || navn };
+      return { id:"", name: navn||"" };
+    }
+
+    return res.data.map(r=>{
+      const region = canon(r.region || r[""] || "");
+      const kommune = canon(r.kommune || "");
+
+      let rawId = canon(
+        r.valgsted_id ||
+        r.afstemningssted_id ||
+        r["afstemningssted id"] ||
+        r.afstemningsområde_id ||
+        r["afstemningsområde id"] ||
+        r.afstemningsområde_nr ||
+        r.afstemningssted_nr ||
+        r.valgsted_nr ||
+        r["valgsted nr"] ||
+        r.sted_id || ""
+      );
+
+      let rawName = canon(
+        r.valgsted_navn ||
+        r.afstemningssted ||
+        r.afstemningsområde ||
+        r.sted_navn ||
+        r.valglokale ||
+        ""
+      );
+
+      if(!rawId && rawName){
+        const s = splitIdFromName(rawName);
+        rawId = s.id || "";
+        rawName = s.name || rawName;
+      }
+
+      return {
+        region,
+        kommune,
+        valgsted_id: rawId,
+        valgsted_navn: rawName,
+        kandidat_id: canon(r.kandidat_id || r.kandidat || r.navn || r.kandidat_navn || ""),
+        kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn || r.kandidat || r.navn || r.kandidat_id || "")),
+        parti: canon(r.parti || r.listenavn || ""),
+        parti_bogstav: canon(r.parti_bogstav || r.listebogstav || r.bogstavbetegnelse || ""),
+        stemmer: Number(r.stemmer || r.stemmetal || r.stemmer_i_alt || 0) || 0
+      };
+    });
   }
 
   async function loadRowsForKommune(k){
@@ -428,7 +467,7 @@
     if(state.pendingCandidateIds && state.pendingCandidateIds.length){
       for(const id of state.pendingCandidateIds){
         const sample=state.rows.find(r=>r.kandidat_id===id);
-        if(sample){ state.selected.set(sample.kandidat_id,{ kandidat_id:sample.kandidat_id, kandidat_navn:sample.kandidat_navn, parti:sample.parti }); }
+        if(sample){ state.selected.set(sample.kandidat_id,{kandidat_id:sample.kandidat_id, kandidat_navn:sample.kandidat_navn, parti:sample.parti}); }
       } state.pendingCandidateIds=[];
     }
   }
@@ -555,24 +594,37 @@
   function getPollingStations(){
     const m=new Map();
     for(const r of state.rows){
-      const key=`${r.kommune}::${r.valgsted_id}`;
-      if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
-      const ps=m.get(key); ps[r.kandidat_id]=(ps[r.kandidat_id]||0)+r.stemmer;
+      // Brug id hvis muligt – ellers falder vi tilbage til navn, så vi undgår at samle alt i én række
+      const keyId = r.valgsted_id || "";
+      const keyName = r.valgsted_navn || "";
+      const key = `${r.kommune}::${keyId || keyName}`;
+
+      if(!m.has(key)){
+        m.set(key,{ id:key, navn:r.valgsted_navn || "(ukendt valgsted)", kommune:r.kommune });
+      }
+      const ps=m.get(key);
+      ps[r.kandidat_id]=(ps[r.kandidat_id]||0)+r.stemmer;
     }
     return Array.from(m.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da'));
   }
+
   function renderPsTable(psList, sel){
     const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
-    if(!sel.length){ thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th></tr>`; tbody.innerHTML=""; tfoot.innerHTML=""; return; }
+    if(!sel.length){
+      thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th></tr>`;
+      tbody.innerHTML=""; tfoot.innerHTML=""; return;
+    }
     const header=sel.map(s=>{ const stat=state.kommune?getPartyStats().find(x=>x.parti===s.parti):null; const bd=badge(stat?.letter||null);
       return `<th class="py-2 pr-3"><div class="flex items-center gap-2">
         <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
         <span>${escapeHtml(normalizeCandidateName(s.kandidat_navn))} (${escapeHtml(s.parti)})</span></div></th>`; }).join("");
     thead.innerHTML=`<tr class="text-left border-b"><th class="py-2 pr-3">Valgsted</th>${header}</tr>`;
+
     tbody.innerHTML=psList.map(ps=>`<tr class="border-b last:border-0">
       <td class="py-2 pr-3 font-medium">${escapeHtml(ps.navn)}</td>
       ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums">${fmt(ps[s.kandidat_id]||0)}</td>`).join("")}
     </tr>`).join("");
+
     const totals=computeTotalsByCandidate();
     tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">${state.kommune?'Kommunetotal':'Total'}</th>
       ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}</tr>`;
