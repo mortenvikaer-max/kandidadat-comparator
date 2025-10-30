@@ -166,8 +166,7 @@
 </main>
 
 <script>
-  /* ===== DATA-STI (KV2017) =====
-     Brug absolut sti fra webroden. Justér hvis din mappe ligger et andet sted. */
+  /* ===== DATA-STI (KV2017) ===== */
   const BASE_PATH = '/data/kv/2017/';
 
   /* Regioner & kommuner (som 2021) */
@@ -196,7 +195,7 @@
     return "";
   }
 
-  /* ==== GLOBAL UID (løser id-kollisioner) ==== */
+  /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
     const region = canon(r.region || "");
     const kommune = canon(r.kommune || "");
@@ -400,19 +399,29 @@
   /* ===== Data: fetch & parse ===== */
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
 
+  // Helper der tåler lowercase + varianter (og danske tegn i header)
+  function pick(obj, ...cands) {
+    for (const k of cands) {
+      const kl = k.toLowerCase();
+      if (obj[kl] !== undefined && obj[kl] !== "") return obj[kl];
+      if (obj[k]  !== undefined && obj[k]  !== "") return obj[k];
+    }
+    return "";
+  }
+
   function mapRowCommon(r){
     const row = {
-      region: canon(r.region || r.Region || ""),
-      kommune: canon(r.kommune || r.Kommune || ""),
-      valgsted_id: canon(r.valgsted_id || r.Afstemningssted_ID || r.Afstemningsområde_ID || r.Valgsted_ID || r.ValgstedId || r.sted_id || ""),
-      valgsted_navn: canon(r.valgsted_navn || r.Afstemningssted || r.Afstemningsområde || r.Valgsted || r.Valgsted_Navn || r.sted_navn || ""),
-      kandidat_id: canon(r.kandidat_id || r.Kandidat_ID || r.Kandidat || r.Navn || r.kandidat_navn || ""),
-      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn || r.Navn || r.Kandidat || r.kandidat_id || "")),
-      parti: canon(r.parti || r.Parti || r.Listenavn || ""),
-      parti_bogstav: canon(r.parti_bogstav || r.Listebogstav || r.Bogstavbetegnelse || ""),
-      stemmer: Number((r.stemmer ?? r.Stemmer ?? r.Stemmetal ?? r.stemmer_i_alt) || 0) || 0
+      region:        canon(pick(r, "region")),
+      kommune:       canon(pick(r, "kommune")),
+      valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgsted_id", "valgstedid", "sted_id")),
+      valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
+      kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
+      kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn", "navn", "kandidat", "kandidat_id"))),
+      parti:         canon(pick(r, "parti", "listenavn")),
+      parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse")),
+      stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
     };
-    row.uid = makeUid(row);
+    // uid sættes/overskrives efter vi har injiceret kommune/region
     return row;
   }
 
@@ -425,7 +434,7 @@
     return res.data.map(mapRowCommon);
   }
 
-  /* === Ny, enkel loader for standardiserede filnavne === */
+  // Loader: injicer kommune/region + lav uid
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
 
@@ -434,10 +443,17 @@
     const safe    = encodeURIComponent(k);
     const url     = `${BASE_PATH}${regSafe}/${safe}.csv`;
 
-    const text = await fetchText(url);                 // kaster hvis 404
+    const text = await fetchText(url);
     if (/<html[^>]*>/i.test(text)) throw new Error('Not CSV');
 
     const rows = parseCsvTextToRows(text);
+
+    for (const r of rows) {
+      if (!r.kommune) r.kommune = k;
+      if (!r.region)  r.region  = regName;
+      r.uid = makeUid(r);
+    }
+
     state.csvCache.set(k, rows);
     return rows;
   }
@@ -601,7 +617,7 @@
     function renderMenu(){
       menu.innerHTML=stats.map(s=>{
         const {style,text}=badge(s.letter); const sel=s.parti===state.activeParty;
-        return `<div class="vb-option" role="option" data-parti="${escapeHtml(s.parti)}" aria-selected="${sel}">
+        return `<div class="vb-option" role="listbox" data-parti="${escapeHtml(s.parti)}" aria-selected="${sel}">
           <span class="vb-badge" style="${style}">${text}</span>
           <span class="flex-1">${escapeHtml(s.parti)}</span>
           <span class="text-xs text-gray-500">${s.kandidatAntal} kandidater</span></div>`;
