@@ -313,22 +313,34 @@
     }
     return Array.from(m.values());
   }
-  function rankCandidates(cands,q){
-    const Q=fold(q); if(!Q) return [];
-    return cands.map(c=>{
+function rankCandidates(cands, q){
+  const Q = fold(q);
+  if (!Q) return [];
+
+  return cands
+    .map(c => {
       const name = normalizeCandidateName(c.kandidat_navn);
       const f = fold(name);
-      let score=-Infinity;
-      if(f.startsWith(Q)) score=300-(f.length-Q.length);
-      else{
-        const hasWordStart=f.split(/\s+/).some(w=>w.startswith(Q));
-        if(hasWordStart) score=200-f.indexOf(Q);
-        else if(f.includes(Q)) score=100-f.indexOf(Q);
+      let score = -Infinity;
+
+      if (f.startsWith(Q)) {
+        score = 300 - (f.length - Q.length);
+      } else {
+        const hasWordStart = f.split(/\s+/).some(w => w.startsWith(Q)); // <- FIX her
+        if (hasWordStart) score = 200 - f.indexOf(Q);
+        else if (f.includes(Q)) score = 100 - f.indexOf(Q);
       }
-      const pf=fold(c.parti); if(pf.startsWith(Q)||pf.includes("("+Q+")")) score+=20;
-      return {...c,_score:score,_name:name};
-    }).filter(x=>x._score>-Infinity).sort((a,b)=> b._score-a._score || a._name.localeCompare(b._name,"da")).slice(0,15);
-  }
+
+      const pf = fold(c.parti);
+      if (pf.startsWith(Q) || pf.includes("(" + Q + ")")) score += 20;
+
+      return { ...c, _score: score, _name: name };
+    })
+    .filter(x => x._score > -Infinity)
+    .sort((a, b) => b._score - a._score || a._name.localeCompare(b._name, "da"))
+    .slice(0, 15);
+}
+
   function renderLanding(){
     const inputK=el('kommuneSearch');
     if(inputK){
