@@ -28,7 +28,6 @@
               max-height:18rem; overflow:auto; background:#fff; border:1px solid #e5e7eb;
               border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
     .vb-option{ display:flex; align-items:center; gap:.75rem; padding:.5rem .75rem; cursor:pointer; }
-    .vb-option span{ white-space:normal; word-break:break-word; }
     .vb-option:hover, .vb-option[aria-selected="true"]{ background:#f3f4f6; }
 
     .table-sticky thead th:first-child, .table-sticky tbody td:first-child, .table-sticky tfoot th:first-child{
@@ -195,6 +194,23 @@
     return "";
   }
 
+  /* ==== Slug + hash til stabile valgsted_id'er ==== */
+  function slugify(s) {
+    return (s || "")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/æ/gi, "ae").replace(/ø/gi, "oe").replace(/å/gi, "aa")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 100);
+  }
+  function shortHash(s) {
+    let h = 0; const str = String(s || "");
+    for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) | 0;
+    return Math.abs(h).toString(36);
+  }
+
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
     const region = canon(r.region || "");
@@ -305,7 +321,7 @@
       let score=-Infinity;
       if(f.startsWith(Q)) score=300-(f.length-Q.length);
       else{
-        const hasWordStart=f.split(/\s+/).some(w=>w.startsWith(Q));
+        const hasWordStart=f.split(/\s+/).some(w=>w.startswith(Q));
         if(hasWordStart) score=200-f.indexOf(Q);
         else if(f.includes(Q)) score=100-f.indexOf(Q);
       }
@@ -399,7 +415,7 @@
   /* ===== Data: fetch & parse ===== */
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
 
-  // Helper der tåler lowercase + varianter (og danske tegn i header)
+  // Helper: tolerant for lowercase varianter + danske tegn
   function pick(obj, ...cands) {
     for (const k of cands) {
       const kl = k.toLowerCase();
@@ -410,10 +426,9 @@
   }
 
   function mapRowCommon(r){
-    const row = {
+    return {
       region:        canon(pick(r, "region")),
       kommune:       canon(pick(r, "kommune")),
-      // id findes sjældent – navnet findes altid
       valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgstedid", "sted_id")),
       valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
       kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
@@ -422,9 +437,6 @@
       parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse", "bogstavsbetegnelse")),
       stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
     };
-    // Hvis vi ikke har et id, bruger vi navnet som id for at skelne valgsteder
-    if (!row.valgsted_id) row.valgsted_id = row.valgsted_navn || "";
-    return row;
   }
 
   function parseCsvTextToRows(text){
@@ -436,7 +448,7 @@
     return res.data.map(mapRowCommon);
   }
 
-  // Loader: injicer kommune/region + lav uid
+  // Loader: injicer kommune/region + lav stabilt valgsted_id (slug) + lav uid
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
 
@@ -453,6 +465,10 @@
     for (const r of rows) {
       if (!r.kommune) r.kommune = k;
       if (!r.region)  r.region  = regName;
+      if (!r.valgsted_id) {
+        const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
+        r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
+      }
       r.uid = makeUid(r);
     }
 
@@ -709,13 +725,15 @@
   function getPollingStations(){
     const m=new Map();
     for(const r of state.rows){
-      // brug navn som fallback for id – sikrer ét row pr. valgsted
-      const key=`${r.kommune}::${r.valgsted_id || r.valgsted_navn}`;
+      // nøgle: kommune + stabilt valgsted_id
+      const key=`${r.kommune}::${r.valgsted_id}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
       const ps=m.get(key);
       ps[r.uid]=(ps[r.uid]||0)+r.stemmer;
     }
-    return Array.from(m.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da'));
+    // Naturlig/alfabetisk sortering (1,2,3,…11) i dansk locale
+    const collator = new Intl.Collator('da', { numeric: true, sensitivity: 'base' });
+    return Array.from(m.values()).sort((a,b)=>collator.compare(a.navn, b.navn));
   }
 
   function renderPsTable(psList, sel){
