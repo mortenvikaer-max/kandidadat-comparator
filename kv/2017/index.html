@@ -186,7 +186,7 @@
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; };
+  const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
@@ -413,15 +413,17 @@
     const row = {
       region:        canon(pick(r, "region")),
       kommune:       canon(pick(r, "kommune")),
-      valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgsted_id", "valgstedid", "sted_id")),
+      // id findes sjældent – navnet findes altid
+      valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgstedid", "sted_id")),
       valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
       kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
       kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn", "navn", "kandidat", "kandidat_id"))),
       parti:         canon(pick(r, "parti", "listenavn")),
-      parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse")),
+      parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse", "bogstavsbetegnelse")),
       stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
     };
-    // uid sættes/overskrives efter vi har injiceret kommune/region
+    // Hvis vi ikke har et id, bruger vi navnet som id for at skelne valgsteder
+    if (!row.valgsted_id) row.valgsted_id = row.valgsted_navn || "";
     return row;
   }
 
@@ -707,7 +709,8 @@
   function getPollingStations(){
     const m=new Map();
     for(const r of state.rows){
-      const key=`${r.kommune}::${r.valgsted_id}`;
+      // brug navn som fallback for id – sikrer ét row pr. valgsted
+      const key=`${r.kommune}::${r.valgsted_id || r.valgsted_navn}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
       const ps=m.get(key);
       ps[r.uid]=(ps[r.uid]||0)+r.stemmer;
