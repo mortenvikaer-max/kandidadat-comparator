@@ -7,7 +7,6 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{ --vb-navy:#234a5a; --vb-navy-2:#1b3d4d; }
@@ -167,8 +166,9 @@
 </main>
 
 <script>
-  /* ===== DATA-STI (KV2017) ===== */
-  const BASE_PATH = '../../data/kv/2017/';
+  /* ===== DATA-STI (KV2017) =====
+     Brug absolut sti fra webroden. Justér hvis din mappe ligger et andet sted. */
+  const BASE_PATH = '/data/kv/2017/';
 
   /* Regioner & kommuner (som 2021) */
   const REGIONS = {
@@ -210,7 +210,7 @@
     rows:[], region:"", kommune:"", activeParty:"",
     selected:new Map(), candidateSortMode:"alpha", topListMode:"top10",
     csvCache:new Map(), isLoading:false,
-    pendingCandidateIds:[] // liste af uid'er
+    pendingCandidateIds:[]
   };
 
   /* ===== UI toggles ===== */
@@ -220,7 +220,7 @@
   function hideLoading(){ state.isLoading=false; el('loader')?.classList.add('hidden'); el('overviewTop')?.removeAttribute('aria-busy'); if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled',''); el('regionSelect')?.removeAttribute('disabled'); }
 
   /* ===== URL ===== */
-  const getSelectedIds = () => Array.from(state.selected.keys()); // uid'er
+  const getSelectedIds = () => Array.from(state.selected.keys());
   function persistUrl(push=false){
     const u=new URL(location.href);
     if(state.region) u.searchParams.set("region", state.region); else u.searchParams.delete("region");
@@ -250,7 +250,6 @@
       state.region=""; state.kommune=""; await loadNationalData();
     }
 
-    // Bagudkompatibilitet: hvis 'cand' ikke ligner uid (ingen |||), prøv at mappe i den nuværende scope
     const lookLikeUid = cand.some(x=>x.includes("|||"));
     if(lookLikeUid){ setSelectedFromIds(cand); }
     else if(state.rows?.length){
@@ -261,7 +260,6 @@
       setSelectedFromIds(asUid);
     }
 
-    // Parti-param
     if(state.kommune && parti){
       const stats=getPartyStats();
       state.activeParty = stats.some(s=>s.parti===parti) ? parti : "";
@@ -400,7 +398,6 @@
   }
 
   /* ===== Data: fetch & parse ===== */
-  async function fetchArrayBuffer(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.arrayBuffer(); }
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
 
   function mapRowCommon(r){
@@ -419,11 +416,6 @@
     return row;
   }
 
-  function parseXlsxToRows(buf){
-    const wb=XLSX.read(buf,{type:"array"}); const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
-    return rows.map(mapRowCommon);
-  }
   function parseCsvTextToRows(text){
     const res = Papa.parse(text, {
       header:true, skipEmptyLines:true,
@@ -433,15 +425,21 @@
     return res.data.map(mapRowCommon);
   }
 
+  /* === Ny, enkel loader for standardiserede filnavne === */
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
-    const safe=encodeURIComponent(k);
-    const regName=findRegionForKommune(k); const regSafe=encodeURIComponent(regName||"");
-    const candidatesXlsx=[`${BASE_PATH}${safe}.xlsx`, `${BASE_PATH}${safe}_allepartier.xlsx`, `${BASE_PATH}${regSafe}/${safe}.xlsx`, `${BASE_PATH}${regSafe}/${safe}_allepartier.xlsx`];
-    const candidatesCsv=[`${BASE_PATH}${safe}_allepartier.csv`, `${BASE_PATH}${safe}.csv`, `${BASE_PATH}${regSafe}/${safe}_allepartier.csv`, `${BASE_PATH}${regSafe}/${safe}.csv`];
-    for(const url of candidatesXlsx){ try{ const buf=await fetchArrayBuffer(url); const rows=parseXlsxToRows(buf); state.csvCache.set(k,rows); return rows; }catch(_){} }
-    for(const url of candidatesCsv){ try{ const text=await fetchText(url); const rows=parseCsvTextToRows(text); state.csvCache.set(k,rows); return rows; }catch(_){} }
-    throw new Error('not found');
+
+    const regName = findRegionForKommune(k);
+    const regSafe = encodeURIComponent(regName || '');
+    const safe    = encodeURIComponent(k);
+    const url     = `${BASE_PATH}${regSafe}/${safe}.csv`;
+
+    const text = await fetchText(url);                 // kaster hvis 404
+    if (/<html[^>]*>/i.test(text)) throw new Error('Not CSV');
+
+    const rows = parseCsvTextToRows(text);
+    state.csvCache.set(k, rows);
+    return rows;
   }
 
   async function loadNationalData(){
@@ -461,7 +459,7 @@
   async function loadKommuneData(k){
     try{ showLoading(); el("error").textContent=""; el("kommunetitel").textContent=k?`(${k})`:"";
       const rows=await loadRowsForKommune(k); state.rows=rows; afterDataLoaded();
-    } catch(e){ el("error").textContent=`Kunne ikke finde data for ${k}. Forsøgte både XLSX og CSV i /${BASE_PATH} samt i regions-undermapper.`; }
+    } catch(e){ el("error").textContent=`Kunne ikke finde data for ${k}. Tjek at filen findes på ${BASE_PATH}[Region]/${k}.csv`; }
     finally{ hideLoading(); }
   }
 
@@ -495,12 +493,10 @@
   }
 
   function primaryKommuneForCandidate(uid, rows){
-    // uid indeholder allerede kommune; brug den direkte hvis den findes i aktuelle rows
     const sample = rows.find(r=>r.uid===uid);
     if(sample){
       return { kommune: sample.kommune, region: sample.region || findRegionForKommune(sample.kommune) };
     }
-    // fallback (skulle sjældent ske)
     return null;
   }
 
