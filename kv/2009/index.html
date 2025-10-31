@@ -362,7 +362,7 @@
           <span class="text-xs text-gray-500">${sub}</span></span></div>`;
       }).join("");
       menu.querySelectorAll('.vb-option').forEach(opt=>{
-        opt.onclick()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
+        opt.onclick=()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
       });
       openMenu();
     }
