@@ -203,7 +203,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
 <script>
 /* ====== DATA-STI (FT 2007) ====== */
-const BASE_PATH = '../../data/ft/2007/';
+const BASE_PATH = '../../data/ft/2007/';          /* uændret rod */
 const KREDS_ALL_VALUE = "__ALL__";
 const DK_VALUE = "__DK__";
 
@@ -231,7 +231,7 @@ const KREDS_BY_STORKREDS = {
   "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
 };
 
-/* Kredse → Storkreds */
+/* Kredse → Storkreds (til fallback/robusthed) */
 const KREDS_TO_STORKREDS = (() => {
   const c = s => (s || "").toString().trim();
   const m = new Map();
@@ -243,11 +243,18 @@ function inferStorkredsFromKreds(kredsNavn){
   return KREDS_TO_STORKREDS.get((kredsNavn||"").toString().trim()) || "";
 }
 
+/* === Væsentlig ændring: stier og indlæsning fra én fil pr. storkreds === */
+const storkredsSlug = (name) => (name||"").toString().replace(/\s+/g,"_");
+const storkredsFileURL = (storkredsName) => {
+  const folder = encodeURIComponent(storkredsName);
+  const file   = encodeURIComponent(`${storkredsSlug(storkredsName)}_allepartier.csv`);
+  return `${BASE_PATH}${folder}/${file}`;
+};
+const DK_COMBINED_CACHE_KEY = "__DK_ALL__"; // internt cache-nøgle
+
 /* ---------- PARTIER / FARVER / ALIAS ---------- */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
-/* Farver – inkluderer nyere bogstaver hvis de forekommer i datasæt (robusthed) */
 const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
-/* 2007-fokus, men tolerant hvis filer indeholder nyere etiketter */
 const PARTY_LETTERS_BY_NAME = {
   "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
   "konservative folkeparti":"C","det konservative folkeparti":"C",
@@ -256,7 +263,6 @@ const PARTY_LETTERS_BY_NAME = {
   "dansk folkeparti":"O",
   "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
   "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
-  /* nyere der tolereres i data */
   "alternativet":"Å","moderaterne":"M","danmarksdemokraterne":"Æ","frie grønne":"Q","nye borgerlige":"D"
 };
 const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
@@ -264,10 +270,11 @@ const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
 
 /* Helpers & state */
 const state = {
-  rows:[],
+  rows:[],                        // aktuelt viste rækker (DK, storkreds eller kreds)
   storkreds:"", kreds:"",
   activeParty:"", selected:new Map(),
-  selectedKredse:new Set(), csvCache:new Map(),
+  selectedKredse:new Set(),       // ekstra kredse i samme storkreds (hentes fra cache)
+  csvCache:new Map(),             // cache: `${storkreds}::__ALL__` -> ALLE rækker i storkredsen
   topListMode:"top10",
   candidateSortMode:"alpha"
 };
@@ -297,9 +304,6 @@ function hideLoading() {
   el('storkredsSelect')?.removeAttribute('disabled');
   if (state.storkreds) el('kredsSelect')?.removeAttribute('disabled');
 }
-
-/* Batched parallel helper */
-function chunkArray(arr, size){ const out=[]; for(let i=0;i<arr.length;i+=size){ out.push(arr.slice(i,i+size)); } return out; }
 
 /* DK->storkreds hop */
 function primaryStorkredsForCandidate(candId, rows){
@@ -382,18 +386,18 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     el("storkredsSelect").value=s;
     state.storkreds = s;
     populateKredse(s);
-    await loadStorkredsData(s);
+    await loadStorkredsData(s);                 // henter hele storkreds-filen (ny struktur)
     if(k===KREDS_ALL_VALUE){
       el("kredsSelect").value=KREDS_ALL_VALUE; state.kreds=KREDS_ALL_VALUE;
     }else if(k && (KREDS_BY_STORKREDS[s]||[]).includes(k)){
-      el("kredsSelect").value=k; state.kreds=k; await loadKredsData(s,k);
+      el("kredsSelect").value=k; state.kreds=k; await loadKredsData(s,k);   // filtrerer fra cachede storkredsdata
     }
     if(cand) selectCandidateById(cand);
   }else{
     el("storkredsSelect").value = DK_VALUE;
     state.storkreds = "";
     state.kreds = "";
-    await loadNationalData();
+    await loadNationalData();                   // samler alle storkredsfiler til Danmark
     renderContextBar();
   }
 
@@ -443,7 +447,7 @@ function initStorkredsDropdown(){
       state.storkreds=v; populateKredse(v);
       u.searchParams.set("storkreds",v); u.searchParams.delete("kreds"); u.searchParams.delete("kandidat");
       history.replaceState({}, "", u);
-      await loadStorkredsData(v);
+      await loadStorkredsData(v);          // henter kun én fil pr. storkreds
     }
     renderContextBar();
     updateTopButtonsForScope();
@@ -462,8 +466,13 @@ function populateKredse(storkreds){
       const v=ksel.value;
       state.activeParty=""; clearAll(); state.selectedKredse.clear(); renderExtraKredsChips();
       const u=new URL(location.href); u.searchParams.set("storkreds",storkreds); u.searchParams.delete("parti"); u.searchParams.delete("kandidat");
-      if(v===KREDS_ALL_VALUE){ state.kreds=KREDS_ALL_VALUE; u.searchParams.set("kreds",KREDS_ALL_VALUE); history.replaceState({}, "", u); await loadStorkredsData(storkreds); }
-      else if(v){ state.kreds=v; u.searchParams.set("kreds",v); history.replaceState({}, "", u); await loadKredsData(storkreds,v); }
+      if(v===KREDS_ALL_VALUE){
+        state.kreds=KREDS_ALL_VALUE; u.searchParams.set("kreds",KREDS_ALL_VALUE); history.replaceState({}, "", u);
+        await loadStorkredsData(storkreds);   // viser hele storkredsen (fra cache/fil)
+      }else if(v){
+        state.kreds=v; u.searchParams.set("kreds",v); history.replaceState({}, "", u);
+        await loadKredsData(storkreds,v);     // filtrerer rækker fra storkreds-cache
+      }
       updateAddKredsUIState(); renderContextBar();
     };
   }else{
@@ -485,131 +494,10 @@ function clearAll(){
   renderAll();
 }
 
-/* ================= DATA-LOAD ================= */
-async function loadNationalData(){
-  showLoading("Indlæser Danmark…");
-  try{
-    el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
-    const candidates=[ `${BASE_PATH}Danmark_allepartier.csv`, `${BASE_PATH}Danmark.csv` ];
-    for(const url of candidates){
-      try{
-        const r=await fetch(url,{cache:"no-store"});
-        if(r.ok){
-          const text=await r.text();
-          parseCsv(text, null);
-          afterDataLoaded();
-          return;
-        }
-      }catch(_){}
-    }
+/* ================= DATA-LOAD (NY STRUKTUR) ================= */
 
-    // Fallback: hent alle kredsfiler i parallelle batches
-    const allRows = [];
-    const tasks = [];
-    for(const sk of STORKREDSE){
-      const kredse = (KREDS_BY_STORKREDS[sk]||[]);
-      for(const k of kredse){
-        tasks.push((async ()=>{ try{ return await loadRowsForKreds(sk, k); }catch(_){ return []; } })());
-      }
-    }
-    const BATCH_SIZE = 6;
-    for(const batch of chunkArray(tasks, BATCH_SIZE)){
-      const settled = await Promise.allSettled(batch);
-      for(const res of settled){ if(res.status==="fulfilled" && Array.isArray(res.value)) allRows.push(...res.value); }
-    }
-    for(const sk of STORKREDSE){
-      const subset = allRows.filter(r => r.storkreds === sk);
-      state.csvCache.set(`${sk}::__ALL__`, subset.slice());
-    }
-    state.rows = allRows;
-    afterDataLoaded();
-    if(!allRows.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
-  } finally { hideLoading(); }
-}
-async function loadKredsData(storkreds,kreds){
-  showLoading("Indlæser…");
-  try{
-    el("error").textContent="";
-    el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-    const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-    const candidates=[
-      `${BASE_PATH}${s}/${k}_allepartier.csv`,
-      `${BASE_PATH}${s}/${k}.csv`,
-      `${BASE_PATH}${s}_allepartier.csv`,
-      `${BASE_PATH}${s}.csv`
-    ];
-    for(const url of candidates){
-      try{ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0; const text=await r.text(); parseCsv(text, kreds); afterDataLoaded(); return; }catch(e){}
-    }
-    el("error").textContent=`Kunne ikke finde data for ${storkreds}${kreds?(' / '+kreds):''}.`;
-  } finally { hideLoading(); }
-}
-async function loadStorkredsData(storkreds){
-  showLoading("Indlæser…");
-  try{
-    el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
-    const s=encodeURIComponent(storkreds);
-    const candidates=[ `${BASE_PATH}${s}_allepartier.csv`, `${BASE_PATH}${s}.csv` ];
-    for(const url of candidates){
-      try{
-        const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw 0;
-        const text=await r.text(); parseCsv(text, null);
-        state.csvCache.set(`${storkreds}::__ALL__`, state.rows.slice());
-        afterDataLoaded();
-        return;
-      }catch(e){}
-    }
-    const kredse = KREDS_BY_STORKREDS[storkreds] || [];
-    if(kredse.length){
-      const all = [];
-      const tasks = kredse.map(k => (async ()=>{ try{ return await loadRowsForKreds(storkreds, k); }catch(_){ return []; } })());
-      const BATCH_SIZE = 6;
-      for(const batch of chunkArray(tasks, BATCH_SIZE)){
-        const settled = await Promise.allSettled(batch);
-        for(const res of settled){ if(res.status==="fulfilled") all.push(...res.value); }
-      }
-      state.rows = all;
-      state.csvCache.set(`${storkreds}::__ALL__`, all.slice());
-      afterDataLoaded();
-      return;
-    }
-    el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
-  } finally { hideLoading(); }
-}
-
-/* CSV-parse + normalisering */
-function parseCsv(text, kredsNameOverride=null){
-  const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
-  state.rows=res.data.map(r=>{
-    let kandidatNavn = canon(r.kandidat_navn);
-    const navnLower = kandidatNavn.toLowerCase();
-    if (navnLower==="partiliste" || navnLower==="listestemmer" || navnLower==="liste") kandidatNavn = "Partiliste";
-    const parti = canon(r.parti);
-    const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode || r['parti (bogstav)'] || r.listebogstav;
-    const L = canon(rawLetter).toUpperCase();
-    const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
-
-    const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
-    const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
-
-    const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
-    return {
-      storkreds: storkredsNavn,
-      kreds: kredsNavn,
-      valgsted_id: canon(r.valgsted_id || r.afstemningssted_id || r.sted_id || `${cleanPollingPlaceName(r.valgsted_navn||r.afstemningssted||r.sted_navn)}`),
-      valgsted_navn: cleanPollingPlaceName(r.valgsted_navn || r.afstemningssted || r.sted_navn),
-      kandidat_id,
-      kandidat_navn: kandidatNavn,
-      parti,
-      parti_letter,
-      stemmer: Number(r.stemmer||0)||0
-    };
-  });
-}
-
-/* Ekstra kredse – cache */
-async function fetchCsvText(url){ const r = await fetch(url, { cache:"no-store" }); if(!r.ok) throw new Error("404"); return await r.text(); }
-function parseCsvTextToRows(text, kredsNameOverride){
+/* Parser – robust i forhold til kolonnenavne */
+function parseCsvTextToRows(text, storkredsNameOverride=null){
   const res = Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
   return res.data.map(r=>{
     let kandidatNavn = canon(r.kandidat_navn);
@@ -620,8 +508,8 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const L = canon(rawLetter).toUpperCase();
     const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
 
-    const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || "");
-    const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
+    const kredsNavn = canon(r.kredsnavn || r.kreds || "");
+    const storkredsNavn = storkredsNameOverride || canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
 
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
     return {
@@ -637,26 +525,100 @@ function parseCsvTextToRows(text, kredsNameOverride){
     };
   });
 }
-async function loadRowsForKreds(storkreds, kreds){
-  const key = `${storkreds}::${kreds}`;
-  if(state.csvCache.has(key)) return state.csvCache.get(key);
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
-  const candidates=[ `${BASE_PATH}${s}/${k}_allepartier.csv`, `${BASE_PATH}${s}/${k}.csv` ];
-  for(const url of candidates){
-    try{
-      const text = await fetchCsvText(url);
-      const rows = parseCsvTextToRows(text, kreds);
-      state.csvCache.set(key, rows);
-      return rows;
-    }catch(e){}
-  }
-  throw new Error(`Ingen data for ${kreds}`);
+
+async function fetchCsv(url){
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return await r.text();
+}
+
+/* Hele Danmark = saml alle storkredsfiler */
+async function loadNationalData(){
+  showLoading("Indlæser Danmark…");
+  try{
+    el("error").textContent=""; el("storkredstitel").textContent=`(Danmark)`;
+
+    // Brug cache hvis allerede samlet
+    if(state.csvCache.has(DK_COMBINED_CACHE_KEY)){
+      state.rows = state.csvCache.get(DK_COMBINED_CACHE_KEY).slice();
+      afterDataLoaded();
+      return;
+    }
+
+    const allRows = [];
+    const tasks = STORKREDSE.map(async (sk)=>{
+      try{
+        const txt = await fetchCsv(storkredsFileURL(sk));
+        const rows = parseCsvTextToRows(txt, sk);
+        // cache hele storkredsen til senere brug
+        state.csvCache.set(`${sk}::__ALL__`, rows.slice());
+        allRows.push(...rows);
+      }catch(e){
+        console.warn("Kunne ikke indlæse", sk, e);
+      }
+    });
+
+    // Kør i mindre batches for ikke at spamme
+    const BATCH_SIZE = 5;
+    for(let i=0;i<tasks.length;i+=BATCH_SIZE){
+      await Promise.allSettled(tasks.slice(i,i+BATCH_SIZE));
+    }
+
+    state.rows = allRows;
+    state.csvCache.set(DK_COMBINED_CACHE_KEY, allRows.slice());
+    afterDataLoaded();
+    if(!allRows.length){ el("error").textContent=`Kunne ikke indlæse landsdata (ingen filer fundet).`; }
+  } finally { hideLoading(); }
+}
+
+/* Hele storkredsen (én fil) */
+async function loadStorkredsData(storkreds){
+  showLoading("Indlæser storkreds…");
+  try{
+    el("error").textContent=""; el("storkredstitel").textContent=`(${storkreds})`;
+
+    // Brug cache hvis muligt
+    const cacheKey = `${storkreds}::__ALL__`;
+    if(state.csvCache.has(cacheKey)){
+      state.rows = state.csvCache.get(cacheKey).slice();
+      afterDataLoaded();
+      return;
+    }
+
+    const txt = await fetchCsv(storkredsFileURL(storkreds));
+    const rows = parseCsvTextToRows(txt, storkreds);
+    state.csvCache.set(cacheKey, rows.slice());
+    state.rows = rows;
+    afterDataLoaded();
+  } catch(e){
+    el("error").textContent=`Kunne ikke finde data for ${storkreds}.`;
+  } finally { hideLoading(); }
+}
+
+/* Enkel kreds = filtrer cachede storkredsdata */
+async function loadKredsData(storkreds, kreds){
+  showLoading("Indlæser kreds…");
+  try{
+    el("error").textContent="";
+    el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
+
+    const cacheKey = `${storkreds}::__ALL__`;
+    if(!state.csvCache.has(cacheKey)){
+      // sikr at hele storkredsen er i cache
+      await loadStorkredsData(storkreds);
+    }
+    const all = state.csvCache.get(cacheKey) || [];
+    state.rows = all.filter(r => canon(r.kreds) === canon(kreds));
+    afterDataLoaded();
+    if(!state.rows.length){
+      el("error").textContent=`Ingen rækker fundet for ${storkreds} / ${kreds}.`;
+    }
+  } finally { hideLoading(); }
 }
 
 /* Efter data indlæst */
 function afterDataLoaded(){
   state.activeParty=""; renderPartyCombobox(); renderAll(); updateAddKredsUIState(); renderContextBar();
-  // Luk evt. åben kandidat-menu
   el('candidateMenu')?.classList.add('hidden');
 }
 
@@ -669,14 +631,24 @@ function detectPartyLetter(parti, rowsForParti){
   return null;
 }
 function getActiveRows(){
-  if(!state.selectedKredse || state.selectedKredse.size===0) return state.rows;
-  const combined = [...state.rows];
-  state.selectedKredse.forEach(k=>{
-    if(state.kreds && k===state.kreds) return;
-    const extra = state.csvCache.get(`${state.storkreds}::${k}`) || [];
-    combined.push(...extra);
-  });
-  return combined;
+  // Start med de rækker, der svarer til den aktuelle visning (DK, storkreds eller kreds)
+  const base = state.rows.slice();
+
+  // Hvis brugeren har tilføjet ekstra kredse (kun inden for samme storkreds):
+  if(state.storkreds && state.selectedKredse.size){
+    const cacheKey = `${state.storkreds}::__ALL__`;
+    const all = state.csvCache.get(cacheKey) || [];
+    // medtag rækker fra ekstra kredse, men undgå dubletter
+    const already = new Set(base.map(r=>`${r.kreds}::${r.valgsted_id}::${r.kandidat_id}`));
+    for(const k of state.selectedKredse){
+      for(const r of all){
+        if(canon(r.kreds)!==canon(k)) continue;
+        const key = `${r.kreds}::${r.valgsted_id}::${r.kandidat_id}`;
+        if(!already.has(key)){ base.push(r); already.add(key); }
+      }
+    }
+  }
+  return base;
 }
 function getAllowedStorkredseForSelection(){
   const sel = getSelected();
@@ -1037,7 +1009,7 @@ function renderPsTable(psList, sel){
   </tr>`;
 }
 
-/* “Tilføj kreds” UI */
+/* “Tilføj kreds” UI – nu fra cachet storkredsfil (ingen ekstra fetch) */
 function setupAddKredsUI(){
   const btnAddKreds = document.getElementById('btnAddKreds');
   const addKredsMenu = document.getElementById('addKredsMenu');
@@ -1071,10 +1043,8 @@ function setupAddKredsUI(){
         try{
           if(v === '__ALL__'){
             const toAdd = (KREDS_BY_STORKREDS[state.storkreds] || []).slice();
-            await Promise.all(toAdd.map(k=>loadRowsForKreds(state.storkreds, k).catch(()=>null)));
             toAdd.forEach(k=>state.selectedKredse.add(k));
           }else{
-            await loadRowsForKreds(state.storkreds, v);
             state.selectedKredse.add(v);
           }
           renderExtraKredsChips(); renderAll();
