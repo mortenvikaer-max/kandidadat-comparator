@@ -202,8 +202,8 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 </main>
 
 <script>
-/* ====== DATA-STI (FT 2005) ====== */
-const BASE_PATH = '../../data/ft/2005/';         /* ny rod for 2005 */
+/* ====== DATA-STI (FT 2005 – FLAD STRUKTUR) ====== */
+const BASE_PATH = '/data/ft/2005/';             /* alle CSV-filer ligger direkte her */
 const KREDS_ALL_VALUE = "__ALL__";
 const DK_VALUE = "__DK__";
 
@@ -268,12 +268,11 @@ function hideLoading() {
   if (state.area) el('kredsSelect')?.removeAttribute('disabled');
 }
 
-/* Filnavn + sti */
+/* Filnavn + sti (FLAD STRUKTUR) */
 const areaSlug = (name) => (name||"").toString().replace(/\s+/g,"_");
 const areaFileURL = (areaName) => {
-  const folder = encodeURIComponent(areaName);
-  const file   = encodeURIComponent(`${areaSlug(areaName)}_allepartier.csv`);
-  return `${BASE_PATH}${folder}/${file}`;
+  const file = encodeURIComponent(`${areaSlug(areaName)}_allepartier.csv`);
+  return `${BASE_PATH}${file}`;
 };
 const DK_COMBINED_CACHE_KEY = "__DK_ALL__";
 
@@ -293,7 +292,7 @@ function selectCandidateById(candId){
   renderAll();
   el('compareSection')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
-function gotoArea(areaName, candidateId=null){
+async function gotoArea(areaName, candidateId=null){
   if(!areaName) return;
   const u=new URL(location.href);
   u.searchParams.set("area", areaName);
@@ -301,12 +300,11 @@ function gotoArea(areaName, candidateId=null){
   if(candidateId) u.searchParams.set("kandidat", candidateId); else u.searchParams.delete("kandidat");
   history.replaceState({}, "", u);
   el("areaSelect").value = areaName;
-  awaitPopulateKredse(areaName);
+  await awaitPopulateKredse(areaName);
   state.area = areaName; state.kreds = KREDS_ALL_VALUE;
-  loadAreaData(areaName).then(()=>{
-    if(candidateId) selectCandidateById(candidateId);
-    else { renderAll(); renderContextBar(); }
-  });
+  await loadAreaData(areaName);
+  if(candidateId) selectCandidateById(candidateId);
+  else { renderAll(); renderContextBar(); }
 }
 
 /* Søgning */
@@ -358,7 +356,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     el("areaSelect").value=a;
     state.area = a;
     await awaitPopulateKredse(a);
-    await loadAreaData(a);                 // henter hele områdefilen (ny struktur)
+    await loadAreaData(a);                 // henter hele områdefilen (flad struktur)
     if(k===KREDS_ALL_VALUE){
       el("kredsSelect").value=KREDS_ALL_VALUE; state.kreds=KREDS_ALL_VALUE;
     }else if(k && (state.kredsListCache.get(`${a}::KREDSLISTER`)||[]).includes(k)){
@@ -765,18 +763,10 @@ function renderOverview(){
   };
   bind('top10ColLeft'); bind('top10ColRight');
 }
-function toggleCandidateFromTop(candId, rows){
+async function toggleCandidateFromTop(candId, rows){
   if(!state.area){
-    const ar = primaryAreaForCandidate(candId, rows.map(r=>({...r, area:r.area||r.storkreds||r.amt})));
-    if(ar){ // Hop til område og vælg kandidaten
-      const u=new URL(location.href);
-      u.searchParams.set("area", ar);
-      u.searchParams.set("kreds", KREDS_ALL_VALUE);
-      u.searchParams.set("kandidat", candId);
-      history.replaceState({}, "", u);
-      el("areaSelect").value = ar;
-      (async ()=>{ await awaitPopulateKredse(ar); await loadAreaData(ar); selectCandidateById(candId); })();
-    }
+    const ar = primaryAreaForCandidate(candId, rows);
+    if(ar){ await gotoArea(ar, candId); }
     return;
   }
   const sample = rows.find(r=>r.kandidat_id===candId);
@@ -862,17 +852,10 @@ function renderPartyDetail(parti){
   const leftArr = sorted.slice(0, mid);
   const rightArr = sorted.slice( mid);
 
-  function addCandidate(k){
+  async function addCandidate(k){
     if(!state.area){
       const ar = primaryAreaForCandidate(k.kandidat_id, getOverviewRows());
-      if(ar){
-        const u=new URL(location.href);
-        u.searchParams.set("area", ar);
-        u.searchParams.set("kreds", KREDS_ALL_VALUE);
-        u.searchParams.set("kandidat", k.kandidat_id);
-        history.replaceState({}, "", u);
-        (async ()=>{ el("areaSelect").value=ar; await awaitPopulateKredse(ar); await loadAreaData(ar); selectCandidateById(k.kandidat_id); })();
-      }
+      if(ar){ await gotoArea(ar, k.kandidat_id); }
       return;
     }
     const check = canAddCandidate(k.kandidat_id);
@@ -1022,7 +1005,7 @@ function renderPsTable(psList, sel){
   </tr>`;
 }
 
-/* “Tilføj kreds” UI – nu dynamisk ud fra områdets cachede rækker */
+/* “Tilføj kreds” UI – dynamisk ud fra områdets cachede rækker */
 function setupAddKredsUI(){
   const btnAddKreds = document.getElementById('btnAddKreds');
   const addKredsMenu = document.getElementById('addKredsMenu');
