@@ -62,39 +62,66 @@
   <script>
     /* ====== KONFIG ====== */
     const YEARS = {
-      ft: [2022, 2019, 2015],
-      kv: [2021, 2017, 2013],
+      // FT: inkluderer 2005, 2007, 2011, 2015, 2019, 2022
+      ft: [2022, 2019, 2015, 2011, 2007, 2005],
+      // KV: tilføjet 2009, 2005, 2001
+      kv: [2021, 2017, 2013, 2009, 2005, 2001],
+      // RV: 2021, 2017, 2013
       rv: [2021, 2017, 2013],
-      ep: [2024, 2019, 2014] // <-- 2014 (ikke 2015)
+      // EP: tilføjet 2009, 2004
+      ep: [2024, 2019, 2014, 2009, 2004],
+      // FA: Folkeafstemning – ny sektion
+      fa: [2022, 2015, 2014]
     };
 
     // Brug relative stier så de virker i undermapper
-const DEST = {
-  kv: { perYear: {
-    2021: 'kv/2021/',
-    2017: 'kv/2017/',
-    2013: 'kv/2013/'   // <-- tilføjet linje
-  }},
-  ft: { perYear: {
-    2022: 'ft/2022/',
-    2019: 'ft/2019/',
-    2015: 'ft/2015/'
-  }},
-  rv: { perYear: {
-    // udfyld hvis du har sider for RV: fx 2021: 'rv/2021/'
-  }},
-  ep: { perYear: {
-    2024: 'ep/2024/',
-    2019: 'ep/2019/',
-    2014: 'ep/2014/'
-  }}
-};
-
+    const DEST = {
+      kv: { perYear: {
+        2021: 'kv/2021/',
+        2017: 'kv/2017/',
+        2013: 'kv/2013/',
+        2009: 'kv/2009/',
+        2005: 'kv/2005/',
+        2001: 'kv/2001/'
+      }},
+      ft: { perYear: {
+        2022: 'ft/2022/',
+        2019: 'ft/2019/',
+        2015: 'ft/2015/',
+        2011: 'ft/2011/',
+        2007: 'ft/2007/',
+        2005: 'ft/2005/'
+      }},
+      rv: { perYear: {
+        2021: 'rv/2021/',
+        2017: 'rv/2017/',
+        2013: 'rv/2013/'
+      }},
+      ep: { perYear: {
+        2024: 'ep/2024/',
+        2019: 'ep/2019/',
+        2014: 'ep/2014/',
+        2009: 'ep/2009/',
+        2004: 'ep/2004/'
+      }},
+      // Ny: Folkeafstemning
+      fa: { perYear: {
+        2022: 'fa/2022/',
+        2015: 'fa/2015/',
+        2014: 'fa/2014/'
+      }}
+    };
 
     const TITLES = {
-      ft:'Folketingsvalg', kv:'Kommunalvalg', rv:'Regionsrådsvalg', ep:'Europa-Parlamentsvalg'
+      ft:'Folketingsvalg',
+      kv:'Kommunalvalg',
+      rv:'Regionsrådsvalg',
+      ep:'Europa-Parlamentsvalg',
+      fa:'Folkeafstemning'
     };
-    const ORDER = ['ft','kv','rv','ep'];
+
+    // rækkefølge på forsiden
+    const ORDER = ['ft','kv','rv','ep','fa'];
 
     /* ====== RENDER ====== */
     const root = document.getElementById('list');
