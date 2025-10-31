@@ -444,10 +444,13 @@
   }
 
   /* KORRIGERET: præcis filnavn til regions-samlefil */
-  function regionAggregateBaseName(regName){
-    // Som dine filer: "Region " + navnet med mellemrum → underscore. Ingen lowercase, ingen diakritik-fjernelse.
-    return 'Region_' + (regName || '').replace(/\s+/g,'_');
-  }
+// Før (fejl): return 'Region_' + regName.replace(/\s+/g,'_');
+function regionAggregateBaseName(regName){
+  // "Region Hovedstaden" -> "Region_Hovedstaden"
+  return (regName || '')
+    .replace(/^Region\s+/, 'Region_')  // erstat kun "Region " med "Region_"
+    .replace(/\s+/g, '_');             // øvrige mellemrum -> _
+}
 
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
