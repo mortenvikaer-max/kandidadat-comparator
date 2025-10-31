@@ -194,19 +194,11 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  /* Farver */
+  /* Farver / badges */
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
-  /* State & helpers */
-  const state = {
-    rows:[], region:"", kommune:"", activeParty:"",
-    selected:new Map(),
-    candidateSortMode:"alpha", // alpha | votes
-    topListMode:"top10",       // top10 | all
-    csvCache:new Map(), isLoading:false,
-    pendingCandidateIds:[]
-  };
+  const state = { rows:[], region:"", kommune:"", activeParty:"", selected:new Map(), candidateSortMode:"alpha", topListMode:"top10", csvCache:new Map(), isLoading:false, pendingCandidateIds:[] };
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
   const canon = s => (s||"").toString().trim();
@@ -216,10 +208,7 @@
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const slug = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
 
-  function showLoading(){ state.isLoading=true; el('loader')?.classList.remove('hidden'); el('overviewTop')?.setAttribute('aria-busy','true'); el('regionSelect')?.setAttribute('disabled',''); el('kommuneSelect')?.setAttribute('disabled',''); }
-  function hideLoading(){ state.isLoading=false; el('loader')?.classList.add('hidden'); el('overviewTop')?.removeAttribute('aria-busy'); if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled',''); el('regionSelect')?.removeAttribute('disabled'); }
-
-  /* Partibogstav: fast map ud fra navn (øvrige -> null/gray) */
+  /* Partibogstav fra navn (øvrige -> null) */
   function partyLetterFromName(name){
     const f = fold(name);
     if(/^(socialdemokratiet)$/.test(f)) return "A";
@@ -316,21 +305,22 @@
     return Array.from(m.values());
   }
   function rankCandidates(cands, q){
-    const Q = fold(q);
+    const Q = (q||"").toString().trim();
     if (!Q) return [];
+    const f = s => s.normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase();
     return cands
       .map(c => {
         const name = normalizeCandidateName(c.kandidat_navn);
-        const f = fold(name);
+        const fn = f(name), fq = f(Q);
         let score = -Infinity;
-        if (f.startsWith(Q)) score = 300 - (f.length - Q.length);
+        if (fn.startsWith(fq)) score = 300 - (fn.length - fq.length);
         else {
-          const hasWordStart = f.split(/\s+/).some(w => w.startsWith(Q));
-          if (hasWordStart) score = 200 - f.indexOf(Q);
-          else if (f.includes(Q)) score = 100 - f.indexOf(Q);
+          const hasWordStart = fn.split(/\s+/).some(w => w.startsWith(fq));
+          if (hasWordStart) score = 200 - fn.indexOf(fq);
+          else if (fn.includes(fq)) score = 100 - fn.indexOf(fq);
         }
-        const pf = fold(c.parti);
-        if (pf.startsWith(Q) || pf.includes("(" + Q + ")")) score += 20;
+        const pf = f(c.parti);
+        if (pf.startsWith(fq) || pf.includes("(" + fq + ")")) score += 20;
         return { ...c, _score: score, _name: name };
       })
       .filter(x => x._score > -Infinity)
@@ -453,32 +443,34 @@
     });
   }
 
-  function regionSlugForAggregate(regName){
-    return 'Region_' + fold(regName).replace(/\s+/g,'_').replace(/[^a-z_]/g,'');
+  /* KORRIGERET: præcis filnavn til regions-samlefil */
+  function regionAggregateBaseName(regName){
+    // Som dine filer: "Region " + navnet med mellemrum → underscore. Ingen lowercase, ingen diakritik-fjernelse.
+    return 'Region_' + (regName || '').replace(/\s+/g,'_');
   }
 
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
 
     const regName = findRegionForKommune(k);
-    const regSafe = encodeURIComponent(regName || '');
-    const safeK   = encodeURIComponent(k);
+    const dirSeg  = encodeURIComponent(regName || '');    // "Region%20Hovedstaden"
+    const kmSeg   = encodeURIComponent(k);                // "Aarhus" etc.
 
-    // Primære kandidater (Kommune-filer i region-mappe)
+    // Prøv kommune-filer i regionsmappen
     const candidates = [
-      `${BASE_PATH}${regSafe}/${safeK}.xlsx`,
-      `${BASE_PATH}${regSafe}/${safeK}_allepartier.xlsx`,
-      `${BASE_PATH}${regSafe}/${safeK}.csv`,
-      `${BASE_PATH}${regSafe}/${safeK}_allepartier.csv`
+      `${BASE_PATH}${dirSeg}/${kmSeg}.xlsx`,
+      `${BASE_PATH}${dirSeg}/${kmSeg}_allepartier.xlsx`,
+      `${BASE_PATH}${dirSeg}/${kmSeg}.csv`,
+      `${BASE_PATH}${dirSeg}/${kmSeg}_allepartier.csv`
     ];
 
-    // Fallback: regionens samlede fil (filtreres til kommunen)
-    const aggName = regionSlugForAggregate(regName);
+    // Fallback: regionens samlede fil (filtreres på kommune)
+    const aggBase = encodeURIComponent(regionAggregateBaseName(regName)); // fx "Region_Hovedstaden"
     const aggregate = [
-      `${BASE_PATH}${regSafe}/${aggName}.xlsx`,
-      `${BASE_PATH}${regSafe}/${aggName}_allepartier.xlsx`,
-      `${BASE_PATH}${regSafe}/${aggName}.csv`,
-      `${BASE_PATH}${regSafe}/${aggName}_allepartier.csv`
+      `${BASE_PATH}${dirSeg}/${aggBase}.xlsx`,
+      `${BASE_PATH}${dirSeg}/${aggBase}_allepartier.xlsx`,
+      `${BASE_PATH}${dirSeg}/${aggBase}.csv`,
+      `${BASE_PATH}${dirSeg}/${aggBase}_allepartier.csv`
     ];
 
     for(const url of candidates){
@@ -604,7 +596,7 @@
   }
   function updateTopButtonsForScope(){ const btnAll = el("btnAll"); if(btnAll) btnAll.textContent = "Top 50"; }
 
-  /* Parti-stats & combobox (med faste bogstaver) */
+  /* Parti-stats & combobox */
   function getPartyStats(){
     const byParti=new Map();
     for(const r of state.rows){ if(!byParti.has(r.parti)) byParti.set(r.parti,[]); byParti.get(r.parti).push(r); }
@@ -616,7 +608,7 @@
         map.get(r.kandidat_id).total+=r.stemmer;
       }
       const kandidater=Array.from(map.values());
-      const letter = partyLetterFromName(parti); // <- fast/korrekt
+      const letter = partyLetterFromName(parti);
       res.push({ parti, letter, hasLetter: !!letter, kandidatAntal: kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length, kandidater });
     }
     res.sort((a,b)=>{ if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1; if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da"); return a.parti.localeCompare(b.parti,"da"); });
