@@ -617,18 +617,41 @@
     }));
   }
 
+  /* VIGTIGT: Rettet CSV-parser med understøttelse af Listenavn/Stemmetal m.m. */
   function parseCsvTextToRows(text){
-    const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
-    return res.data.map(r=>({
-      region: canon(r.region||""),
-      kommune: canon(r.kommune||""),
-      valgsted_id: canon(r.valgsted_id||r.sted_id||""),
-      valgsted_navn: canon(r.valgsted_navn||r.sted_navn||""),
-      kandidat_id: canon(r.kandidat_id||r.kandidat_navn||""),
-      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn||r.kandidat_id||"")),
-      parti: canon(r.parti||""),
-      parti_bogstav: canon(r.parti_bogstav||r.listebogstav||""),
-      stemmer: Number(r.stemmer||0)||0
+    const res = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      // Hvis dine CSV'er er semikolon-separerede, kan du evt. låse delimiteren:
+      // delimiter: ";",
+      transformHeader: h => canon(h.toLowerCase())
+    });
+
+    return res.data.map(r => ({
+      region: canon(r.region || ""),
+      kommune: canon(r.kommune || ""),
+      // valgsted / afstemningssted
+      valgsted_id: canon(
+        r.valgsted_id || r.sted_id || r.afstemningssted_id || r.afstemningsområde_id || ""
+      ),
+      valgsted_navn: canon(
+        r.valgsted_navn || r.sted_navn || r.afstemningssted || r.afstemningsområde || ""
+      ),
+      // kandidat
+      kandidat_id: canon(
+        r.kandidat_id || r.kandidat || r.navn || r.kandidat_navn || ""
+      ),
+      kandidat_navn: normalizeCandidateName(
+        canon(r.kandidat_navn || r.navn || r.kandidat || r.kandidat_id || "")
+      ),
+      // parti (understøt listenavn)
+      parti: canon(r.parti || r.listenavn || ""),
+      // bogstav
+      parti_bogstav: canon(
+        r.parti_bogstav || r.listebogstav || r.bogstavbetegnelse || ""
+      ),
+      // stemmer (understøt stemmetal)
+      stemmer: Number(r.stemmer || r.stemmetal || 0) || 0
     }));
   }
 
