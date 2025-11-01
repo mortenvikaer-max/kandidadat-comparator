@@ -222,11 +222,10 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  /* Partifarver + mapping af bogstav efter partinavn (grå badge hvis ukendt) */
+  /* Partifarver + mapping af bogstav efter partinavn */
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","F":"#e5003d","I":"#00a0e3","O":"#0044aa","S":"#666666","V":"#1b5eaa","Ø":"#c8102e" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
-  // Normaliseret navn -> fast bogstav
   const PARTY_LETTERS_BY_NAME = new Map([
     ["socialdemokratiet","A"],
     ["radikale venstre","B"],
@@ -594,6 +593,7 @@
     return await r.arrayBuffer();
   }
 
+  // CSV: hent som arraybuffer og dekod smart (UTF-8/16/1252)
   async function fetchTextSmart(url){
     console.log("fetch CSV:", url);
     const r = await fetch(url, { cache:"no-store" });
@@ -606,30 +606,26 @@
     const hasUTF16BE  = bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF;
 
     try{
-      if(hasUTF16LE){
-        return new TextDecoder("utf-16le").decode(buf);
-      }else if(hasUTF16BE){
-        return new TextDecoder("utf-16be").decode(buf);
-      }else if(hasUTF8BOM){
-        return new TextDecoder("utf-8").decode(buf);
-      }else{
-        const sample = bytes.slice(0, 512);
-        const nulCount = sample.filter(b => b === 0x00).length;
-        if(nulCount > sample.length * 0.1){
-          return new TextDecoder("utf-16le").decode(buf);
-        }
-        const utf8Text = new TextDecoder("utf-8", { fatal:false }).decode(buf);
-        if(/\uFFFD/.test(utf8Text)){
-          try{ return new TextDecoder("windows-1252").decode(buf); }catch(_){}
-        }
-        return utf8Text;
+      if(hasUTF16LE) return new TextDecoder("utf-16le").decode(buf);
+      if(hasUTF16BE) return new TextDecoder("utf-16be").decode(buf);
+      if(hasUTF8BOM) return new TextDecoder("utf-8").decode(buf);
+
+      const sample = bytes.slice(0, 512);
+      const nulCount = sample.filter(b => b === 0x00).length;
+      if(nulCount > sample.length * 0.1) return new TextDecoder("utf-16le").decode(buf);
+
+      const utf8Text = new TextDecoder("utf-8", { fatal:false }).decode(buf);
+      if(/\uFFFD/.test(utf8Text)){
+        try{ return new TextDecoder("windows-1252").decode(buf); }catch(_){}
       }
+      return utf8Text;
     }catch(e){
       return new TextDecoder().decode(buf);
     }
   }
 
   /* ======== PARSING ======== */
+
   function parseXlsxToRows(buf){
     const wb = XLSX.read(buf, { type: "array" });
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -647,23 +643,48 @@
     }));
   }
 
+  // CSV: auto-delimiter + robust kolonnenavne
   function parseCsvTextToRows(text){
-    const res=Papa.parse(text,{
-      header:true,
-      skipEmptyLines:true,
-      delimiter:";",
-      transformHeader:h=>canon(h.toLowerCase())
+    // 1) Autodetekter
+    let res = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      delimiter: "", // AUTO
+      transformHeader: h => canon(h.toLowerCase())
     });
+
+    // 2) Fallback hvis alt endte i én kolonne
+    const bad = !res.data.length || Object.keys(res.data[0] || {}).length <= 1;
+    if (bad) {
+      const head = text.slice(0, 4096);
+      const counts = {
+        ";": (head.match(/;/g) || []).length,
+        ",": (head.match(/,/g) || []).length,
+        "\t": (head.match(/\t/g) || []).length
+      };
+      const delim = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+      res = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        delimiter: delim,
+        transformHeader: h => canon(h.toLowerCase())
+      });
+      console.warn("CSV: auto-delimiter fejlede, bruger heuristik:", counts, "=>", JSON.stringify(delim));
+    } else {
+      console.log("CSV: autodetekteret delimiter OK");
+    }
+
+    // 3) Mapping
     return res.data.map(r=>({
-      region: canon(r.region||""),
-      kommune: canon(r.kommune||""),
-      valgsted_id: canon(r.valgsted_id||r.sted_id||r.afstemningssted_id||r.afstemningsområde_id||""),
-      valgsted_navn: canon(r.valgsted_navn||r.sted_navn||r.afstemningssted||r.afstemningsområde||""),
-      kandidat_id: canon(r.kandidat_id||r.kandidat||r.navn||r.kandidat_navn||""),
-      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn||r.navn||r.kandidat||r.kandidat_id||"")),
-      parti: canon(r.parti||r.listenavn||""),
-      parti_bogstav: canon(r.parti_bogstav||r.listebogstav||r.bogstavbetegnelse||""),
-      stemmer: Number(r.stemmer||r.stemmetal||0)||0
+      region: canon(r.region || ""),
+      kommune: canon(r.kommune || ""),
+      valgsted_id: canon(r.valgsted_id || r.sted_id || r.afstemningssted_id || r.afstemningsområde_id || r["valgsted id"] || ""),
+      valgsted_navn: canon(r.valgsted_navn || r.sted_navn || r.afstemningssted || r.afstemningsområde || r["valgsted"] || ""),
+      kandidat_id: canon(r.kandidat_id || r.kandidat || r.navn || r.kandidat_navn || ""),
+      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn || r.navn || r.kandidat || r.kandidat_id || "")),
+      parti: canon(r.parti || r.listenavn || r["listenavn"] || ""),
+      parti_bogstav: canon(r.parti_bogstav || r.listebogstav || r.bogstavbetegnelse || ""),
+      stemmer: Number(r.stemmer || r.stemmetal || r["stemmer"] || r["stemmetal"] || 0)||0
     }));
   }
 
@@ -698,57 +719,35 @@
         return rows;
       }catch(_){}
     }
+    // Hvis ingen regionsfil, forsøg at samle via kommuner (men din struktur behøver det ikke)
     const names=(REGIONS[region]||[]);
     const chunks=await Promise.all(names.map(name=>loadRowsForKommune(name).catch(()=>[])));
     return chunks.flat();
   }
 
+  // VIGTIG: Kommunedata hentes FRA regionsfilen og filtreres
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
-    const safe = encodeURIComponent(k);
+
     const regName = findRegionForKommune(k);
-    const regSafe = encodeURIComponent(regName || "");
+    if(!regName) throw new Error(`Ukendt kommune: ${k}`);
 
-    const candidatesXlsx = [
-      `${BASE_PATH}${safe}.xlsx`,
-      `${BASE_PATH}${safe}_allepartier.xlsx`,
-      `${BASE_PATH}${regSafe}/${safe}.xlsx`,
-      `${BASE_PATH}${regSafe}/${safe}_allepartier.xlsx`,
-    ];
-    const candidatesCsv = [
-      `${BASE_PATH}${safe}_allepartier.csv`,
-      `${BASE_PATH}${safe}.csv`,
-      `${BASE_PATH}${regSafe}/${safe}_allepartier.csv`,
-      `${BASE_PATH}${regSafe}/${safe}.csv`,
-    ];
+    // hent regionens rækker og filtrer
+    const regionRows = await loadRowsForRegion(regName);
+    const rows = regionRows.filter(r => (r.kommune || k) === k);
 
-    for(const url of candidatesXlsx){
-      try{
-        const buf = await fetchArrayBuffer(url);
-        const rows = parseXlsxToRows(buf);
-        state.csvCache.set(k, rows);
-        return rows;
-      }catch(_){}
-    }
-    for(const url of candidatesCsv){
-      try{
-        const text = await fetchTextSmart(url);
-        const rows = parseCsvTextToRows(text);
-        state.csvCache.set(k, rows);
-        return rows;
-      }catch(_){}
-    }
-    throw new Error('not found');
+    state.csvCache.set(k, rows);
+    return rows;
   }
 
-  /* ======== VIGTIGT: Opdateret Danmark-visning (aggregér regionsfiler) ======== */
+  /* ======== Danmark (aggregér regionsfiler) ======== */
   async function loadNationalData(){
     try{
       showLoading();
       el('error').textContent=''; 
       el('kommunetitel').textContent='(Danmark)';
 
-      const regioner = Object.keys(REGIONS); // 5 regioner
+      const regioner = Object.keys(REGIONS);
       const chunks = await Promise.all(regioner.map(r =>
         loadRowsForRegion(r).catch(() => [])
       ));
@@ -771,7 +770,7 @@
       const rows = await loadRowsForRegion(region);
       state.rows = rows.filter(r => (r.region||region) === region);
       if(!state.rows.length){
-        el('error').textContent = 'Ingen rækker indlæst for denne region (mulig encoding/delimiter-fejl).';
+        el('error').textContent = 'Ingen rækker indlæst for denne region.';
       }
       afterDataLoaded();
     }catch(e){
@@ -784,14 +783,14 @@
       showLoading();
       const reg = findRegionForKommune(k);
       el("error").textContent=""; el("kommunetitel").textContent=k?`(${k})`:"";
-      const rows = await loadRowsForKommune(k);
+      const rows = await loadRowsForKommune(k);  // henter regionfil og filtrerer
       state.rows = rows.filter(r => (r.kommune||k) === k);
       if(!state.rows.length){
         el('error').textContent = 'Ingen rækker indlæst for denne kommune.';
       }
       afterDataLoaded();
     }catch(e){
-      el("error").textContent=`Kunne ikke finde data for ${k}. Forsøgte både XLSX og CSV i /${BASE_PATH} samt i regions-undermapper.`;
+      el("error").textContent=`Kunne ikke hente kommunedata for ${k} fra regionsfilen.`;
     }finally{ hideLoading(); }
   }
 
