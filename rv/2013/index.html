@@ -267,18 +267,16 @@
   }
 
   function detectPartyLetter(rowsForParti){
-    // 1) forsøg: slå op via partinavn
     for(const r of rowsForParti){
       const nameKey = fold(r.parti||"");
       const fixed = PARTY_LETTERS_BY_NAME.get(nameKey);
       if(fixed) return fixed;
     }
-    // 2) fallback: kig på første gyldige bogstav i dataset (hvis farve findes)
     for(const r of rowsForParti){
       const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
       const L=m?.[1]; if(L && PARTY_COLORS[L]) return L;
     }
-    return null; // ukendt -> grå badge uden bogstav
+    return null;
   }
 
   function findRegionForKommune(kommune){
@@ -348,7 +346,6 @@
   window.addEventListener("DOMContentLoaded", async ()=>{
     renderLanding(); initRegionDropdown();
 
-    // Sorteringsknapper
     el("btnSortAlpha").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="alpha"){
         state.candidateSortMode="alpha";
@@ -366,7 +363,6 @@
       }
     });
 
-    // Top 10 / Top 50
     el("btnTop10").addEventListener("click", ()=>{ if(state.topListMode!=="top10"){ state.topListMode="top10"; updateTopToggleUI(); renderOverview(); persistUrl(true); } });
     el("btnAll").addEventListener("click", ()=>{ if(state.topListMode!=="all"){ state.topListMode="all"; updateTopToggleUI(); renderOverview(); persistUrl(true); } });
 
@@ -442,7 +438,6 @@
 
   /* LANDING UI */
   function renderLanding(){
-    // Kommune-søgning
     const inputK = el('kommuneSearch');
     if(inputK){
       inputK.addEventListener('input', (e)=>{
@@ -458,7 +453,6 @@
       });
     }
 
-    // Kandidatsøgning
     const input = el('candidateSearch');
     const menu  = el('candidateMenu');
     let activeIndex = -1;
@@ -472,7 +466,6 @@
       if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
 
       menu.innerHTML = results.map((c,i)=>{
-        // find brev til badge vha. nuværende rows
         const letter = detectPartyLetter((state.rows||[]).filter(r=>r.parti===c.parti));
         const bd = badge(letter);
         const sub = `${escapeHtml(c.parti)}`;
@@ -502,7 +495,6 @@
       input.value = "";
     }
 
-    // Debounce
     let t=null;
     input?.addEventListener('input', ()=>{
       const q = input.value.trim();
@@ -511,7 +503,6 @@
       t = setTimeout(()=>renderMenuFor(q), 120);
     });
 
-    // Tastatur-navigation
     input?.addEventListener('keydown', (e)=>{
       const results = rankCandidates(buildCandidateList(state.rows||[]), input.value);
       if(e.key==='ArrowDown'){
@@ -538,7 +529,6 @@
       }
     });
 
-    // Luk dropdown ved klik udenfor
     document.addEventListener('click',(e)=>{
       const box = el('candidateSearch')?.parentElement;
       if(box && !box.contains(e.target)) closeMenu();
@@ -596,9 +586,7 @@
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
 
-  /* ======== FETCH-HELPERS (rettet) ======== */
-
-  // XLSX hentes som arraybuffer som før
+  /* ======== FETCH-HELPERS ======== */
   async function fetchArrayBuffer(url){
     console.log("fetch XLSX:", url);
     const r = await fetch(url, { cache:"no-store" });
@@ -606,7 +594,6 @@
     return await r.arrayBuffer();
   }
 
-  // CSV: hentes som arraybuffer og dekodes smart
   async function fetchTextSmart(url){
     console.log("fetch CSV:", url);
     const r = await fetch(url, { cache:"no-store" });
@@ -626,13 +613,11 @@
       }else if(hasUTF8BOM){
         return new TextDecoder("utf-8").decode(buf);
       }else{
-        // Heuristik: mange nul-tegn => nok UTF-16
         const sample = bytes.slice(0, 512);
         const nulCount = sample.filter(b => b === 0x00).length;
         if(nulCount > sample.length * 0.1){
           return new TextDecoder("utf-16le").decode(buf);
         }
-        // Prøv UTF-8
         const utf8Text = new TextDecoder("utf-8", { fatal:false }).decode(buf);
         if(/\uFFFD/.test(utf8Text)){
           try{ return new TextDecoder("windows-1252").decode(buf); }catch(_){}
@@ -645,7 +630,6 @@
   }
 
   /* ======== PARSING ======== */
-
   function parseXlsxToRows(buf){
     const wb = XLSX.read(buf, { type: "array" });
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -663,12 +647,11 @@
     }));
   }
 
-  // CSV – nu låst til semikolon og med danske feltnavne
   function parseCsvTextToRows(text){
     const res=Papa.parse(text,{
       header:true,
       skipEmptyLines:true,
-      delimiter:";", // DK CSV
+      delimiter:";",
       transformHeader:h=>canon(h.toLowerCase())
     });
     return res.data.map(r=>({
@@ -690,9 +673,8 @@
   }
 
   async function loadRowsForRegion(region){
-    // Mappenavn må GERNE have mellemrum – din struktur er sådan
-    const regFolder = encodeURIComponent(region || ""); // "Region%20Hovedstaden"
-    const base = regionFileBase(region || "");          // "Region_Hovedstaden"
+    const regFolder = encodeURIComponent(region || "");
+    const base = regionFileBase(region || "");
     const candidatesXlsx = [
       `${BASE_PATH}${regFolder}/${base}_allepartier.xlsx`,
       `${BASE_PATH}${regFolder}/${base}.xlsx`,
@@ -716,7 +698,6 @@
         return rows;
       }catch(_){}
     }
-    // Fallback: aggreger alle kommuner i regionen
     const names=(REGIONS[region]||[]);
     const chunks=await Promise.all(names.map(name=>loadRowsForKommune(name).catch(()=>[])));
     return chunks.flat();
@@ -760,19 +741,29 @@
     throw new Error('not found');
   }
 
+  /* ======== VIGTIGT: Opdateret Danmark-visning (aggregér regionsfiler) ======== */
   async function loadNationalData(){
     try{
       showLoading();
-      el('error').textContent=''; el('kommunetitel').textContent='(Danmark)';
-      const allNames = Object.values(REGIONS).flat();
-      const chunks = await Promise.all(allNames.map(name=>loadRowsForKommune(name).catch(()=>[])));
+      el('error').textContent=''; 
+      el('kommunetitel').textContent='(Danmark)';
+
+      const regioner = Object.keys(REGIONS); // 5 regioner
+      const chunks = await Promise.all(regioner.map(r =>
+        loadRowsForRegion(r).catch(() => [])
+      ));
       state.rows = chunks.flat();
+
       if(!state.rows.length){
-        el('error').textContent = 'Ingen data indlæst for Danmark – tjek encoding eller stier.';
+        el('error').textContent = 'Ingen data indlæst for Danmark – tjek at regionsfilerne findes og kan læses.';
       }
+
       afterDataLoaded();
-    }finally{ hideLoading(); }
+    }finally{
+      hideLoading();
+    }
   }
+
   async function loadRegionData(region){
     try{
       showLoading();
@@ -787,6 +778,7 @@
       el('error').textContent = `Kunne ikke indlæse region: ${e.message||e}`;
     }finally{ hideLoading(); }
   }
+
   async function loadKommuneData(k){
     try{
       showLoading();
@@ -910,7 +902,6 @@
     });
   }
 
-  // VIGTIGT: klik på kandidat hopper til REGION + "Alle kommuner i regionen"
   function toggleCandidateFromTop(candId, rows){
     const targetRegion = primaryRegionForCandidate(candId, rows);
     if(!targetRegion) return;
@@ -935,7 +926,7 @@
 
   function updateTopButtonsForScope(){ const btnAll = el("btnAll"); if(btnAll) btnAll.textContent = "Top 50"; }
 
-  /* PARTI-STATS & COMBOBOX (kun aktiv i kommunevisning) */
+  /* PARTI-STATS & COMBOBOX */
   function getPartyStats(){
     const byParti=new Map();
     for(const r of state.rows){ if(!byParti.has(r.parti)) byParti.set(r.parti,[]); byParti.get(r.parti).push(r); }
@@ -1023,7 +1014,6 @@
     rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
-  /* Udvalgte kandidater – filtreret til aktuelt scope */
   function getSelectedInScope(){
     const idsInRows = new Set((state.rows||[]).map(r => r.kandidat_id));
     return Array.from(state.selected.values()).filter(k => idsInRows.has(k.kandidat_id));
@@ -1108,7 +1098,6 @@
     </tr>`;
   }
 
-  /* BRODKRUMMER */
   function renderContextBar(){
     const bar = document.getElementById('contextBar');
     const parts = [];
