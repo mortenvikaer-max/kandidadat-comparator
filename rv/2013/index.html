@@ -67,8 +67,8 @@
                width:24px; height:24px; padding:0; border:1px solid #e5e7eb; border-radius:8px; background:#fff; }
     .rotate-90{ transform:rotate(90deg); }
 
-    /* ------ Svag farvetint på kandidatkolonner ------ */
-    .tint-cell{ border-radius:6px; }  /* lidt bløde hjørner i cellen */
+    /* Svag farvetint på kandidatkolonner */
+    .tint-cell{ border-radius:6px; }
   </style>
 </head>
 
@@ -252,30 +252,31 @@
   }
   function findRegionForKommune(kommune){ for(const [reg,kommuner] of Object.entries(REGIONS)){ if(kommuner.includes(kommune)) return reg; } return ""; }
 
-  // ==== Nye små helpers til overskrifter og farvetint ====
-  function shortName(full) {
-    const parts = (full || '').trim().split(/\s+/);
-    if (parts.length <= 2) return full || '';
-    return `${parts[0]} ${parts[parts.length - 1]}`;
+  /* === Initialer (fra navnet før evt. ", By") + overskrift-komponent === */
+  function initialsFromName(full){
+    const beforeComma = (full || '').split(',')[0].trim();
+    const parts = beforeComma.split(/[ \-]+/).filter(Boolean);
+    const letters = parts.map(p => p[0]).join('');
+    return letters.toUpperCase();
   }
-  function headerForCandidate(s, rows) {
+  function headerForCandidate(s, rows){
     const bd = badge(detectPartyLetter(rows.filter(r => r.parti === s.parti)));
-    const name = shortName(normalizeCandidateName(s.kandidat_navn));
-    const full = `${normalizeCandidateName(s.kandidat_navn)} (${s.parti})`;
+    const fullName = normalizeCandidateName(s.kandidat_navn);
+    const initials = initialsFromName(fullName);
+    const full = `${fullName} (${s.parti})`;
     return `
-      <div class="flex items-center gap-2 justify-end">
+      <div class="flex items-center gap-2 justify-end" title="${escapeHtml(full)}">
         <span class="vb-badge" style="${bd.style};height:22px;width:22px;font-size:.7rem">${bd.text}</span>
-        <span class="text-xs sm:text-sm font-medium truncate" title="${escapeHtml(full)}">${escapeHtml(name)}</span>
+        <span class="text-sm font-semibold tracking-wide">${escapeHtml(initials)}</span>
       </div>`;
   }
+
+  /* === Farvetint i kandidatkolonner === */
   function hexToRgb(hex){
-    const m = (hex||"").replace('#','').match(/^([0-9a-f]{6})$/i);
-    if(!m) return [0,0,0];
-    const n=parseInt(m[1],16);
-    return [(n>>16)&255,(n>>8)&255,n&255];
+    const m=(hex||"").replace('#','').match(/^([0-9a-f]{6})$/i); if(!m) return [0,0,0];
+    const n=parseInt(m[1],16); return [(n>>16)&255,(n>>8)&255,n&255];
   }
-  // Bruges til svag baggrund i kandidatkolonner (tint)
-  const TINT_ALPHA = 0.08; // <- gør 0 for at slå farvetint helt fra
+  const TINT_ALPHA = 0 // Sæt til 0 for at slå farvetint fra
   function tintStyleByLetter(letter){
     if(!letter || !PARTY_COLORS[letter]) return "";
     const [r,g,b]=hexToRgb(PARTY_COLORS[letter]);
@@ -567,7 +568,6 @@
 
       const kommuner=Array.from(new Set(state.rows.map(r=>r.kommune))).sort((a,b)=>a.localeCompare(b,'da',{numeric:true}));
       const rowsHTML=[];
-      // præ-beregn letters/tints pr. valgt kandidat
       const candLetters = new Map(sel.map(s=>{
         const L = detectPartyLetter(state.rows.filter(r=>r.parti===s.parti));
         return [s.kandidat_id, L];
@@ -639,7 +639,7 @@
       </tr>`;
 
     }else{
-      // Kommune-scope: klassisk tabel pr. valgsted – alfabetisk + tint + overskrift med navne
+      // Kommune-scope: tabel pr. valgsted – alfabetisk + tint + initialer i header
       caption.textContent="Tabel pr. valgsted";
       thead.innerHTML=`<tr class="text-left border-b"><th class="py-2 pr-3">Valgsted</th>${sel.map(s=>`<th class="py-2 pr-3 text-right">${headerForCandidate(s, state.rows)}</th>`).join("")}</tr>`;
 
