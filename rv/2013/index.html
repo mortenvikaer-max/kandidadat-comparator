@@ -62,10 +62,13 @@
       background:linear-gradient(90deg, rgba(0,0,0,0) 0%, #c7d2fe 50%, rgba(0,0,0,0) 100%); animation:loadbar 1.2s infinite; }
     @keyframes loadbar{ 0%{transform:translateX(-100%)} 50%{transform:translateX(0%)} 100%{transform:translateX(100%)} }
 
-    /* Lille ikonknap til fold/udfold */
+    /* Lille ikonknap til fold/udfold – én linje */
     .vb-icbtn{ display:inline-flex; align-items:center; justify-content:center;
                width:24px; height:24px; padding:0; border:1px solid #e5e7eb; border-radius:8px; background:#fff; }
     .rotate-90{ transform:rotate(90deg); }
+
+    /* ------ Svag farvetint på kandidatkolonner ------ */
+    .tint-cell{ border-radius:6px; }  /* lidt bløde hjørner i cellen */
   </style>
 </head>
 
@@ -82,7 +85,7 @@
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 
-  <!-- Brødkrumme: Forside / Regionsrådsvalg 2013 (større + fed) -->
+  <!-- Brødkrumme: Forside / Regionsrådsvalg 2013 -->
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
     <ol class="flex items-center gap-2 text-lg font-semibold">
       <li><a href="../../" class="underline text-white">Forside</a></li>
@@ -205,6 +208,7 @@
 </main>
 
 <script>
+  /* ===== KONSTANTER ===== */
   const BASE_PATH='../../data/rv/2013/';
   const ALL_IN_REGION="__ALL_REGION__";
 
@@ -226,10 +230,12 @@
   ]);
   const EXCLUDE_LETTER=(nameKey)=> nameKey.includes("kaerlighedspartiet befri christiani");
 
+  /* ===== STATE ===== */
   const state={ rows:[], region:"", kommune:"", activeParty:"",
     selected:new Map(), candidateSortMode:"alpha", topListMode:"top10",
     csvCache:new Map(), isLoading:false, pendingCandidateIds:[] };
 
+  /* ===== HELPERS ===== */
   const el=id=>document.getElementById(id);
   const fmt=n=>new Intl.NumberFormat("da-DK").format(n);
   const canon=s=>(s||"").toString().trim();
@@ -246,7 +252,37 @@
   }
   function findRegionForKommune(kommune){ for(const [reg,kommuner] of Object.entries(REGIONS)){ if(kommuner.includes(kommune)) return reg; } return ""; }
 
-  /* URL helpers */
+  // ==== Nye små helpers til overskrifter og farvetint ====
+  function shortName(full) {
+    const parts = (full || '').trim().split(/\s+/);
+    if (parts.length <= 2) return full || '';
+    return `${parts[0]} ${parts[parts.length - 1]}`;
+  }
+  function headerForCandidate(s, rows) {
+    const bd = badge(detectPartyLetter(rows.filter(r => r.parti === s.parti)));
+    const name = shortName(normalizeCandidateName(s.kandidat_navn));
+    const full = `${normalizeCandidateName(s.kandidat_navn)} (${s.parti})`;
+    return `
+      <div class="flex items-center gap-2 justify-end">
+        <span class="vb-badge" style="${bd.style};height:22px;width:22px;font-size:.7rem">${bd.text}</span>
+        <span class="text-xs sm:text-sm font-medium truncate" title="${escapeHtml(full)}">${escapeHtml(name)}</span>
+      </div>`;
+  }
+  function hexToRgb(hex){
+    const m = (hex||"").replace('#','').match(/^([0-9a-f]{6})$/i);
+    if(!m) return [0,0,0];
+    const n=parseInt(m[1],16);
+    return [(n>>16)&255,(n>>8)&255,n&255];
+  }
+  // Bruges til svag baggrund i kandidatkolonner (tint)
+  const TINT_ALPHA = 0.08; // <- gør 0 for at slå farvetint helt fra
+  function tintStyleByLetter(letter){
+    if(!letter || !PARTY_COLORS[letter]) return "";
+    const [r,g,b]=hexToRgb(PARTY_COLORS[letter]);
+    return `background: rgba(${r}, ${g}, ${b}, ${TINT_ALPHA});`;
+  }
+
+  /* ===== URL helpers ===== */
   const getSelectedIds=()=>Array.from(state.selected.keys());
   function setSelectedFromIds(idArr){ state.pendingCandidateIds=(idArr||[]).filter(Boolean); }
   function persistUrl(push=false){
@@ -531,6 +567,12 @@
 
       const kommuner=Array.from(new Set(state.rows.map(r=>r.kommune))).sort((a,b)=>a.localeCompare(b,'da',{numeric:true}));
       const rowsHTML=[];
+      // præ-beregn letters/tints pr. valgt kandidat
+      const candLetters = new Map(sel.map(s=>{
+        const L = detectPartyLetter(state.rows.filter(r=>r.parti===s.parti));
+        return [s.kandidat_id, L];
+      }));
+
       for(const k of kommuner){
         const rowsK=state.rows.filter(r=>r.kommune===k);
         const totals=new Map(); sel.forEach(s=>totals.set(s.kandidat_id, rowsK.filter(r=>r.kandidat_id===s.kandidat_id).reduce((x,r)=>x+(r.stemmer||0),0)));
@@ -543,7 +585,6 @@
         });
         const psRows=Array.from(byPS.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da',{numeric:true}));
 
-        // Header-række (én linje) med lille ikonknap
         rowsHTML.push(`<tr class="group-row" data-kommune="${escapeHtml(k)}">
           <td class="py-2 pr-3 font-medium">
             <button class="vb-icbtn align-middle" aria-expanded="false" title="Fold valgsteder" data-fold>
@@ -554,7 +595,6 @@
           ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}
         </tr>`);
 
-        // Detalje-række (skjult som udgangspunkt)
         rowsHTML.push(`<tr class="detail-row hidden" data-for="${escapeHtml(k)}">
           <td colspan="${1+sel.length}" class="pl-6 py-2">
             <div class="overflow-auto">
@@ -562,13 +602,16 @@
                 <thead>
                   <tr class="text-left border-b">
                     <th class="py-1 pr-3">Valgsted</th>
-                    ${sel.map(()=>`<th class="py-1 pr-3 text-right">Stemmer</th>`).join("")}
+                    ${sel.map(s=>`<th class="py-1 pr-3 text-right">${headerForCandidate(s, state.rows)}</th>`).join("")}
                   </tr>
                 </thead>
                 <tbody>
                   ${psRows.map(ps=>`<tr class="border-b last:border-0">
                     <td class="py-1 pr-3">${escapeHtml(ps.navn)}</td>
-                    ${sel.map(s=>`<td class="py-1 pr-3 tabular-nums text-right">${fmt(ps.map.get(s.kandidat_id)||0)}</td>`).join("")}
+                    ${sel.map(s=>{
+                      const L = candLetters.get(s.kandidat_id);
+                      return `<td class="py-1 pr-3 tabular-nums text-right tint-cell" style="${tintStyleByLetter(L)}">${fmt(ps.map.get(s.kandidat_id)||0)}</td>`;
+                    }).join("")}
                   </tr>`).join("")}
                 </tbody>
               </table>
@@ -578,13 +621,11 @@
       }
       tbody.innerHTML=rowsHTML.join("");
 
-      // >>> Fold/udfold – klik virker nu (én tbody med to rækker pr. kommune) <<<
       tbody.querySelectorAll('[data-fold]').forEach(btn=>{
         btn.addEventListener('click',()=>{
           const row=btn.closest('.group-row');
-          const kommune=row?.getAttribute('data-kommune');
           const detail=row?.nextElementSibling;
-          if(!detail || detail.classList.contains('detail-row')===false) return;
+          if(!detail || !detail.classList.contains('detail-row')) return;
           const expanded=btn.getAttribute('aria-expanded')==='true';
           btn.setAttribute('aria-expanded', String(!expanded));
           btn.querySelector('svg')?.classList.toggle('rotate-90', !expanded);
@@ -598,9 +639,15 @@
       </tr>`;
 
     }else{
-      // Kommune-scope: klassisk tabel pr. valgsted – alfabetisk
+      // Kommune-scope: klassisk tabel pr. valgsted – alfabetisk + tint + overskrift med navne
       caption.textContent="Tabel pr. valgsted";
-      thead.innerHTML=`<tr class="text-left border-b"><th class="py-2 pr-3">Valgsted</th>${header}</tr>`;
+      thead.innerHTML=`<tr class="text-left border-b"><th class="py-2 pr-3">Valgsted</th>${sel.map(s=>`<th class="py-2 pr-3 text-right">${headerForCandidate(s, state.rows)}</th>`).join("")}</tr>`;
+
+      const candLetters = new Map(sel.map(s=>{
+        const L = detectPartyLetter(state.rows.filter(r=>r.parti===s.parti));
+        return [s.kandidat_id, L];
+      }));
+
       const map=new Map();
       for(const r of state.rows){ const key=r.valgsted_id||r.valgsted_navn||"–";
         if(!map.has(key)) map.set(key,{navn:r.valgsted_navn||r.valgsted_id||"–", kommune:r.kommune});
@@ -609,8 +656,12 @@
       const psList=Array.from(map.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da',{numeric:true}));
       tbody.innerHTML=psList.map(ps=>`<tr class="border-b last:border-0">
         <td class="py-2 pr-3 font-medium">${escapeHtml(ps.navn)}</td>
-        ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums">${fmt(ps[s.kandidat_id]||0)}</td>`).join("")}
+        ${sel.map(s=>{
+          const L = candLetters.get(s.kandidat_id);
+          return `<td class="py-2 pr-3 tabular-nums text-right tint-cell" style="${tintStyleByLetter(L)}">${fmt(ps[s.kandidat_id]||0)}</td>`;
+        }).join("")}
       </tr>`).join("");
+
       const totals=computeTotalsByCandidate();
       tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">Kommunetotal</th>
         ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}
