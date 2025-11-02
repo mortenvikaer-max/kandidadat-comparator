@@ -86,10 +86,22 @@
     </a>
   </div>
 
-  <div class="mx-auto max-w-6xl px-4 pb-4">
+  <div class="mx-auto max-w-6xl px-4 pb-1">
     <div class="text-white/90 text-base md:text-lg">Vælg en region og/eller kommune – og få overblik over partier og kandidater.</div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
+
+  <!-- Site-breadcrumb: Forside / Regionsrådsvalg / 2013 -->
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
+    <ol class="flex items-center gap-2 text-sm">
+      <li><a href="../../" class="underline text-white">Forside</a></li>
+      <li class="opacity-70">/</li>
+      <!-- Justér linket herunder, hvis din mappe­struktur er anderledes -->
+      <li><a href="../" class="underline text-white">Regionsrådsvalg</a></li>
+      <li class="opacity-70">/</li>
+      <li><span aria-current="page" class="font-semibold text-white">2013</span></li>
+    </ol>
+  </nav>
 </header>
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
@@ -836,7 +848,6 @@
         const open = row.classList.toggle('open');
         arrow.style.transform = open ? 'rotate(90deg)' : 'rotate(0deg)';
         if(open){
-          // lazy fill
           if(!body.getAttribute('data-filled')){
             const ps = getPollingStationsForCandidateInKommune(candRows, kommune);
             body.innerHTML = renderValgstederTable(ps);
@@ -871,6 +882,7 @@
       <div class="accordion-body mt-2 pl-10"></div>
     </div>`;
   }
+
   function getPollingStationsForCandidateInKommune(candRows, kommune){
     const list = candRows.filter(r => (r.kommune||"") === kommune);
     const m=new Map();
@@ -879,14 +891,28 @@
       if(!m.has(key)) m.set(key, { navn: r.valgsted_navn || r.valgsted_id || "–", total:0 });
       m.get(key).total += r.stemmer||0;
     }
+    // Sortér efter flest stemmer (sekundært alfabetisk)
     return Array.from(m.values()).sort((a,b)=>b.total-a.total || a.navn.localeCompare(b.navn,'da'));
   }
+
+  // >>> NUMMERERET TABEL OVER VALGSTEDER <<<
   function renderValgstederTable(ps){
     if(!ps.length) return `<div class="text-sm text-gray-500">Ingen stemmer registreret.</div>`;
-    const rows = ps.map(p=>`<tr class="border-b last:border-0"><td class="py-1 pr-3">${escapeHtml(p.navn)}</td><td class="py-1 pr-1 tabular-nums text-right">${fmt(p.total)}</td></tr>`).join("");
+    const rows = ps.map((p, i)=>`
+      <tr class="border-b last:border-0">
+        <td class="py-1 pr-3 tabular-nums text-right w-12">${i+1}</td>
+        <td class="py-1 pr-3">${escapeHtml(p.navn)}</td>
+        <td class="py-1 pr-1 tabular-nums text-right">${fmt(p.total)}</td>
+      </tr>`).join("");
     return `<div class="overflow-auto">
       <table class="w-full text-sm">
-        <thead><tr class="text-left border-b"><th class="py-1 pr-3">Valgsted</th><th class="py-1 pr-1 text-right">Stemmer</th></tr></thead>
+        <thead>
+          <tr class="text-left border-b">
+            <th class="py-1 pr-3 text-right w-12">#</th>
+            <th class="py-1 pr-3">Valgsted</th>
+            <th class="py-1 pr-1 text-right">Stemmer</th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -906,7 +932,6 @@
   function openModal(){
     el('modalBackdrop').classList.add('open');
     el('candidateModal').classList.add('open');
-    // fokus (tilgængelighed)
     el('modalClose').focus();
   }
   function closeCandidateModal(){
