@@ -28,6 +28,7 @@
               max-height:18rem; overflow:auto; background:#fff; border:1px solid #e5e7eb;
               border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
     .vb-option{ display:flex; align-items:center; gap:.75rem; padding:.5rem .75rem; cursor:pointer; }
+    .vb-option span{ white-space:normal; word-break:break-word; }
     .vb-option:hover, .vb-option[aria-selected="true"]{ background:#f3f4f6; }
 
     .table-sticky thead th:first-child, .table-sticky tbody td:first-child, .table-sticky tfoot th:first-child{
@@ -43,6 +44,11 @@
     @media (min-width:768px){ .top10-grid{ grid-template-columns:1fr 1fr; } }
 
     .context-bar{ display:flex; align-items:center; gap:.5rem; padding:.6rem .8rem; background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; }
+    .crumb{ color:#374151; text-decoration:underline; cursor:pointer; }
+    .crumb-strong{ background:#111827; color:#fff; border-radius:9999px; padding:.15rem .6rem; font-weight:600; }
+    .sep{ color:#9ca3af; }
+
+    .cell-na{ color:#9ca3af; }
 
     .loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
     .progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
@@ -57,6 +63,33 @@
   <div class="mx-auto max-w-6xl px-4 py-6 flex items-center gap-4">
     <a href="../../" class="flex items-center gap-3"><img src="../../Valgbar-transparent3.png" alt="Valgbar" class="h-32 w-auto" /></a>
   </div>
+
+  <!-- Brødkrumme + årsvælger (som 2021) -->
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-2">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li><span aria-current="page" class="text-white">Kommunalvalg 2017</span></li>
+      </ol>
+
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="kvYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
+        <select id="kvYearSelect"
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <option value="../2021/">Kommunalvalg 2021</option>
+          <option value="../2017/" selected>Kommunalvalg 2017</option>
+          <option value="../2013/">Kommunalvalg 2013</option>
+          <option value="../2009/">Kommunalvalg 2009</option>
+          <option value="../2005/">Kommunalvalg 2005</option>
+          <option value="../2001/">Kommunalvalg 2001</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+
   <div class="mx-auto max-w-6xl px-4 pb-4">
     <div class="text-white/90 text-base md:text-lg">Vælg en kommune og få overblik over partier og kandidater.</div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
@@ -89,11 +122,19 @@
     <p class="text-sm text-gray-600">Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne. Nedenfor vises Top 10 kandidater for det valgte område.</p>
   </section>
 
+  <!-- TOP 10/50 – opdateret til 2021-design med kandidat/parti-toggle -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
       <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
       <div class="flex items-center gap-3">
-        <div id="top10Scope" class="text-sm text-gray-500"></div>
+        <div class="text-right">
+          <div id="top10Scope" class="text-sm text-gray-500"></div>
+          <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden"></div>
+        </div>
+        <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
+          <button id="btnModeCand" class="vb-tabbox small active" type="button">Kandidater</button>
+          <button id="btnModeParty" class="vb-tabbox small" type="button">Partitotal</button>
+        </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnTop10" class="vb-tabbox small active" type="button">Top 10</button>
           <button id="btnAll" class="vb-tabbox small" type="button">Top 50</button>
@@ -165,7 +206,7 @@
 </main>
 
 <script>
-  /* ===== DATA-STI (KV2017) ===== */
+  /* ===== DATA-STI (KV2017) – UÆNDRET ===== */
   const BASE_PATH = '/data/kv/2017/';
 
   /* Regioner & kommuner (som 2021) */
@@ -224,6 +265,7 @@
   const state = {
     rows:[], region:"", kommune:"", activeParty:"",
     selected:new Map(), candidateSortMode:"alpha", topListMode:"top10",
+    overviewMode:"cand", // NY: kandidater / partitotal
     csvCache:new Map(), isLoading:false,
     pendingCandidateIds:[]
   };
@@ -231,6 +273,20 @@
   /* ===== UI toggles ===== */
   function updateCandSortToggleUI(){ const a=el("btnSortAlpha"), b=el("btnSortVotes"); if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); } else { b.classList.add("active"); a.classList.remove("active"); } }
   function updateTopToggleUI(){ const a=el("btnTop10"), b=el("btnAll"); if(state.topListMode==="top10"){ a.classList.add("active"); b.classList.remove("active"); } else { b.classList.add("active"); a.classList.remove("active"); } }
+  function updateModeToggleUI(){
+    const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
+    const isParty = state.overviewMode==="party";
+    if(a && b){
+      a.classList.toggle("active", !isParty);
+      b.classList.toggle("active", isParty);
+    }
+    if(info){
+      info.classList.toggle("hidden", !isParty);
+      if(isParty){
+        info.textContent = "Partitotal viser personlige stemmer + listestemmer pr. parti.";
+      }
+    }
+  }
   function showLoading(){ state.isLoading=true; el('loader')?.classList.remove('hidden'); el('overviewTop')?.setAttribute('aria-busy','true'); el('regionSelect')?.setAttribute('disabled',''); el('kommuneSelect')?.setAttribute('disabled',''); }
   function hideLoading(){ state.isLoading=false; el('loader')?.classList.add('hidden'); el('overviewTop')?.removeAttribute('aria-busy'); if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled',''); el('regionSelect')?.removeAttribute('disabled'); }
 
@@ -255,7 +311,7 @@
     const view=p.get("view"), sort=p.get("sort");
     state.topListMode=(view==="top50")?"all":"top10";
     state.candidateSortMode=(sort==="votes")?"votes":"alpha";
-    updateTopToggleUI(); updateCandSortToggleUI();
+    updateTopToggleUI(); updateCandSortToggleUI(); updateModeToggleUI(); updateTopButtonsForScope();
 
     if(r && REGIONS[r]){ el("regionSelect").value=r; populateKommuner(r); state.region=r;
       if(k && REGIONS[r].includes(k)){ el("kommuneSelect").value=k; state.kommune=k; await loadKommuneData(k); }
@@ -289,8 +345,37 @@
   /* ===== INIT ===== */
   window.addEventListener("DOMContentLoaded", async ()=>{
     renderLanding(); initRegionDropdown();
+
+    // År-vælger
+    const yearSel = el("kvYearSelect");
+    if(yearSel){
+      yearSel.addEventListener("change", ()=>{
+        const url = yearSel.value;
+        if(url) window.location.href = url;
+      });
+    }
+
     el("btnSortAlpha").addEventListener("click", ()=>{ if(state.candidateSortMode!=="alpha"){ state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
     el("btnSortVotes").addEventListener("click", ()=>{ if(state.candidateSortMode!=="votes"){ state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
+
+    // Mode-knapper kandidater / partitotal
+    el("btnModeCand").addEventListener("click", ()=>{
+      if(state.overviewMode!=="cand"){
+        state.overviewMode="cand";
+        updateModeToggleUI();
+        updateTopButtonsForScope();
+        renderOverview();
+      }
+    });
+    el("btnModeParty").addEventListener("click", ()=>{
+      if(state.overviewMode!=="party"){
+        state.overviewMode="party";
+        updateModeToggleUI();
+        updateTopButtonsForScope();
+        renderOverview();
+      }
+    });
+
     el("btnTop10").addEventListener("click", ()=>{ if(state.topListMode!=="top10"){ state.topListMode="top10"; updateTopToggleUI(); renderOverview(); persistUrl(true);} });
     el("btnAll").addEventListener("click", ()=>{ if(state.topListMode!=="all"){ state.topListMode="all"; updateTopToggleUI(); renderOverview(); persistUrl(true);} });
 
@@ -420,10 +505,9 @@
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
 
-  /* ===== Data: fetch & parse ===== */
+  /* ===== Data: fetch & parse (2017-logik bevaret) ===== */
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
 
-  // pick: tolerant for forskellige header-varianter
   function pick(obj, ...cands) {
     for (const k of cands) {
       const kl = k.toLowerCase();
@@ -433,16 +517,12 @@
     return "";
   }
 
-  // normaliser partinavn (inkl. SF-fix)
   function normalizePartyName(rawName, parti_bogstav) {
     const n = canon(rawName);
     const b = canon(parti_bogstav).toUpperCase();
-
-    // SF: saml alle varianter
     if (b === "F" || n.includes("Socialistisk Folkeparti")) {
       return "SF - Socialistisk Folkeparti";
     }
-
     return n;
   }
 
@@ -550,6 +630,22 @@
     return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
   }
 
+  // NY: partitotal (personlige + liste) pr. parti – bruger stadig 2017-rows
+  function totalsByPartyAllVotes(rows){
+    const m = new Map();
+    for(const r of rows){
+      const parti = r.parti || "(ukendt parti)";
+      m.set(parti, (m.get(parti)||0) + (r.stemmer||0));
+    }
+    const entries = Array.from(m.entries()).map(([parti,total])=>{
+      const rowsForParti = rows.filter(x=>x.parti===parti);
+      const letter = detectPartyLetter(rowsForParti);
+      return { parti, total, letter };
+    });
+    entries.sort((a,b)=>(b.total-a.total) || a.parti.localeCompare(b.parti,"da"));
+    return entries;
+  }
+
   function primaryKommuneForCandidate(uid, rows){
     const sample = rows.find(r=>r.uid===uid);
     if(sample){
@@ -561,32 +657,89 @@
   function renderOverview(){
     const rows=state.rows||[]; const atScope=state.kommune?state.kommune:(state.region?`${state.region}`:'Danmark');
     el("top10Scope").textContent=rows.length?atScope:'';
-    const ranked=totalsByCandidate(rows);
-    const list=state.topListMode==="top10"?ranked.slice(0,10):ranked.slice(0,50);
-    el("top10Title").textContent=state.topListMode==="top10"?"Top 10 kandidater (personlige stemmer)":"Top 50 kandidater (personlige stemmer)";
 
-    function itemHTML(k,idx){
-      const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
-      const bd=badge(letter);
-      const meta=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-      return `<li class="top10-item" data-uid="${escapeHtml(k.uid)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
-        <span class="rank-pill">${idx}</span>
-        <div class="min-w-0 flex-1"><div class="font-medium truncate">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div>
-        <div class="text-xs text-gray-500 truncate">${meta}</div></div>
-        <span class="vb-badge" style="${bd.style}">${bd.text}</span></li>`;
-    }
+    if(state.overviewMode === "party"){
+      const ranked = totalsByPartyAllVotes(rows);
+      const isTop10 = state.topListMode === "top10";
+      const list = isTop10 ? ranked.slice(0,10) : ranked;
 
-    const half=Math.ceil(list.length/2), left=list.slice(0,half), right=list.slice(half);
-    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k,i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k,i+1+half)).join("");
+      el("top10Title").textContent = isTop10
+        ? "Top 10 partier (personlige + listestemmer)"
+        : "Alle partier (personlige + listestemmer)";
 
-    ['top10ColLeft','top10ColRight'].forEach(rootId=>{
-      document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
-        const uid=item.getAttribute('data-uid');
-        item.addEventListener('click', ()=>toggleCandidateFromTop(uid, rows));
-        item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCandidateFromTop(uid, rows); } });
+      function itemHTML(p, idx){
+        const bd = badge(p.letter);
+        const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
+          <span class="rank-pill">${idx}</span>
+          <div class="min-w-0 flex-1">
+            <div class="font-medium truncate">${escapeHtml(p.parti)}</div>
+            <div class="text-xs text-gray-500 truncate">${meta}</div>
+          </div>
+          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+        </li>`;
+      }
+
+      const half = Math.ceil(list.length/2);
+      const left = list.slice(0,half);
+      const right = list.slice(half);
+
+      el("top10ColLeft").innerHTML =
+        left.map((p,i)=>itemHTML(p, i+1)).join("") ||
+        `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+      el("top10ColRight").innerHTML =
+        right.map((p,i)=>itemHTML(p, i+1+half)).join("");
+
+      // Klik på parti → vælg parti i combobox (kun i kommunevisning)
+      ['top10ColLeft','top10ColRight'].forEach(rootId=>{
+        document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
+          const parti=item.getAttribute('data-parti');
+          const activate = ()=>{
+            if(!state.kommune) return;
+            state.activeParty = parti;
+            renderPartyCombobox();
+            renderPartyDetail(parti);
+            persistUrl(false);
+            document.getElementById('partyDetail')?.scrollIntoView({behavior:'smooth'});
+          };
+          item.addEventListener('click', activate);
+          item.addEventListener('keydown', (e)=>{
+            if(e.key==='Enter' || e.key===' '){
+              e.preventDefault();
+              activate();
+            }
+          });
+        });
       });
-    });
+
+    } else {
+      const ranked=totalsByCandidate(rows);
+      const list=state.topListMode==="top10"?ranked.slice(0,10):ranked.slice(0,50);
+      el("top10Title").textContent=state.topListMode==="top10"?"Top 10 kandidater (personlige stemmer)":"Top 50 kandidater (personlige stemmer)";
+
+      function itemHTML(k,idx){
+        const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
+        const bd=badge(letter);
+        const meta=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+        return `<li class="top10-item" data-uid="${escapeHtml(k.uid)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
+          <span class="rank-pill">${idx}</span>
+          <div class="min-w-0 flex-1"><div class="font-medium truncate">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div>
+          <div class="text-xs text-gray-500 truncate">${meta}</div></div>
+          <span class="vb-badge" style="${bd.style}">${bd.text}</span></li>`;
+      }
+
+      const half=Math.ceil(list.length/2), left=list.slice(0,half), right=list.slice(half);
+      el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k,i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+      el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k,i+1+half)).join("");
+
+      ['top10ColLeft','top10ColRight'].forEach(rootId=>{
+        document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
+          const uid=item.getAttribute('data-uid');
+          item.addEventListener('click', ()=>toggleCandidateFromTop(uid, rows));
+          item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCandidateFromTop(uid, rows); } });
+        });
+      });
+    }
   }
 
   function toggleCandidateFromTop(uid, rows){
@@ -612,7 +765,15 @@
     document.getElementById('compareSection').scrollIntoView({behavior:'smooth', block:'start'});
   }
 
-  function updateTopButtonsForScope(){ const btnAll=el("btnAll"); if(btnAll) btnAll.textContent="Top 50"; }
+  function updateTopButtonsForScope(){
+    const btnAll=el("btnAll");
+    if(!btnAll) return;
+    if(state.overviewMode==="party"){
+      btnAll.textContent = "Alle partier";
+    }else{
+      btnAll.textContent = "Top 50";
+    }
+  }
 
   function detectPartyLetter(rowsForParti){
     for(const r of rowsForParti){
@@ -782,24 +943,31 @@
     </tr>`;
   }
 
+  /* ===== BRODKRUMMER – som 2021, men med 2017-data ===== */
   function renderContextBar(){
-    const bar=el('contextBar'); const parts=[];
-    parts.push(!state.region?`<span class="bg-gray-900 text-white rounded-full px-2 py-0.5">Danmark</span>`:`<span class="underline cursor-pointer" data-nav="dk">Danmark</span>`);
+    const bar = document.getElementById('contextBar');
+    const parts = [];
+    parts.push(!state.region ? `<span class="crumb-strong">Danmark</span>` : `<span class="crumb" data-nav="dk">Danmark</span>`);
     if(state.region){
-      parts.push(`<span class="text-gray-400">/</span>`);
-      parts.push(!state.kommune?`<span class="bg-gray-900 text-white rounded-full px-2 py-0.5">${escapeHtml(state.region)}</span>`:`<span class="underline cursor-pointer" data-nav="region">${escapeHtml(state.region)}</span>`);
+      parts.push(`<span class="sep">/</span>`);
+      parts.push(!state.kommune ? `<span class="crumb-strong">${escapeHtml(state.region)}</span>` : `<span class="crumb" data-nav="region">${escapeHtml(state.region)}</span>`);
       if(state.kommune){
-        parts.push(`<span class="text-gray-400">/</span>`);
-        parts.push(`<span class="bg-gray-900 text-white rounded-full px-2 py-0.5">${escapeHtml(state.kommune)}</span>`);
+        parts.push(`<span class="sep">/</span>`);
+        parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
       }
     }
-    bar.innerHTML=parts.join("");
+    bar.innerHTML = parts.join("");
     bar.querySelector('[data-nav="dk"]')?.addEventListener('click', ()=>{
-      el('regionSelect').value=''; el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>'; el('kommuneSelect').disabled=true;
-      state.region=''; state.kommune=''; clearAll(); persistUrl(true); loadNationalData();
+      el('regionSelect').value='';
+      el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>';
+      el('kommuneSelect').disabled=true;
+      state.region=''; state.kommune='';
+      clearAll(); persistUrl(true); loadNationalData();
     });
     bar.querySelector('[data-nav="region"]')?.addEventListener('click', ()=>{
-      el('kommuneSelect').value=''; state.kommune=''; clearAll(); persistUrl(true); loadRegionData(state.region);
+      el('kommuneSelect').value='';
+      state.kommune='';
+      clearAll(); persistUrl(true); loadRegionData(state.region);
     });
   }
 
