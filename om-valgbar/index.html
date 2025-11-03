@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Om Valgbar</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root{
+      --vb-navy:#234a5a;
+      --vb-navy-2:#1b3d4d;
+    }
+    .vb-card{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:16px;
+      box-shadow:0 1px 2px rgba(16,24,40,.04);
+    }
+    .vb-hero{
+      background:linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%);
+      color:#fff;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+<header class="vb-hero">
+  <div class="mx-auto max-w-6xl px-4 py-6 flex items-center gap-4">
+    <a href="../" class="flex items-center gap-3">
+      <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-32 w-auto" />
+    </a>
+  </div>
+
+  <div class="mx-auto max-w-6xl px-4 pb-1">
+    <div class="text-white/90 text-base md:text-lg">
+      Om Valgbar
+    </div>
+  </div>
+
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
+    <ol class="flex items-center gap-2 text-lg font-semibold">
+      <li><a href="../" class="underline text-white">Forside</a></li>
+      <li class="opacity-70 text-white">/</li>
+      <li><span aria-current="page" class="text-white">Om Valgbar</span></li>
+    </ol>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-6xl p-4 space-y-6">
+  <section class="vb-card p-6 space-y-4">
+    <h1 class="text-2xl font-semibold mb-2">Om Valgbar</h1>
+
+    <p>
+      Valgbar er et værktøj, der skal gøre det simpelt for partier, kandidater, journalister
+      og valginteresserede at få et simpelt overblik over kandidaternes resultater ved de forskellige valg.
+    </p>
+
+    <p>
+      Værktøjet adskiller sig fra andre valgsider ved at fokusere på kandidater.
+      Derfor er det muligt, med få klik, at sammenligne kandidater.
+    </p>
+
+    <p>
+      Al data på Valgbar er udelukkende baseret på offentlige valgdata fra henholdsvis
+      KDMValg.dk, Danmarks Statistik og Valg.dk.
+    </p>
+
+    <p>
+      Brug af data fra Valgbar offentligt er tilladt, så længe der krediteres for brugen.
+    </p>
+
+    <p>
+      For henvendelser, kontakt <a href="mailto:hej@valgbar.dk" class="text-blue-600 underline">hej@valgbar.dk</a>.
+    </p>
+  </section>
+</main>
+
+<footer class="mt-8 border-t bg-gray-100">
+  <div class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between text-sm text-gray-600">
+    <span>© Valgbar</span>
+    <a href="/om-valgbar/" class="underline hover:text-gray-900">Om Valgbar</a>
+  </div>
+</footer>
+
+</body>
+</html>
