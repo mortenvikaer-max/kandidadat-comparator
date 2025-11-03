@@ -79,37 +79,47 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
   <div id="contextBar" class="context-bar"></div>
 
+  <!-- ÅR-VÆLGER – samme idé som 2019/2022 -->
+  <section class="vb-card p-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="text-sm text-gray-600">Vælg folketingsvalg</div>
+    <div class="flex flex-wrap gap-2">
+      <!-- Tilpas href til dine faktiske sider -->
+      <a href="../ft2015/" class="vb-tabbox small active">2015</a>
+      <a href="../ft2019/" class="vb-tabbox small">2019</a>
+      <a href="../ft2022/" class="vb-tabbox small">2022</a>
+    </div>
+  </section>
+
   <!-- LANDING: 2×2 layout (Søg kandidat | Storkreds / Kreds på linjen under) -->
-<section class="vb-card p-4 space-y-3">
-  <div class="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
+  <section class="vb-card p-4 space-y-3">
+    <div class="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
 
-    <!-- Række 1: Søg kandidat (fuld bredde) -->
-    <div class="relative md:col-span-2">
-      <label class="text-sm text-gray-600">Søg kandidat</label>
-      <input id="candidateSearch" type="text"
-             class="w-full mt-1 rounded-xl border p-2"
-             placeholder="Skriv fx 'Jensen' eller 'Pernille'…"
-             autocomplete="off" />
-      <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
-           aria-labelledby="candidateSearch" style="max-width:48rem"></div>
+      <!-- Række 1: Søg kandidat (fuld bredde) -->
+      <div class="relative md:col-span-2">
+        <label class="text-sm text-gray-600">Søg kandidat</label>
+        <input id="candidateSearch" type="text"
+               class="w-full mt-1 rounded-xl border p-2"
+               placeholder="Skriv fx 'Jensen' eller 'Pernille'…"
+               autocomplete="off" />
+        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
+             aria-labelledby="candidateSearch" style="max-width:48rem"></div>
+      </div>
+
+      <!-- Række 2: Storkreds (venstre) -->
+      <div>
+        <label class="text-sm text-gray-600">Storkreds</label>
+        <select id="storkredsSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+      </div>
+
+      <!-- Række 2: Kreds (højre) -->
+      <div>
+        <label class="text-sm text-gray-600">Kreds</label>
+        <select id="kredsSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
+      </div>
     </div>
-
-    <!-- Række 2: Storkreds (venstre) -->
-    <div>
-      <label class="text-sm text-gray-600">Storkreds</label>
-      <select id="storkredsSelect"
-              class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
-    </div>
-
-    <!-- Række 2: Kreds (højre) -->
-    <div>
-      <label class="text-sm text-gray-600">Kreds</label>
-      <select id="kredsSelect"
-              class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
-    </div>
-  </div>
-</section>
-
+  </section>
 
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
@@ -132,6 +142,27 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
     <div id="top10List" class="top10-grid">
       <ol id="top10ColLeft" class="space-y-2"></ol>
       <ol id="top10ColRight" class="space-y-2"></ol>
+    </div>
+  </section>
+
+  <!-- NYT: PARTITOTALER (som i 2019/2022) -->
+  <section id="partyTotalsCard" class="vb-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="font-semibold">Partitotaler</h2>
+      <div id="partyTotalsScope" class="text-sm text-gray-500"></div>
+    </div>
+    <div class="overflow-auto">
+      <table class="w-full text-sm min-w-[480px]">
+        <thead>
+          <tr class="border-b text-left">
+            <th class="py-2 pr-3">Parti</th>
+            <th class="py-2 pr-3 text-right">Personlige stemmer</th>
+            <th class="py-2 pr-3 text-right">Listestemmer</th>
+            <th class="py-2 pr-3 text-right">I alt</th>
+          </tr>
+        </thead>
+        <tbody id="partyTotalsBody"></tbody>
+      </table>
     </div>
   </section>
 
@@ -395,7 +426,7 @@ function rankCandidates(cands, q){
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
-  initCandidateSearch(); // NYT
+  initCandidateSearch(); // søgning
 
   el("btnTop10").addEventListener("click", ()=>{ state.topListMode="top10"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
   el("btnAll").addEventListener("click", ()=>{ state.topListMode="all"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
@@ -795,6 +826,15 @@ function totalsByCandidate(rows){
   }
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
+
+/* NYT: fælles scope-label til overview + partitotaler */
+function getScopeLabel(){
+  const isDK = !state.storkreds;
+  if(isDK) return "Danmark";
+  if(state.kreds && state.kreds !== KREDS_ALL_VALUE) return `${state.storkreds} / ${state.kreds}`;
+  return `${state.storkreds} / Alle kredse i storkredsen`;
+}
+
 function getOverviewRows(){
   if(!state.storkreds) return state.rows;
   if(state.kreds && state.kreds !== KREDS_ALL_VALUE) return state.rows;
@@ -803,10 +843,10 @@ function getOverviewRows(){
 }
 function renderOverview(){
   const rows = getOverviewRows();
-  const isDK = !state.storkreds;
-  const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
-  el("top10Scope").textContent = rows.length ? atScope : "";
+  const atScope = rows.length ? getScopeLabel() : "";
+  el("top10Scope").textContent = atScope;
   const ranked = totalsByCandidate(rows);
+  const isDK = !state.storkreds;
 
   let list;
   if(state.topListMode==="top10"){
@@ -892,6 +932,61 @@ function getPartyStats(){
   res.sort((a,b)=>{ if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1; if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da"); return a.parti.localeCompare(b.parti,"da"); });
   return res;
 }
+
+/* NYT: partitotaler pr. parti */
+function getPartyTotals(){
+  const rows = getActiveRows();
+  const byParti = new Map();
+  for(const r of rows){
+    const key = r.parti;
+    if(!byParti.has(key)){
+      byParti.set(key,{parti:key, personal:0, list:0, total:0, rows:[]});
+    }
+    const entry = byParti.get(key);
+    entry.rows.push(r);
+    if(isListestemmer(r.kandidat_navn)){
+      entry.list += r.stemmer;
+    }else{
+      entry.personal += r.stemmer;
+    }
+  }
+  const result = [];
+  for(const [parti,entry] of byParti.entries()){
+    entry.total = entry.personal + entry.list;
+    const letter = detectPartyLetter(parti, entry.rows);
+    result.push({...entry, letter, hasLetter: !!letter});
+  }
+  result.sort((a,b)=> b.total - a.total || a.parti.localeCompare(b.parti,"da"));
+  return result;
+}
+
+function renderPartyTotals(){
+  const scopeLabelEl = el("partyTotalsScope");
+  const tbody = el("partyTotalsBody");
+  if(!scopeLabelEl || !tbody) return;
+  const rows = getActiveRows();
+  scopeLabelEl.textContent = rows.length ? getScopeLabel() : "";
+  const totals = getPartyTotals();
+  if(!totals.length){
+    tbody.innerHTML = `<tr><td colspan="4" class="py-2 text-sm text-gray-500">Ingen data at vise.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = totals.map(p=>{
+    const bd = badge(p.letter || null);
+    return `<tr class="border-b last:border-0">
+      <td class="py-1.5 pr-3">
+        <div class="flex items-center gap-2">
+          <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.8rem">${bd.text}</span>
+          <span>${escapeHtml(p.parti)}</span>
+        </div>
+      </td>
+      <td class="py-1.5 pr-3 tabular-nums text-right">${fmt(p.personal)}</td>
+      <td class="py-1.5 pr-3 tabular-nums text-right">${fmt(p.list)}</td>
+      <td class="py-1.5 pr-3 tabular-nums text-right font-medium">${fmt(p.total)}</td>
+    </tr>`;
+  }).join("");
+}
+
 function renderPartyCombobox(){
   const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
   if(!stats.length){ btn.disabled=true; btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`; menu.innerHTML=""; return; }
@@ -985,6 +1080,7 @@ function renderAll(){
 
   renderSelected();
   renderPsTable(getPollingStations(), getSelectedOrdered());
+  renderPartyTotals(); // NYT: opdater partitotaler
 
   const showCompare = !isDK && getSelected().length>0;
   el("compareSection").classList.toggle("hidden", !showCompare);
@@ -1230,7 +1326,7 @@ function renderContextBar(){
   });
 }
 
-/* ===== NYT: Kandidat-søgefelt (UI + interaktion) ===== */
+/* Kandidat-søgefelt (UI + interaktion) */
 function initCandidateSearch(){
   const input = el('candidateSearch');
   const menu  = el('candidateMenu');
