@@ -244,14 +244,10 @@ function inferStorkredsFromKreds(kredsNavn){
 
 /* ---------- PARTIER / FARVER / ALIAS ---------- */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
-
-/* 2015: typisk A, B, C, F, I, K, O, V, Ø, Å, samt lokale/reg. lister i datasæt.
-   Vi lader mappingen være robust og inkluderer nyere bogstaver, hvis de forekommer i filer. */
 const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
 const PARTY_LETTERS_BY_NAME = {
   "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
   "konservative folkeparti":"C","det konservative folkeparti":"C",
-  /* NB var ikke i FT15, men mappes robust hvis findes i data: */
   "nye borgerlige":"D",
   "sf":"F","socialistisk folkeparti":"F","sf - socialistisk folkeparti":"F","sf socialistisk folkeparti":"F",
   "liberal alliance":"I","venstre, danmarks liberale parti":"V","venstre":"V",
@@ -259,8 +255,9 @@ const PARTY_LETTERS_BY_NAME = {
   "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
   "alternativet":"Å",
   "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
-  /* nyere / ikke-2015, men tåles: */
-  "moderaterne":"M","danmarksdemokraterne":"Æ","frie grønne":"Q"
+  "moderaterne":"M",
+  "danmarksdemokraterne":"Æ",
+  "frie grønne":"Q"
 };
 const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
@@ -324,7 +321,7 @@ function primaryStorkredsForCandidate(candId, rows){
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
-/* Vælg kandidat automatisk efter hop til storkreds */
+/* NYT: Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
@@ -398,7 +395,7 @@ function rankCandidates(cands, q){
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
-  initCandidateSearch(); // søg
+  initCandidateSearch(); // NYT
 
   el("btnTop10").addEventListener("click", ()=>{ state.topListMode="top10"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
   el("btnAll").addEventListener("click", ()=>{ state.topListMode="all"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
@@ -1233,7 +1230,7 @@ function renderContextBar(){
   });
 }
 
-/* ===== Kandidat-søgefelt (UI + interaktion) ===== */
+/* ===== NYT: Kandidat-søgefelt (UI + interaktion) ===== */
 function initCandidateSearch(){
   const input = el('candidateSearch');
   const menu  = el('candidateMenu');
