@@ -79,13 +79,32 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
   </div>
 
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
-    <ol class="flex items-center gap-2 text-lg font-semibold">
-      <li><a href="../../" class="underline text-white">Forside</a></li>
-      <li class="opacity-70">/</li>
-      <li><span aria-current="page" class="text-white">Folketingsvalg 2022</span></li>
-    </ol>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <!-- Brødkrumme -->
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li><span aria-current="page" class="text-white">Folketingsvalg 2022</span></li>
+      </ol>
+
+      <!-- Års-vælger (går igen på alle FT-undersider) -->
+      <div class="flex items-center gap-2 text-sm">
+        <label for="ftYearSelect" class="text-white/80 whitespace-nowrap">Skift år:</label>
+        <select id="ftYearSelect"
+                class="rounded-lg border border-white/30 bg-white/10 text-white text-sm px-2 py-1">
+          <!-- Ret evt. value-stierne så de passer til din mappestruktur -->
+          <option value="../2005/">Folketingsvalg 2005</option>
+          <option value="../2007/">Folketingsvalg 2007</option>
+          <option value="../2011/">Folketingsvalg 2011</option>
+          <option value="../2015/">Folketingsvalg 2015</option>
+          <option value="../2019/">Folketingsvalg 2019</option>
+          <option value="../2022/" selected>Folketingsvalg 2022</option>
+        </select>
+      </div>
+    </div>
   </nav>
 </header>
+
 
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
