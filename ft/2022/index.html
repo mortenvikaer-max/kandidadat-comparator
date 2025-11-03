@@ -115,7 +115,14 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
     <div class="flex items-center justify-between mb-2">
       <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
       <div class="flex items-center gap-3">
-        <div id="top10Scope" class="text-sm text-gray-500"></div>
+        <div class="text-right">
+          <div id="top10Scope" class="text-sm text-gray-500"></div>
+          <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden"></div>
+        </div>
+        <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
+          <button id="btnModeCand" class="vb-tabbox small active" type="button">Kandidater</button>
+          <button id="btnModeParty" class="vb-tabbox small" type="button">Partitotal</button>
+        </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnTop10" class="vb-tabbox small active" type="button">Top 10</button>
           <button id="btnAll" class="vb-tabbox small" type="button">Alle kandidater</button>
@@ -268,6 +275,7 @@ const state = {
   activeParty:"", selected:new Map(),
   selectedKredse:new Set(), csvCache:new Map(),
   topListMode:"top10",
+  overviewMode:"cand",        // "cand" | "party"
   candidateSortMode:"alpha"
 };
 const el = id => document.getElementById(id);
@@ -396,8 +404,38 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
   initCandidateSearch(); // NYT
 
-  el("btnTop10").addEventListener("click", ()=>{ state.topListMode="top10"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
-  el("btnAll").addEventListener("click", ()=>{ state.topListMode="all"; updateTopButtonsForScope(); updateTopToggleUI(); renderOverview(); });
+  // Mode-knapper: Kandidater / Partitotal
+  el("btnModeCand").addEventListener("click", ()=>{
+    if(state.overviewMode!=="cand"){
+      state.overviewMode="cand";
+      updateModeToggleUI();
+      updateTopButtonsForScope();
+      updateTopToggleUI();
+      renderOverview();
+    }
+  });
+  el("btnModeParty").addEventListener("click", ()=>{
+    if(state.overviewMode!=="party"){
+      state.overviewMode="party";
+      updateModeToggleUI();
+      updateTopButtonsForScope();
+      updateTopToggleUI();
+      renderOverview();
+    }
+  });
+
+  el("btnTop10").addEventListener("click", ()=>{
+    state.topListMode="top10";
+    updateTopButtonsForScope();
+    updateTopToggleUI();
+    renderOverview();
+  });
+  el("btnAll").addEventListener("click", ()=>{
+    state.topListMode="all";
+    updateTopButtonsForScope();
+    updateTopToggleUI();
+    renderOverview();
+  });
 
   el("btnSortAlpha").addEventListener("click", ()=>{
     state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty);
@@ -430,6 +468,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   document.addEventListener('click',(e)=>{ const box=el('partyCombo'); if(box && !box.contains(e.target)) closePartyMenu(); });
   setupAddKredsUI();
   renderContextBar();
+  updateModeToggleUI();
   updateTopButtonsForScope();
   updateTopToggleUI();
   updateCandSortToggleUI();
@@ -439,7 +478,12 @@ window.addEventListener("DOMContentLoaded", async ()=>{
 function updateTopButtonsForScope(){
   const isDK = !state.storkreds;
   const btnAll = el("btnAll");
-  if(btnAll) btnAll.textContent = isDK ? "Top 50" : "Alle kandidater";
+  if(!btnAll) return;
+  if(state.overviewMode==="party"){
+    btnAll.textContent = "Alle partier";
+  }else{
+    btnAll.textContent = isDK ? "Top 50" : "Alle kandidater";
+  }
 }
 function updateTopToggleUI(){
   const a=el("btnTop10"), b=el("btnAll");
@@ -450,6 +494,20 @@ function updateCandSortToggleUI(){
   const a=el("btnSortAlpha"), b=el("btnSortVotes");
   if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); }
   else { b.classList.add("active"); a.classList.remove("active"); }
+}
+function updateModeToggleUI(){
+  const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
+  const isParty = state.overviewMode==="party";
+  if(a && b){
+    a.classList.toggle("active", !isParty);
+    b.classList.toggle("active", isParty);
+  }
+  if(info){
+    info.classList.toggle("hidden", !isParty);
+    if(isParty){
+      info.textContent = "Partitotal viser personlige stemmer + listestemmer pr. parti.";
+    }
+  }
 }
 
 /* Dropdowns */
@@ -794,6 +852,23 @@ function totalsByCandidate(rows){
   }
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
+
+/* NYT: Partitotal – personlige + listestemmer pr. parti */
+function totalsByPartyAllVotes(rows){
+  const m = new Map();
+  for(const r of rows){
+    const parti = r.parti || "(ukendt parti)";
+    m.set(parti, (m.get(parti)||0) + (r.stemmer||0));
+  }
+  const entries = Array.from(m.entries()).map(([parti,total])=>{
+    const rowsForParti = rows.filter(x=>x.parti===parti);
+    const letter = detectPartyLetter(parti, rowsForParti);
+    return { parti, total, letter };
+  });
+  entries.sort((a,b)=>(b.total-a.total) || a.parti.localeCompare(b.parti,"da"));
+  return entries;
+}
+
 function getOverviewRows(){
   if(!state.storkreds) return state.rows;
   if(state.kreds && state.kreds !== KREDS_ALL_VALUE) return state.rows;
@@ -805,50 +880,108 @@ function renderOverview(){
   const isDK = !state.storkreds;
   const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
-  const ranked = totalsByCandidate(rows);
 
-  let list;
-  if(state.topListMode==="top10"){
-    list = ranked.slice(0,10);
-    el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
-  }else{
-    if(isDK){
-      list = ranked.slice(0,50);
-      el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
-    }else{
-      list = ranked;
-      el("top10Title").textContent = "Alle kandidater (personlige stemmer)";
+  if(state.overviewMode==="party"){
+    const ranked = totalsByPartyAllVotes(rows);
+    const list = (state.topListMode==="top10") ? ranked.slice(0,10) : ranked;
+
+    el("top10Title").textContent =
+      state.topListMode==="top10"
+        ? "Top 10 partier (personlige + listestemmer)"
+        : "Alle partier (personlige + listestemmer)";
+
+    function itemHTML(p, idx){
+      const bd = badge(p.letter);
+      const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+      return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
+        <span class="rank-pill">${idx}</span>
+        <div class="min-w-0 flex-1">
+          <div class="font-medium truncate">${escapeHtml(p.parti)}</div>
+          <div class="text-xs text-gray-500 truncate">${meta}</div>
+        </div>
+        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+      </li>`;
     }
-  }
 
-  function itemHTML(k, idx){
-    const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
-    const bd = badge(letter);
-    const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-    return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
-      <span class="rank-pill">${idx}</span>
-      <div class="min-w-0 flex-1">
-        <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
-        <div class="text-xs text-gray-500 truncate">${meta}</div>
-      </div>
-      <span class="vb-badge" style="${bd.style}">${bd.text}</span>
-    </li>`;
-  }
+    const half = Math.ceil(list.length/2);
+    const left = list.slice(0,half);
+    const right = list.slice(half);
 
-  const half = Math.ceil(list.length/2);
-  const left = list.slice(0,half);
-  const right = list.slice(half);
-  el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-  el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
+    el("top10ColLeft").innerHTML =
+      left.map((p,i)=>itemHTML(p, i+1)).join("") ||
+      `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+    el("top10ColRight").innerHTML =
+      right.map((p,i)=>itemHTML(p, i+1+half)).join("");
 
-  const bind = (rootId)=> {
-    document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
-      const candId=item.getAttribute('data-cand');
-      item.addEventListener('click', ()=>toggleCandidateFromTop(candId, rows));
-      item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTop(candId, rows); }});
+    ['top10ColLeft','top10ColRight'].forEach(rootId=>{
+      document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
+        const parti=item.getAttribute('data-parti');
+        const activate = ()=>{
+          state.activeParty = parti;
+          renderPartyCombobox();
+          renderPartyDetail(parti);
+          const u=new URL(location.href);
+          u.searchParams.set("parti", parti);
+          u.searchParams.delete("kandidat");
+          history.replaceState({}, "", u);
+          document.getElementById('partyDetail')?.scrollIntoView({behavior:'smooth'});
+        };
+        item.addEventListener('click', activate);
+        item.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter' || e.key===' '){
+            e.preventDefault();
+            activate();
+          }
+        });
+      });
     });
-  };
-  bind('top10ColLeft'); bind('top10ColRight');
+
+  }else{
+    const ranked = totalsByCandidate(rows);
+
+    let list;
+    if(state.topListMode==="top10"){
+      list = ranked.slice(0,10);
+      el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
+    }else{
+      if(isDK){
+        list = ranked.slice(0,50);
+        el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
+      }else{
+        list = ranked;
+        el("top10Title").textContent = "Alle kandidater (personlige stemmer)";
+      }
+    }
+
+    function itemHTML(k, idx){
+      const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
+      const bd = badge(letter);
+      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
+        <span class="rank-pill">${idx}</span>
+        <div class="min-w-0 flex-1">
+          <div class="font-medium truncate">${escapeHtml(k.kandidat_navn)}</div>
+          <div class="text-xs text-gray-500 truncate">${meta}</div>
+        </div>
+        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+      </li>`;
+    }
+
+    const half = Math.ceil(list.length/2);
+    const left = list.slice(0,half);
+    const right = list.slice(half);
+    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
+
+    const bind = (rootId)=> {
+      document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
+        const candId=item.getAttribute('data-cand');
+        item.addEventListener('click', ()=>toggleCandidateFromTop(candId, rows));
+        item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTop(candId, rows); }});
+      });
+    };
+    bind('top10ColLeft'); bind('top10ColRight');
+  }
 }
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
