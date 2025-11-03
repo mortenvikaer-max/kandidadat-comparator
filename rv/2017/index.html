@@ -83,27 +83,27 @@
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 
-<nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-    <ol class="flex items-center gap-2 text-lg font-semibold">
-      <li><a href="../../" class="underline text-white">Forside</a></li>
-      <li class="opacity-70 text-white">/</li>
-      <li><span aria-current="page" class="text-white">Regionsrådsvalg 2017</span></li>
-    </ol>
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li><span aria-current="page" class="text-white">Regionsrådsvalg 2017</span></li>
+      </ol>
 
-    <div class="flex items-center gap-3 text-lg font-semibold">
-      <label for="rvYearSelect" class="text-white whitespace-nowrap">
-        Skift år:
-      </label>
-      <select id="rvYearSelect"
-              class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
-        <option value="../2021/">Regionsrådsvalg 2021</option>
-        <option value="../2017/" selected>Regionsrådsvalg 2017</option>
-        <option value="../2013/">Regionsrådsvalg 2013</option>
-      </select>
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="rvYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
+        <select id="rvYearSelect"
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <option value="../2021/">Regionsrådsvalg 2021</option>
+          <option value="../2017/" selected>Regionsrådsvalg 2017</option>
+          <option value="../2013/">Regionsrådsvalg 2013</option>
+        </select>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 </header>
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
@@ -144,6 +144,7 @@
         <div class="text-right">
           <div id="top10Scope" class="text-sm text-gray-500"></div>
           <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden">
+            Viser <strong>partitotal</strong>: personlige stemmer + listestemmer.
           </div>
         </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
@@ -448,6 +449,16 @@
   }
 
   window.addEventListener("DOMContentLoaded", async ()=>{
+
+    /* Årsvælger – skift mellem 2021 / 2017 / 2013 */
+    const yearSel = el("rvYearSelect");
+    if (yearSel) {
+      yearSel.addEventListener("change", () => {
+        const url = yearSel.value;
+        if (url) window.location.href = url;
+      });
+    }
+
     renderLanding();
     initRegionDropdown();
 
