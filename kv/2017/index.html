@@ -6,7 +6,7 @@
   <title>Valgbar – Kommunalvalg 2017</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="httpscdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
     :root{ --vb-navy:#234a5a; --vb-navy-2:#1b3d4d; }
@@ -433,7 +433,7 @@
     return "";
   }
 
-  // NY: normaliser partinavn (SF-fix)
+  // normaliser partinavn (inkl. SF-fix)
   function normalizePartyName(rawName, parti_bogstav) {
     const n = canon(rawName);
     const b = canon(parti_bogstav).toUpperCase();
@@ -643,6 +643,7 @@
 
   function renderPartyCombobox(){
     if(!state.kommune){ resetPartyUI(); return; }
+
     const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
     if(!stats.length){ btn.disabled=true; btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`; menu.innerHTML=""; return; }
     btn.disabled=false;
