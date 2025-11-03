@@ -337,7 +337,18 @@
   }
 
   window.addEventListener("DOMContentLoaded", async ()=>{
-    renderLanding(); initRegionDropdown();
+
+    /* Årsvælger – skift mellem 2021 / 2017 / 2013 */
+    const yearSel = el("rvYearSelect");
+    if (yearSel) {
+      yearSel.addEventListener("change", () => {
+        const url = yearSel.value;
+        if (url) window.location.href = url;
+      });
+    }
+
+    renderLanding();
+    initRegionDropdown();
     el("btnSortAlpha").addEventListener("click", ()=>{ if(state.candidateSortMode!=="alpha"){ state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
     el("btnSortVotes").addEventListener("click", ()=>{ if(state.candidateSortMode!=="votes"){ state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
 
