@@ -72,10 +72,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
   </div>
 
   <div class="mx-auto max-w-6xl px-4 pb-1">
-    <div class="text-white/90 text-base md:text-lg">
-      Vælg en storkreds og/eller kreds – og få overblik over partier og kandidater.
-    </div>
-    <div id="error" class="mt-2 text-sm text-red-200"></div>
+        <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
@@ -87,12 +84,14 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
         <li><span aria-current="page" class="text-white">Folketingsvalg 2022</span></li>
       </ol>
 
-      <!-- Års-vælger (går igen på alle FT-undersider) -->
-      <div class="flex items-center gap-2 text-sm">
-        <label for="ftYearSelect" class="text-white/80 whitespace-nowrap">Skift år:</label>
+      <!-- Års-vælger -->
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="ftYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
         <select id="ftYearSelect"
-                class="rounded-lg border border-white/30 bg-white/10 text-white text-sm px-2 py-1">
-          <!-- Ret evt. value-stierne så de passer til din mappestruktur -->
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <!-- Tilpas stierne hvis nødvendigt -->
           <option value="../2005/">Folketingsvalg 2005</option>
           <option value="../2007/">Folketingsvalg 2007</option>
           <option value="../2011/">Folketingsvalg 2011</option>
