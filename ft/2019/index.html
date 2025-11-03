@@ -724,6 +724,54 @@ async function loadStorkredsData(storkreds){
   }
 }
 
+/* ====== NYT: robust udtræk af stemmetal ====== */
+function getStemmerFromRow(r){
+  // vi har lowercase headere pga. transformHeader
+  const candidates = [
+    "stemmer",
+
+    // typiske 2019-varianter
+    "personlige stemmer",
+    "personlige_stemmer",
+    "personlige stemmer i alt",
+    "personlige_stemmer_i_alt",
+    "antal stemmer",
+    "antal_stemmer",
+    "stemmetal",
+    "stemmer i alt",
+    "stemmer_i_alt",
+    "antal personlige stemmer",
+    "antal_personlige_stemmer",
+    "personlige",
+    "personlige i alt",
+    "personlige_i_alt",
+
+    // liste-stemmer (bruges til partitotal)
+    "listestemmer",
+    "liste stemmer",
+    "liste_stemmer",
+    "listestemmer i alt",
+    "listestemmer_i_alt"
+  ];
+
+  for(const key of candidates){
+    if(Object.prototype.hasOwnProperty.call(r, key) && r[key] != null && r[key] !== ""){
+      return r[key];
+    }
+  }
+
+  // fallback: find et felt hvor key indeholder "stem" og værdien ligner et heltal (med eller uden punktummer)
+  for(const [key,val] of Object.entries(r)){
+    const k = (key||"").toLowerCase();
+    if(!k.includes("stem")) continue;
+    if(val == null || val === "") continue;
+    const cleaned = val.toString().replace(/\./g,"").replace(/\s/g,"");
+    if(/^[0-9]+$/.test(cleaned)) return cleaned;
+  }
+
+  return 0;
+}
+
 /* CSV-parse + normalisering */
 function parseCsv(text, kredsNameOverride=null){
   const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
@@ -740,6 +788,9 @@ function parseCsv(text, kredsNameOverride=null){
     const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
 
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+
+    const stemmerRaw = getStemmerFromRow(r);
+
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -749,7 +800,7 @@ function parseCsv(text, kredsNameOverride=null){
       kandidat_navn: kandidatNavn,
       parti,
       parti_letter,
-      stemmer: Number(r.stemmer||0)||0
+      stemmer: Number((stemmerRaw||"").toString().replace(/\./g,"")) || 0
     };
   });
 }
@@ -771,6 +822,9 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
 
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+
+    const stemmerRaw = getStemmerFromRow(r);
+
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -780,7 +834,7 @@ function parseCsvTextToRows(text, kredsNameOverride){
       kandidat_navn: kandidatNavn,
       parti,
       parti_letter,
-      stemmer: Number(r.stemmer||0)||0
+      stemmer: Number((stemmerRaw||"").toString().replace(/\./g,"")) || 0
     };
   });
 }
@@ -877,7 +931,7 @@ function showError(msg){
   if(msg){ setTimeout(()=>{ if(el("error").textContent===msg) el("error").textContent=""; }, 6000); }
 }
 
-/* --------- Top 10 / (Alle/Top 50) --------- */
+/* --------- Top 10 / partier --------- */
 function totalsByCandidate(rows){
   const m=new Map();
   for(const r of rows){
@@ -889,7 +943,7 @@ function totalsByCandidate(rows){
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
 
-/* NYT: Partitotal – personlige + listestemmer pr. parti */
+/* Partitotal – personlige + listestemmer pr. parti */
 function totalsByPartyAllVotes(rows){
   const m = new Map();
   for(const r of rows){
