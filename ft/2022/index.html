@@ -140,7 +140,14 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+      <div>
+        <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+        <!-- Info-boks om procent for kandidater -->
+        <div id="percentInfoOverview"
+             class="mt-1 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
+          Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.
+        </div>
+      </div>
       <div class="flex items-center gap-3">
         <div class="text-right">
           <div id="top10Scope" class="text-sm text-gray-500"></div>
@@ -155,12 +162,6 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
           <button id="btnAll" class="vb-tabbox small" type="button">Alle kandidater</button>
         </div>
       </div>
-    </div>
-
-    <!-- Info-boks om procent -->
-    <div id="percentInfoOverview"
-         class="mb-3 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
-      Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.
     </div>
 
     <!-- Loader -->
@@ -932,16 +933,27 @@ function renderOverview(){
   const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
 
-  // Vis/Skjul info-boks om procenttal
+  // Info-boks for kandidater (kun storkreds/kreds)
   const infoBox = document.getElementById('percentInfoOverview');
   if (infoBox) {
     const showInfo = !isDK && state.overviewMode === "cand";
     infoBox.classList.toggle('hidden', !showInfo);
   }
 
+  // Info-tekst for partitotal
+  const modeInfoEl = document.getElementById('modeInfo');
+  if (modeInfoEl) {
+    if (state.overviewMode === "party") {
+      modeInfoEl.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (Danmark, storkreds eller kreds).";
+    } else {
+      modeInfoEl.textContent = "";
+    }
+  }
+
   if(state.overviewMode==="party"){
     const ranked = totalsByPartyAllVotes(rows);
     const list = (state.topListMode==="top10") ? ranked.slice(0,10) : ranked;
+    const totalValid = totalValidVotes(rows);
 
     el("top10Title").textContent =
       state.topListMode==="top10"
@@ -950,7 +962,10 @@ function renderOverview(){
 
     function itemHTML(p, idx){
       const bd = badge(p.letter);
-      const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+      const share = totalValid > 0 ? p.total / totalValid : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+      const base = `${fmt(p.total)} stemmer i alt`;
+      const meta = shareLabel ? `${base} · ${shareLabel}` : base;
       return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
