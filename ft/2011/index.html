@@ -924,11 +924,11 @@ function renderOverview(){
     let list;
     if(state.topListMode==="top10"){
       list = ranked.slice(0,10);
-      el("top10Title").textContent = "Top 10 kandidater (personlige stemmer)";
+      el("top10Title").textContent = "Kandidater (personlige stemmer)";
     }else{
       if(isDK){
         list = ranked.slice(0,50);
-        el("top10Title").textContent = "Top 50 kandidater (personlige stemmer)";
+        el("top10Title").textContent = "Kandidater (personlige stemmer)";
       }else{
         list = ranked;
         el("top10Title").textContent = "Alle kandidater (personlige stemmer)";
