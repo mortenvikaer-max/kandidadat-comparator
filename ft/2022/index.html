@@ -160,7 +160,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
     <!-- Info-boks om procent -->
     <div id="percentInfoOverview"
          class="mb-3 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
-      Procenttallet viser en kandidats andel af alle gyldige stemmer i den valgte storkreds eller kreds.
+      Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.
     </div>
 
     <!-- Loader -->
@@ -1020,7 +1020,7 @@ function renderOverview(){
       const shareLabel = share !== null ? fmtPct(share) : null;
       const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
       const meta = (isStorkredsOrKreds && shareLabel)
-        ? `${base} · ${shareLabel} af gyldige stemmer`
+        ? `${base} · ${shareLabel}`
         : base;
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
@@ -1169,7 +1169,7 @@ function renderPartyDetail(parti){
       : `${fmt(k.total)} personlige stemmer`;
 
     const subtitle = (!listestemmer && shareLabel)
-      ? `${subtitleBase} · ${shareLabel} af gyldige stemmer`
+      ? `${subtitleBase} · ${shareLabel}`
       : subtitleBase;
 
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
@@ -1256,7 +1256,7 @@ function renderSelected(){
       : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
 
     const shareHtml = (!listestemmer && shareLabel)
-      ? `<div class="text-xs text-gray-500">Andel af gyldige stemmer: ${shareLabel}</div>`
+      ? `<div class="text-xs text-gray-500">${shareLabel}</div>`
       : "";
 
     return `<div class="rounded-xl border p-3 flex items-center justify-between">
@@ -1348,7 +1348,7 @@ function renderPsTable(psList, sel){
       const shareLabel = share !== null ? fmtPct(share) : null;
       return `<td class="py-2 pr-3 tabular-nums font-medium">
         ${fmt(total)}
-        ${shareLabel ? `<div class="text-xs text-gray-500">Andel af gyldige stemmer: ${shareLabel}</div>` : ""}
+        ${shareLabel ? `<div class="text-xs text-gray-500">${shareLabel}</div>` : ""}
       </td>`;
     }).join("")}
   </tr>`;
