@@ -274,11 +274,20 @@
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+  const fmtPct = v => new Intl.NumberFormat("da-DK", {
+    style:"percent", minimumFractionDigits:1, maximumFractionDigits:1
+  }).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
+
+  const totalValidVotes = (rows) => {
+    let sum = 0;
+    for(const r of rows){ sum += r.stemmer || 0; }
+    return sum;
+  };
 
   function findRegionForKommune(kommune){
     for(const [reg,kommuner] of Object.entries(REGIONS)){ if(kommuner.includes(kommune)) return reg; }
@@ -334,18 +343,14 @@
     else { b.classList.add("active"); a.classList.remove("active"); }
   }
   function updateModeToggleUI(){
-    const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
+    const a=el("btnModeCand"), b=el("btnModeParty");
     const isParty = state.overviewMode==="party";
     if(a && b){
       a.classList.toggle("active", !isParty);
       b.classList.toggle("active", isParty);
     }
-    if(info){
-      info.classList.toggle("hidden", !isParty);
-      if(isParty){
-        info.textContent = "Partitotal viser personlige stemmer + listestemmer pr. parti.";
-      }
-    }
+    // Selve teksten i #modeInfo styres i renderOverview,
+    // så vi rører den ikke her.
   }
   function showLoading(){
     state.isLoading=true;
@@ -791,8 +796,28 @@
 
   function renderOverview(){
     const rows=state.rows||[];
-    const atScope=state.kommune?state.kommune:(state.region?`${state.region}`:'Danmark');
-    el("top10Scope").textContent=rows.length?atScope:'';
+    const totalValid = totalValidVotes(rows);
+    const showCandidatePercent = !!state.kommune;
+
+    // Scope-tekst: kun "Danmark" på landsplan
+    const isDK = !state.region && !state.kommune;
+    const scopeText = isDK ? "Danmark" : "";
+    el("top10Scope").textContent = rows.length ? scopeText : '';
+
+    // Info-tekst om procent / partitotal
+    const info = el("modeInfo");
+    if(info){
+      if(state.overviewMode === "party"){
+        info.classList.remove("hidden");
+        info.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (personlige + listestemmer).";
+      } else if(state.overviewMode === "cand" && showCandidatePercent){
+        info.classList.remove("hidden");
+        info.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer i kommunen.";
+      } else {
+        info.classList.add("hidden");
+        info.textContent = "";
+      }
+    }
 
     // Partitotal-mode
     if(state.overviewMode==="party"){
@@ -806,7 +831,10 @@
 
       function itemHTML(p, idx){
         const bd = badge(p.letter);
-        const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const share = totalValid > 0 ? p.total / totalValid : null;
+        const shareLabel = share !== null ? fmtPct(share) : null;
+        const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
@@ -864,7 +892,10 @@
     function itemHTML(k,idx){
       const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
       const bd=badge(letter);
-      const meta=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+      const base=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const meta = shareLabel ? `${base} · ${shareLabel}` : base;
       return `<li class="top10-item" data-uid="${escapeHtml(k.uid)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
