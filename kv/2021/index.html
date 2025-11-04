@@ -212,7 +212,7 @@
               <span class="vb-badge" style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
               <span class="truncate text-gray-500">Vælg kommune først…</span>
             </span>
-            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4-4.5z"/></svg>
+            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4-4.5z"/></svg>
           </button>
           <div id="partyMenu" class="vb-menu hidden" role="listbox" tabindex="-1" aria-labelledby="partyButton"></div>
         </div>
@@ -921,6 +921,7 @@
   function renderOverview(){
     const rows = state.rows || [];
     const totalValid = totalValidVotes(rows);
+    const showCandidatePercent = !!state.kommune;
 
     // Scope-tekst: kun "Danmark" vises her på landsplan – ikke sti som "Region / Kommune"
     const isDK = !state.region && !state.kommune;
@@ -933,7 +934,7 @@
       if(state.overviewMode === "party"){
         infoBox.textContent = "Procenttallet viser partiets samlede andel af alle gyldige stemmer i det valgte område.";
         infoBox.classList.remove("hidden");
-      } else if(state.overviewMode === "cand"){
+      } else if(state.overviewMode === "cand" && showCandidatePercent){
         infoBox.textContent = "Procenttallet viser en kandidats samlede andel af alle gyldige stemmer i det valgte område.";
         infoBox.classList.remove("hidden");
       } else {
@@ -1015,7 +1016,7 @@
       function itemHTML(k, idx){
         const letter = detectPartyLetter(rows.filter(r=>r.parti===k.parti));
         const bd = badge(letter);
-        const share = totalValid > 0 ? (k.total || 0) / totalValid : null;
+        const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
         const shareLabel = share !== null ? fmtPct(share) : null;
         const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
         const meta = shareLabel ? `${base} · ${shareLabel}` : base;
