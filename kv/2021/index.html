@@ -268,6 +268,30 @@
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
+  /* Navnefix for partier (stavning) */
+  const PARTY_NAME_FIX = {
+    "Venstre, Danmarks Liberale Part": "Venstre, Danmarks Liberale Parti",
+    "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
+  };
+
+  /* Partier der ikke må have partibogstav/badge-bogstav */
+  const NO_LETTER_PARTIES = new Set([
+    "Frihedslisten",
+    "Bornholmerlisten",
+    "Fælleslisten",
+    "SocialKonservative",
+    "Feministisk Initiativ",
+    "Ærøs Fremtid",
+    "Bæredygtigt Samfund",
+    "Deltagerlisten",
+    "Det Demokratiske Parti",
+    "Bydelenes Stemmer",
+    "Egalitært Folkeparti",
+    "Frigængerne",
+    "Partiet Samfundssind",
+    "Sten i Skoen"
+  ]);
+
   /* State & helpers */
   const state = {
     rows:[], region:"", kommune:"", activeParty:"",
@@ -306,10 +330,15 @@
   };
 
   function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
+
   function detectPartyLetter(rowsForParti){
+    if(!rowsForParti || !rowsForParti.length) return null;
+    // Partier i NO_LETTER_PARTIES skal aldrig have bogstav
+    if(NO_LETTER_PARTIES.has(rowsForParti[0].parti)) return null;
     for(const r of rowsForParti){
       const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
-      const L=m?.[1]; if(L && PARTY_COLORS[L]) return L;
+      const L=m?.[1];
+      if(L && PARTY_COLORS[L]) return L;
     }
     return null;
   }
@@ -715,13 +744,30 @@
   async function fetchCsvText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
   function parseCsvTextToRows(text){
     const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
-    return res.data.map(r=>({
-      region: canon(r.region||""), kommune:canon(r.kommune||""),
-      valgsted_id:canon(r.valgsted_id||r.sted_id||""), valgsted_navn:canon(r.valgsted_navn||r.sted_navn||""),
-      kandidat_id:canon(r.kandidat_id||r.kandidat_navn),
-      kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn)),
-      parti:canon(r.parti), parti_bogstav: canon(r.parti_bogstav||r.listebogstav||""), stemmer:Number(r.stemmer||0)||0
-    }));
+    return res.data.map(r=>{
+      const region = canon(r.region||"");
+      const kommune = canon(r.kommune||"");
+
+      // Fix partinavn hvis nødvendigt
+      let partiRaw = canon(r.parti);
+      const fixedName = PARTY_NAME_FIX[partiRaw] || partiRaw;
+      const parti = fixedName;
+
+      const noLetter = NO_LETTER_PARTIES.has(parti);
+      const parti_bogstav = noLetter ? "" : canon(r.parti_bogstav||r.listebogstav||"");
+
+      return {
+        region,
+        kommune,
+        valgsted_id:canon(r.valgsted_id||r.sted_id||""),
+        valgsted_navn:canon(r.valgsted_navn||r.sted_navn||""),
+        kandidat_id:canon(r.kandidat_id||r.kandidat_navn),
+        kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn)),
+        parti,
+        parti_bogstav,
+        stemmer:Number(r.stemmer||0)||0
+      };
+    });
   }
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
