@@ -316,12 +316,6 @@ const state = {
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-/* Procent-formattering */
-const fmtPct = (part, total) => {
-  if (!total) return "0,0 %";
-  const pct = (part * 100) / total;
-  return pct.toFixed(1).replace(".", ",") + " %";
-};
 const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => { const t = canon(name).toLowerCase(); return t==="partiliste" || t==="listestemmer" || t==="liste"; };
@@ -418,7 +412,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
   initCandidateSearch();
 
-  /* År-dropdown */
+  /* ÅRSDROPDOWN: Skift år */
   const yearSel = el("ftYearSelect");
   if (yearSel) {
     yearSel.addEventListener("change", () => {
@@ -524,26 +518,29 @@ function updateCandSortToggleUI(){
   if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); }
   else { b.classList.add("active"); a.classList.remove("active"); }
 }
-
-/* Infoboks for procenter (kandidater/partier) */
 function updateModeToggleUI(){
-  const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
-  const isParty = state.overviewMode==="party";
-  const isDK = !state.storkreds;
+  const a = el("btnModeCand");
+  const b = el("btnModeParty");
+  const info = el("modeInfo");
+  const isParty = state.overviewMode === "party";
+  const isDK = !state.storkreds; // Hele Danmark = ingen storkreds valgt
 
-  if(a && b){
+  if (a && b) {
     a.classList.toggle("active", !isParty);
     b.classList.toggle("active", isParty);
   }
-  if(info){
-    if(isParty){
-      info.classList.remove("hidden");
 
-    }else{
-      if(isDK){
+  if (info) {
+    if (isParty) {
+      // Partitotal: vis altid infotekst
+      info.classList.remove("hidden");
+      info.textContent = "Procenttallet viser partiets samlede andel af alle gyldige stemmer i det valgte område.";
+    } else {
+      // Kandidater: kun infotekst når vi er i storkreds/kreds – ikke på Hele Danmark
+      if (isDK) {
         info.classList.add("hidden");
         info.textContent = "";
-      }else{
+      } else {
         info.classList.remove("hidden");
         info.textContent = "Procenttallet viser en kandidats samlede andel af alle gyldige stemmer i det valgte område.";
       }
@@ -598,7 +595,7 @@ function populateKredse(storkreds){
         state.kreds=v; u.searchParams.set("kreds",v); history.replaceState({}, "", u);
         await loadKredsData(storkreds,v);
       }
-      updateAddKredsUIState(); renderContextBar(); updateModeToggleUI();
+      updateAddKredsUIState(); renderContextBar();
     };
   }else{
     ksel.disabled=true; ksel.innerHTML=`<option value="">(Ingen kredsvalg – viser hele storkredsen)</option>`;
@@ -847,22 +844,17 @@ function getOverviewRows(){
   return cached && cached.length ? cached : state.rows;
 }
 
-/* ===== Top-liste med procenter (kandidater + partier) ===== */
+/* Render top-listen (med kandidater/partitotal + procenter) */
 function renderOverview(){
   const rows = getOverviewRows();
   const isDK = !state.storkreds;
-  const atScope = isDK
-    ? "Danmark"
-    : (state.kreds && state.kreds !== KREDS_ALL_VALUE
-        ? `${state.storkreds} / ${state.kreds}`
-        : `${state.storkreds} / Alle kredse i storkredsen`);
+  const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
 
-  /* ---- PARTITOTAL-VISNING ---- */
   if(state.overviewMode==="party"){
     const ranked = totalsByPartyAllVotes(rows);
-    const totalAll = ranked.reduce((sum,p)=> sum + (p.total || 0), 0);
     const list = (state.topListMode==="top10") ? ranked.slice(0,10) : ranked;
+    const totalAll = ranked.reduce((sum,p)=>sum + (p.total||0), 0);
 
     el("top10Title").textContent =
       state.topListMode==="top10"
@@ -871,7 +863,14 @@ function renderOverview(){
 
     function itemHTML(p, idx){
       const bd = badge(p.letter);
-      const meta = `${fmt(p.total)} stemmer i alt · ${fmtPct(p.total, totalAll)} af stemmerne`;
+      let meta;
+      if (totalAll > 0) {
+        const pct = (p.total / totalAll) * 100;
+        const pctStr = pct.toFixed(1).replace('.', ',');
+        meta = `${fmt(p.total)} stemmer i alt (personlige + liste) · ${pctStr} %`;
+      } else {
+        meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+      }
       return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -915,10 +914,8 @@ function renderOverview(){
       });
     });
 
-  /* ---- KANDIDAT-VISNING ---- */
   }else{
     const ranked = totalsByCandidate(rows);
-    const totalAll = ranked.reduce((sum,k)=> sum + (k.total || 0), 0);
 
     let list;
     if(state.topListMode==="top10"){
@@ -934,11 +931,20 @@ function renderOverview(){
       }
     }
 
+    const totalVotesScope = rows.reduce((sum,r)=>sum + (r.stemmer||0), 0);
+    const showPct = !isDK; // kun storkreds/kreds, ikke DK
+
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
       const bd = badge(letter);
-      const pctPart = !isDK ? ` · ${fmtPct(k.total, totalAll)} af stemmerne` : "";
-      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer${pctPart}`;
+      let meta;
+      if (showPct && totalVotesScope > 0) {
+        const pct = (k.total / totalVotesScope) * 100;
+        const pctStr = pct.toFixed(1).replace('.', ',');
+        meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer · ${pctStr} %`;
+      } else {
+        meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      }
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -952,11 +958,8 @@ function renderOverview(){
     const half = Math.ceil(list.length/2);
     const left = list.slice(0,half);
     const right = list.slice(half);
-    el("top10ColLeft").innerHTML =
-      left.map((k,i)=>itemHTML(k, i+1)).join("") ||
-      `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-    el("top10ColRight").innerHTML =
-      right.map((k,i)=>itemHTML(k, i+1+half)).join("");
+    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
 
     const bind = (rootId)=> {
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
@@ -965,11 +968,9 @@ function renderOverview(){
         item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTop(candId, rows); }});
       });
     };
-    bind('top10ColLeft');
-    bind('top10ColRight');
+    bind('top10ColLeft'); bind('top10ColRight');
   }
 }
-
 function toggleCandidateFromTop(candId, rows){
   if(!state.storkreds){
     const stk = primaryStorkredsForCandidate(candId, rows);
@@ -1045,29 +1046,19 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste med procenter inden for partiet */
+/* Kandidatliste */
 function renderPartyDetail(parti){
-  const header=el("partyDetailHeader"),
-        left=el("candidateColLeft"),
-        right=el("candidateColRight");
+  const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
-  if(!parti){
-    header.textContent="Vælg et parti i drop-down menuen.";
-    return;
-  }
+  if(!parti){ header.textContent="Vælg et parti i drop-down menuen."; return; }
   header.textContent=parti;
 
-  const partyStats = getPartyStats().find(x=>x.parti===parti);
-  const kandidaterAll = partyStats?.kandidater || [];
-  const totalParty = kandidaterAll.reduce((s,k)=> s + (k.total || 0), 0);
-
-  const sorted = kandidaterAll.slice().sort(
-    state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes
-  );
+  const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
+  const sorted = kandidaterAll.slice().sort(state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes);
 
   const mid = Math.ceil(sorted.length/2);
   const leftArr = sorted.slice(0, mid);
-  const rightArr = sorted.slice(mid);
+  const rightArr = sorted.slice( mid);
 
   function addCandidate(k){
     if(!state.storkreds){
@@ -1077,22 +1068,14 @@ function renderPartyDetail(parti){
     }
     const check = canAddCandidate(k.kandidat_id);
     if(!check.ok){ showError(check.reason); return; }
-    state.selected.set(k.kandidat_id,{
-      kandidat_id:k.kandidat_id,
-      kandidat_navn:k.kandidat_navn,
-      parti:k.parti
-    });
+    state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
     renderAll();
   }
 
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const baseSubtitle = listestemmer
-      ? `${fmt(k.total)} listestemmer`
-      : `${fmt(k.total)} stemmer i alt`;
-    const pctText = fmtPct(k.total, totalParty);
-    const meta = `${escapeHtml(k.parti)} · ${baseSubtitle} · ${pctText} af partiets stemmer`;
-
+    const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
+    const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
     const div=document.createElement("div");
     div.className="rounded-xl border px-3 py-2";
     div.setAttribute("data-cand-id", k.kandidat_id);
@@ -1101,11 +1084,8 @@ function renderPartyDetail(parti){
         <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
         <div class="text-xs text-gray-500">${meta}</div>
       </div>
-      ${state.storkreds
-        ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`
-        : `<button class="vb-btn" data-see="${k.kandidat_id}">Se i storkreds</button>`}
+      ${state.storkreds ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>` : `<button class="vb-btn" data-see="${k.kandidat_id}">Se i storkreds</button>`}
     </div>`;
-
     const add = div.querySelector("button[data-add]");
     if(add) add.onclick=()=>addCandidate(k);
     const see = div.querySelector("button[data-see]");
