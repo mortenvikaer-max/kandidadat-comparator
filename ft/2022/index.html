@@ -142,17 +142,13 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
     <div class="flex items-center justify-between mb-2">
       <div>
         <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
-        <!-- Info-boks om procent for kandidater -->
+        <!-- Fælles info-boks om procent -->
         <div id="percentInfoOverview"
              class="mt-1 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
-          Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.
+          <!-- Tekst sættes dynamisk i JavaScript afhængigt af mode -->
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <div class="text-right">
-          <div id="top10Scope" class="text-sm text-gray-500"></div>
-          <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden"></div>
-        </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnModeCand" class="vb-tabbox small active" type="button">Kandidater</button>
           <button id="btnModeParty" class="vb-tabbox small" type="button">Partitotal</button>
@@ -542,14 +538,11 @@ function updateCandSortToggleUI(){
   else { b.classList.add("active"); a.classList.remove("active"); }
 }
 function updateModeToggleUI(){
-  const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
+  const a=el("btnModeCand"), b=el("btnModeParty");
   const isParty = state.overviewMode==="party";
   if(a && b){
     a.classList.toggle("active", !isParty);
     b.classList.toggle("active", isParty);
-  }
-  if(info){
-    info.classList.toggle("hidden", !isParty);
   }
 }
 
@@ -930,23 +923,18 @@ function totalValidVotes(rows){
 function renderOverview(){
   const rows = getOverviewRows();
   const isDK = !state.storkreds;
-  const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
-  el("top10Scope").textContent = rows.length ? atScope : "";
 
-  // Info-boks for kandidater (kun storkreds/kreds)
+  // Info-boks for procenter
   const infoBox = document.getElementById('percentInfoOverview');
   if (infoBox) {
-    const showInfo = !isDK && state.overviewMode === "cand";
-    infoBox.classList.toggle('hidden', !showInfo);
-  }
-
-  // Info-tekst for partitotal
-  const modeInfoEl = document.getElementById('modeInfo');
-  if (modeInfoEl) {
-    if (state.overviewMode === "party") {
-      modeInfoEl.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (Danmark, storkreds eller kreds).";
+    if (state.overviewMode === "cand" && !isDK) {
+      infoBox.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.";
+      infoBox.classList.remove('hidden');
+    } else if (state.overviewMode === "party") {
+      infoBox.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (Danmark, storkreds eller kreds).";
+      infoBox.classList.remove('hidden');
     } else {
-      modeInfoEl.textContent = "";
+      infoBox.classList.add('hidden');
     }
   }
 
