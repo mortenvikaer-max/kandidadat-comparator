@@ -162,11 +162,16 @@
   <!-- TOP 10/50 -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+      <div>
+        <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+        <!-- Info-boks om procent -->
+        <div id="percentInfoOverview"
+             class="mt-1 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
+        </div>
+      </div>
       <div class="flex items-center gap-3">
         <div class="text-right">
           <div id="top10Scope" class="text-sm text-gray-500"></div>
-          <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden"></div>
         </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnModeCand" class="vb-tabbox small active" type="button">Kandidater</button>
@@ -207,7 +212,7 @@
               <span class="vb-badge" style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
               <span class="truncate text-gray-500">Vælg kommune først…</span>
             </span>
-            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z"/></svg>
+            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4-4.5z"/></svg>
           </button>
           <div id="partyMenu" class="vb-menu hidden" role="listbox" tabindex="-1" aria-labelledby="partyButton"></div>
         </div>
@@ -250,6 +255,25 @@
     </div>
   </section>
 </main>
+
+<footer class="mt-10 border-t bg-gray-100">
+  <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
+              flex flex-col md:flex-row items-center justify-between
+              gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+    
+    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
+      hej@valgbar.dk
+    </a>
+
+    <p class="text-center">
+      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
+    </p>
+
+    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
+      Om Valgbar
+    </a>
+  </div>
+</footer>
 
 <script>
   /* ===== DATA-STI ===== */
@@ -305,9 +329,16 @@
   };
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+  const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; };
+
+  const totalValidVotes = (rows) => {
+    let sum = 0;
+    for(const r of rows){ sum += r.stemmer || 0; }
+    return sum;
+  };
 
   // Normaliser navn: ",By" -> ", By"
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
@@ -518,17 +549,11 @@
     else { b.classList.add("active"); a.classList.remove("active"); }
   }
   function updateModeToggleUI(){
-    const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
+    const a=el("btnModeCand"), b=el("btnModeParty");
     const isParty = state.overviewMode==="party";
     if(a && b){
       a.classList.toggle("active", !isParty);
       b.classList.toggle("active", isParty);
-    }
-    if(info){
-      info.classList.toggle("hidden", !isParty);
-      if(isParty){
-        info.textContent = "Partitotal viser personlige stemmer + listestemmer pr. parti.";
-      }
     }
   }
 
@@ -895,8 +920,26 @@
 
   function renderOverview(){
     const rows = state.rows || [];
-    const atScope = state.kommune ? state.kommune : (state.region? `${state.region}` : 'Danmark');
-    el("top10Scope").textContent = rows.length ? atScope : '';
+    const totalValid = totalValidVotes(rows);
+
+    // Scope-tekst: kun "Danmark" vises her på landsplan – ikke sti som "Region / Kommune"
+    const isDK = !state.region && !state.kommune;
+    const scopeText = isDK ? "Danmark" : "";
+    el("top10Scope").textContent = rows.length ? scopeText : '';
+
+    // Info-boks for procenter
+    const infoBox = el("percentInfoOverview");
+    if(infoBox){
+      if(state.overviewMode === "party"){
+        infoBox.textContent = "Procenttallet viser partiets samlede andel af alle gyldige stemmer i det valgte område.";
+        infoBox.classList.remove("hidden");
+      } else if(state.overviewMode === "cand"){
+        infoBox.textContent = "Procenttallet viser en kandidats samlede andel af alle gyldige stemmer i det valgte område.";
+        infoBox.classList.remove("hidden");
+      } else {
+        infoBox.classList.add("hidden");
+      }
+    }
 
     if(state.overviewMode === "party"){
       const ranked = totalsByPartyAllVotes(rows);
@@ -909,7 +952,10 @@
 
       function itemHTML(p, idx){
         const bd = badge(p.letter);
-        const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const share = totalValid > 0 ? p.total / totalValid : null;
+        const shareLabel = share !== null ? fmtPct(share) : null;
+        const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
@@ -941,7 +987,7 @@
             renderPartyDetail(parti);
             const u=new URL(location.href);
             u.searchParams.set("parti", parti);
-            u.searchParams.delete("kandidater");
+            u.searchParams.delete("cand");
             history.replaceState({}, "", u);
             document.getElementById('partyDetail')?.scrollIntoView({behavior:'smooth'});
           };
@@ -969,7 +1015,10 @@
       function itemHTML(k, idx){
         const letter = detectPartyLetter(rows.filter(r=>r.parti===k.parti));
         const bd = badge(letter);
-        const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+        const share = totalValid > 0 ? (k.total || 0) / totalValid : null;
+        const shareLabel = share !== null ? fmtPct(share) : null;
+        const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
+        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
         return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
