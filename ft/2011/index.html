@@ -524,17 +524,29 @@ function updateCandSortToggleUI(){
   if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); }
   else { b.classList.add("active"); a.classList.remove("active"); }
 }
+
+/* Infoboks for procenter (kandidater/partier) */
 function updateModeToggleUI(){
   const a=el("btnModeCand"), b=el("btnModeParty"), info=el("modeInfo");
   const isParty = state.overviewMode==="party";
+  const isDK = !state.storkreds;
+
   if(a && b){
     a.classList.toggle("active", !isParty);
     b.classList.toggle("active", isParty);
   }
   if(info){
-    info.classList.toggle("hidden", !isParty);
     if(isParty){
-      // Info-tekst kan evt. sættes her
+      info.classList.remove("hidden");
+      info.textContent = "Procenttallet viser partiets samlede andel af alle gyldige stemmer i det valgte område.";
+    }else{
+      if(isDK){
+        info.classList.add("hidden");
+        info.textContent = "";
+      }else{
+        info.classList.remove("hidden");
+        info.textContent = "Procenttallet viser en kandidats samlede andel af alle gyldige stemmer i det valgte område.";
+      }
     }
   }
 }
@@ -564,6 +576,7 @@ function initStorkredsDropdown(){
     renderContextBar();
     updateTopButtonsForScope();
     renderOverview();
+    updateModeToggleUI();
   };
   el("kredsSelect").disabled=true;
 }
@@ -585,7 +598,7 @@ function populateKredse(storkreds){
         state.kreds=v; u.searchParams.set("kreds",v); history.replaceState({}, "", u);
         await loadKredsData(storkreds,v);
       }
-      updateAddKredsUIState(); renderContextBar();
+      updateAddKredsUIState(); renderContextBar(); updateModeToggleUI();
     };
   }else{
     ksel.disabled=true; ksel.innerHTML=`<option value="">(Ingen kredsvalg – viser hele storkredsen)</option>`;
@@ -924,7 +937,8 @@ function renderOverview(){
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
       const bd = badge(letter);
-      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer · ${fmtPct(k.total, totalAll)} af stemmerne`;
+      const pctPart = !isDK ? ` · ${fmtPct(k.total, totalAll)} af stemmerne` : "";
+      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer${pctPart}`;
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -1114,6 +1128,7 @@ function renderAll(){
   updateTopButtonsForScope();
   renderOverview();
   renderContextBar();
+  updateModeToggleUI();
 }
 function stemmerLabel(n){ return n===1 ? "stemme" : "stemmer"; }
 function computeTotalsByCandidateScoped(){
