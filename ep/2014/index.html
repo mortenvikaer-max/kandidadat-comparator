@@ -512,6 +512,15 @@ function hydrateSelectedFromRows(){
 
 /* INIT */
 window.addEventListener("DOMContentLoaded", async ()=>{
+
+    const yearSel = el("epYearSelect");
+  if (yearSel) {
+    yearSel.addEventListener("change", () => {
+      const url = yearSel.value;
+      if (url) window.location.href = url;
+    });
+  }
+  
   initStorkredsDropdown();
   initCandidateSearch();
 
