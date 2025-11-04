@@ -157,10 +157,10 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
       </div>
     </div>
 
-    <!-- NY: tydelig info-boks om procenttal -->
+    <!-- Info-boks om procent -->
     <div id="percentInfoOverview"
          class="mb-3 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
-      Procenttallet viser en kandidats andel af alle personlige stemmer i den valgte storkreds eller kreds.
+      Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.
     </div>
 
     <!-- Loader -->
@@ -362,7 +362,7 @@ function primaryStorkredsForCandidate(candId, rows){
   return Array.from(count.entries()).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
-/* NYT: Vælg kandidat automatisk efter hop til storkreds */
+/* Vælg kandidat automatisk efter hop til storkreds */
 function selectCandidateById(candId){
   const sample = state.rows.find(r=>r.kandidat_id===candId);
   if(!sample) return;
@@ -436,9 +436,9 @@ function rankCandidates(cands, q){
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
-  initCandidateSearch(); // NYT
+  initCandidateSearch();
 
-  /* === ÅRSDROPDOWN: Skift år === */
+  /* Årsdropdown: Skift år */
   const yearSel = el("ftYearSelect");
   if (yearSel) {
     yearSel.addEventListener("change", () => {
@@ -809,7 +809,6 @@ async function loadRowsForKreds(storkreds, kreds){
 /* Efter data indlæst */
 function afterDataLoaded(){
   state.activeParty=""; renderPartyCombobox(); renderAll(); updateAddKredsUIState(); renderContextBar();
-  // Luk evt. åben kandidat-menu ved dataskift
   document.getElementById('candidateMenu')?.classList.add('hidden');
 }
 
@@ -895,7 +894,7 @@ function totalsByCandidate(rows){
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
 
-/* NYT: Partitotal – personlige + listestemmer pr. parti */
+/* Partitotal – personlige + listestemmer pr. parti */
 function totalsByPartyAllVotes(rows){
   const m = new Map();
   for(const r of rows){
@@ -918,13 +917,11 @@ function getOverviewRows(){
   return cached && cached.length ? cached : state.rows;
 }
 
-/* ===== NYT: total personlige stemmer i et givet row-sæt ===== */
-function totalPersonalVotes(rows){
+/* Total gyldige stemmer i et givet row-sæt */
+function totalValidVotes(rows){
   let sum = 0;
   for(const r of rows){
-    if(!isListestemmer(r.kandidat_navn)){
-      sum += r.stemmer || 0;
-    }
+    sum += r.stemmer || 0; // både kandidater og listestemmer
   }
   return sum;
 }
@@ -1000,7 +997,7 @@ function renderOverview(){
   }else{
     const ranked = totalsByCandidate(rows);
     const isStorkredsOrKreds = !!state.storkreds;
-    const totalPers = isStorkredsOrKreds ? totalPersonalVotes(rows) : 0;
+    const totalValid = isStorkredsOrKreds ? totalValidVotes(rows) : 0;
 
     let list;
     if(state.topListMode==="top10"){
@@ -1019,11 +1016,11 @@ function renderOverview(){
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
       const bd = badge(letter);
-      const share = (isStorkredsOrKreds && totalPers > 0) ? (k.total || 0) / totalPers : null;
+      const share = (isStorkredsOrKreds && totalValid > 0) ? (k.total || 0) / totalValid : null;
       const shareLabel = share !== null ? fmtPct(share) : null;
-      const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
       const meta = (isStorkredsOrKreds && shareLabel)
-        ? `${base} · ${shareLabel}`
+        ? `${base} · ${shareLabel} af gyldige stemmer`
         : base;
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
@@ -1140,7 +1137,7 @@ function renderPartyDetail(parti){
   const kandidaterAll = partistat?.kandidater || [];
   const rows = getActiveRows();
   const isStorkredsOrKreds = !!state.storkreds;
-  const totalPers = isStorkredsOrKreds ? totalPersonalVotes(rows) : 0;
+  const totalValid = isStorkredsOrKreds ? totalValidVotes(rows) : 0;
 
   const sorted = kandidaterAll.slice().sort(state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes);
 
@@ -1162,15 +1159,17 @@ function renderPartyDetail(parti){
 
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const share = (isStorkredsOrKreds && !listestemmer && totalPers > 0) ? (k.total || 0) / totalPers : null;
+    const share = (isStorkredsOrKreds && !listestemmer && totalValid > 0)
+      ? (k.total || 0) / totalValid
+      : null;
     const shareLabel = share !== null ? fmtPct(share) : null;
 
     const subtitleBase = listestemmer
       ? `${fmt(k.total)} listestemmer`
-      : `${fmt(k.total)} stemmer i alt`;
+      : `${fmt(k.total)} personlige stemmer`;
 
     const subtitle = (!listestemmer && shareLabel)
-      ? `${subtitleBase} · ${shareLabel}`
+      ? `${subtitleBase} · ${shareLabel} af gyldige stemmer`
       : subtitleBase;
 
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
@@ -1212,7 +1211,7 @@ function renderAll(){
 }
 function stemmerLabel(n){ return n===1 ? "stemme" : "stemmer"; }
 
-/* Totals der respekterer områder */
+/* Totals der respekterer områder (personlige stemmer pr. kandidat) */
 function computeTotalsByCandidateScoped(){
   const rows = getActiveRows();
   const scopes = getCandidateScopes();
@@ -1227,31 +1226,29 @@ function computeTotalsByCandidateScoped(){
   return totals;
 }
 
-/* NYT: total personlige stemmer i “aktuel sammenlignings-scope” */
-function computeTotalPersonalVotesScoped(){
+/* Total gyldige stemmer i aktuelt sammenlignings-scope */
+function computeTotalValidVotesScoped(){
   if(!state.storkreds) return 0;
   const rows = getActiveRows();
   const allowedStk = getAllowedStorkredseForSelection();
   let sum = 0;
   for(const r of rows){
     if(allowedStk && !allowedStk.has(r.storkreds)) continue;
-    if(!isListestemmer(r.kandidat_navn)){
-      sum += r.stemmer || 0;
-    }
+    sum += r.stemmer || 0; // kandidater + listestemmer
   }
   return sum;
 }
 
 function renderSelected(){
   const root=el("selectedList"), totals=computeTotalsByCandidateScoped(), sel=getSelectedOrdered();
-  const totalScopedPers = computeTotalPersonalVotesScoped();
+  const totalScopedValid = computeTotalValidVotesScoped();
 
   function letterForParti(parti){ const stat=getPartyStats().find(s=>s.parti===parti); return stat?.letter||null; }
   root.innerHTML = sel.map(k=>{
     const letter=letterForParti(k.parti), bd=badge(letter);
     const total = totals.get(k.kandidat_id)||0;
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const share = (!listestemmer && totalScopedPers > 0) ? total / totalScopedPers : null;
+    const share = (!listestemmer && totalScopedValid > 0) ? total / totalScopedValid : null;
     const shareLabel = share !== null ? fmtPct(share) : null;
 
     const baseMain = listestemmer
@@ -1259,7 +1256,7 @@ function renderSelected(){
       : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
 
     const shareHtml = (!listestemmer && shareLabel)
-      ? `<div class="text-xs text-gray-500">Andel af pers. stemmer: ${shareLabel}</div>`
+      ? `<div class="text-xs text-gray-500">Andel af gyldige stemmer: ${shareLabel}</div>`
       : "";
 
     return `<div class="rounded-xl border p-3 flex items-center justify-between">
@@ -1340,18 +1337,18 @@ function renderPsTable(psList, sel){
   }
   tbody.innerHTML = rowsHtml.join("");
   const totals=computeTotalsByCandidateScoped();
-  const totalScopedPers = computeTotalPersonalVotesScoped();
+  const totalScopedValid = computeTotalValidVotesScoped();
 
   tfoot.innerHTML=`<tr class="border-t">
     <th class="py-2 pr-3 text-left">Samlet</th>
     <th class="py-2 pr-3 text-left text-gray-500">(${fmt(filteredPs.length)} rækker)</th>
     ${sel.map(s=>{
       const total = totals.get(s.kandidat_id)||0;
-      const share = totalScopedPers > 0 ? total / totalScopedPers : null;
+      const share = totalScopedValid > 0 ? total / totalScopedValid : null;
       const shareLabel = share !== null ? fmtPct(share) : null;
       return `<td class="py-2 pr-3 tabular-nums font-medium">
         ${fmt(total)}
-        ${shareLabel ? `<div class="text-xs text-gray-500">Andel af pers. stemmer: ${shareLabel}</div>` : ""}
+        ${shareLabel ? `<div class="text-xs text-gray-500">Andel af gyldige stemmer: ${shareLabel}</div>` : ""}
       </td>`;
     }).join("")}
   </tr>`;
@@ -1486,7 +1483,7 @@ function renderContextBar(){
   });
 }
 
-/* ===== NYT: Kandidat-søgefelt (UI + interaktion) ===== */
+/* Kandidat-søgefelt (UI + interaktion) */
 function initCandidateSearch(){
   const input = el('candidateSearch');
   const menu  = el('candidateMenu');
@@ -1496,7 +1493,7 @@ function initCandidateSearch(){
   function openMenu(){ menu.classList.remove('hidden'); }
 
   function renderMenuFor(query){
-    const scopeRows = getOverviewRows();      // bredt nok til DK / storkreds-alle
+    const scopeRows = getOverviewRows();
     const cands = buildCandidateList(scopeRows);
     const results = rankCandidates(cands, query);
     if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
@@ -1528,7 +1525,6 @@ function initCandidateSearch(){
     const sel = results[i];
     if(!sel) return;
 
-    // Brug eksisterende navigation: DK -> hop til storkreds; ellers tilføj
     toggleCandidateFromTop(sel.kandidat_id, scopeRows);
     closeMenu();
     input.value = "";
