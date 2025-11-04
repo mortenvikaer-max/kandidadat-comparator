@@ -543,6 +543,7 @@ function updateModeToggleUI(){
   if(info){
     info.classList.toggle("hidden", !isParty);
     if(isParty){
+      info.textContent = "Partitotal viser personlige stemmer + listestemmer pr. parti.";
     }
   }
 }
