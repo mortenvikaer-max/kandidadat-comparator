@@ -87,35 +87,37 @@
       <img src="../../Valgbar-transparent3.png" alt="Valgbar" class="h-32 w-auto" />
     </a>
   </div>
+
+  <!-- Årstalsvælger + titel -->
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-2">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li><span aria-current="page" class="text-white">Europa-Parlamentsvalg 2014</span></li>
+      </ol>
+
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="epYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
+        <select id="epYearSelect"
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <option value="../2024/">Europa-Parlamentsvalg 2024</option>
+          <option value="../2019/">Europa-Parlamentsvalg 2019</option>
+          <option value="../2014/" selected>Europa-Parlamentsvalg 2014</option>
+          <option value="../2009/">Europa-Parlamentsvalg 2009</option>
+          <option value="../2004/">Europa-Parlamentsvalg 2004</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+
   <div class="mx-auto max-w-6xl px-4 pb-2">
     <div id="error" class="text-sm text-red-200"></div>
   </div>
 </header>
 
-<!-- Årstalsvælger + titel -->
-<nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-2">
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-    <ol class="flex items-center gap-2 text-lg font-semibold">
-      <li><a href="../../" class="underline text-white">Forside</a></li>
-      <li class="opacity-70 text-white">/</li>
-      <li><span aria-current="page" class="text-white">Europa-Parlamentsvalg 2014</span></li>
-    </ol>
-
-    <div class="flex items-center gap-3 text-lg font-semibold">
-      <label for="epYearSelect" class="text-white whitespace-nowrap">
-        Skift år:
-      </label>
-      <select id="epYearSelect"
-              class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
-        <option value="../2024/">Europa-Parlamentsvalg 2024</option>
-        <option value="../2019/">Europa-Parlamentsvalg 2019</option>
-        <option value="../2014/" selected>Europa-Parlamentsvalg 2014</option>
-        <option value="../2009/">Europa-Parlamentsvalg 2009</option>
-        <option value="../2004/">Europa-Parlamentsvalg 2004</option>
-      </select>
-    </div>
-  </div>
-</nav>
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
 
@@ -513,7 +515,8 @@ function hydrateSelectedFromRows(){
 /* INIT */
 window.addEventListener("DOMContentLoaded", async ()=>{
 
-    const yearSel = el("epYearSelect");
+    // Årstalsvælger
+  const yearSel = el("epYearSelect");
   if (yearSel) {
     yearSel.addEventListener("change", () => {
       const url = yearSel.value;
