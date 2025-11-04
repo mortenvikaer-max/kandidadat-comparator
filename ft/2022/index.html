@@ -106,9 +106,6 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 <main class="mx-auto max-w-6xl p-4 space-y-6">
 
   <div id="contextBar" class="context-bar"></div>
-  <div class="mt-1 text-xs text-gray-500 max-w-3xl">
-    Procenttallet viser en kandidats andel af alle personlige stemmer i den valgte storkreds eller kreds.
-  </div>
 
   <!-- LANDING: 2×2 layout (Søg kandidat | Storkreds / Kreds på linjen under) -->
   <section class="vb-card p-4 space-y-3">
@@ -158,6 +155,12 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
           <button id="btnAll" class="vb-tabbox small" type="button">Alle kandidater</button>
         </div>
       </div>
+    </div>
+
+    <!-- NY: tydelig info-boks om procenttal -->
+    <div id="percentInfoOverview"
+         class="mb-3 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
+      Procenttallet viser en kandidats andel af alle personlige stemmer i den valgte storkreds eller kreds.
     </div>
 
     <!-- Loader -->
@@ -931,6 +934,13 @@ function renderOverview(){
   const isDK = !state.storkreds;
   const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
+
+  // Vis/Skjul info-boks om procenttal
+  const infoBox = document.getElementById('percentInfoOverview');
+  if (infoBox) {
+    const showInfo = !isDK && state.overviewMode === "cand";
+    infoBox.classList.toggle('hidden', !showInfo);
+  }
 
   if(state.overviewMode==="party"){
     const ranked = totalsByPartyAllVotes(rows);
