@@ -290,30 +290,59 @@
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  /* ===== Filtrering af special-/summationsrækker =====
-     Tilpas mønstrene til dine CSV'er, hvis nødvendigt. */
-  function isSpecialOrSummaryRow(r){
-    const navn = (r.valgsted_navn || "").toLowerCase();
-    const parti = (r.parti || "").toLowerCase();
-    const kandidat = (r.kandidat_navn || "").toLowerCase();
+  /* ===== Kanoniske partinavne + aliaser =====
+     Sørger for at fx "Venstre" og "Venstre, Danmarks Liberale Parti"
+     bliver lagt sammen som samme parti. */
+  const PARTY_NAME_ALIASES = {
+    // Det rigtige parti: "Venstre, Danmarks Liberale Parti"
+    "Venstre, Danmarks Liberale Parti": [
+      "Venstre"
+    ],
 
-    // Typiske "i alt"/kommunetotal-rækker
-    if (navn.includes("hele kommunen")) return true;
-    if (navn === "i alt" || navn === "ialt" || navn.includes("i alt i kommunen")) return true;
+    // Det rigtige parti: "Radikale Venstre"
+    "Radikale Venstre": [
+      "Det Radikale Venstre"
+    ],
 
-    // Blanke / ugyldige stemmer – afhænger af hvordan de står i dine filer
-    if (parti.includes("blank") || parti.includes("ugyldig")) return true;
-    if (kandidat.includes("blank") || kandidat.includes("ugyldig")) return true;
+    // Det rigtige parti: "Enhedslisten - De Rød-Grønne"
+    "Enhedslisten - De Rød-Grønne": [
+      "Enhedslisten",
+      "Enhedslisten, De Rød-Grønne"
+    ],
 
-    return false;
+    // Det rigtige parti: "Det Konservative Folkeparti"
+    "Det Konservative Folkeparti": [
+      "Konservative"
+    ],
+
+    // Det rigtige parti: "SF - Socialistisk Folkeparti"
+    "SF - Socialistisk Folkeparti": [
+      "Socialistisk Folkeparti"
+    ]
+  };
+
+  /* Byg et opslag fra alias → kanonisk partinavn */
+  const PARTY_NAME_CANON = (() => {
+    const m = new Map();
+    for (const [canonName, aliases] of Object.entries(PARTY_NAME_ALIASES)) {
+      const keyCanon = canon(canonName).toLowerCase();
+      m.set(keyCanon, canonName); // det kanoniske navn selv
+      for (const alias of aliases) {
+        const keyAlias = canon(alias).toLowerCase();
+        m.set(keyAlias, canonName); // alias → kanonisk
+      }
+    }
+    return m;
+  })();
+
+  function normalizePartyName(rawName) {
+    const key = canon(rawName).toLowerCase();
+    return PARTY_NAME_CANON.get(key) || canon(rawName);
   }
 
   const totalValidVotes = (rows) => {
     let sum = 0;
-    for(const r of rows){
-      if (isSpecialOrSummaryRow(r)) continue;
-      sum += r.stemmer || 0;
-    }
+    for(const r of rows){ sum += r.stemmer || 0; }
     return sum;
   };
 
@@ -681,6 +710,7 @@
   }
 
   function mapRowCommon(r){
+    const rawParti = canon(pick(r, "parti", "listenavn"));
     return {
       region:        canon(pick(r, "region")),
       kommune:       canon(pick(r, "kommune")),
@@ -688,7 +718,7 @@
       valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
       kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
       kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn", "navn", "kandidat", "kandidat_id"))),
-      parti:         canon(pick(r, "parti", "listenavn")),
+      parti:         normalizePartyName(rawParti),
       parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse", "bogstavsbetegnelse")),
       stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
     };
@@ -755,41 +785,11 @@
     } finally { hideLoading(); }
   }
 
-  /* ===== Debug: totaler pr. kommune (hjælper til at finde regnefejl) ===== */
-  function debugPrintTotals() {
-    if (!state.rows || !state.rows.length) {
-      console.log("Ingen rows indlæst i state.rows");
-      return;
-    }
-
-    const byKommune = new Map();
-    for (const r of state.rows) {
-      if (isSpecialOrSummaryRow(r)) continue;
-      const k = r.kommune || "(ukendt)";
-      byKommune.set(k, (byKommune.get(k) || 0) + (r.stemmer || 0));
-    }
-
-    const perKommune = Array.from(byKommune.entries())
-      .map(([kommune, total]) => ({ kommune, total }))
-      .sort((a,b) => a.kommune.localeCompare(b.kommune, "da"));
-
-    console.table(perKommune);
-
-    const sumAfKommuner = perKommune.reduce((acc, x) => acc + x.total, 0);
-    const direkteSum = totalValidVotes(state.rows);
-
-    console.log("Sum af kommuner (efter filter):", sumAfKommuner);
-    console.log("Direkte sum af alle rækker (totalValidVotes, efter filter):", direkteSum);
-  }
-
   function afterDataLoaded(){
     applyPendingSelections();
     resetPartyUI(); if(state.kommune) renderPartyCombobox();
     updateTopButtonsForScope(); renderOverview(); renderAll(); renderContextBar();
     document.getElementById('candidateMenu')?.classList.add('hidden');
-
-    // Debug: slå fra hvis du ikke vil have output i console
-    debugPrintTotals();
   }
   function applyPendingSelections(){
     if(state.pendingCandidateIds && state.pendingCandidateIds.length){
@@ -818,7 +818,6 @@
   function totalsByCandidate(rows){
     const m=new Map();
     for(const r of rows){
-      if (isSpecialOrSummaryRow(r)) continue;
       if(!m.has(r.uid)){
         m.set(r.uid,{ uid:r.uid,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0 });
       }
@@ -831,12 +830,11 @@
   function totalsByPartyAllVotes(rows){
     const m = new Map();
     for(const r of rows){
-      if (isSpecialOrSummaryRow(r)) continue;
       const parti = r.parti || "(ukendt parti)";
       m.set(parti, (m.get(parti)||0) + (r.stemmer||0));
     }
     const entries = Array.from(m.entries()).map(([parti,total])=>{
-      const rowsForParti = rows.filter(x=>x.parti===parti && !isSpecialOrSummaryRow(x));
+      const rowsForParti = rows.filter(x=>x.parti===parti);
       const letter = detectPartyLetter(rowsForParti);
       return { parti, total, letter };
     });
@@ -946,7 +944,7 @@
       : "Top 50 kandidater (personlige stemmer)";
 
     function itemHTML(k,idx){
-      const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti && !isSpecialOrSummaryRow(r)));
+      const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
       const bd=badge(letter);
       const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
       const shareLabel = share !== null ? fmtPct(share) : null;
@@ -1025,7 +1023,6 @@
   function getPartyStats(){
     const byParti=new Map();
     for(const r of state.rows){
-      if (isSpecialOrSummaryRow(r)) continue;
       if(!byParti.has(r.parti)) byParti.set(r.parti,[]);
       byParti.get(r.parti).push(r);
     }
@@ -1156,10 +1153,7 @@
   }
   function computeTotalsByCandidate(){
     const m=new Map();
-    for(const r of state.rows){
-      if (isSpecialOrSummaryRow(r)) continue;
-      m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
-    }
+    for(const r of state.rows) m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
     return m;
   }
   function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
@@ -1195,7 +1189,6 @@
   function getPollingStations(){
     const m=new Map();
     for(const r of state.rows){
-      if (isSpecialOrSummaryRow(r)) continue;
       const key=`${r.kommune}::${r.valgsted_id}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
       const ps=m.get(key);
