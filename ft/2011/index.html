@@ -86,7 +86,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
         <li><span aria-current="page" class="text-white">Folketingsvalg 2011</span></li>
       </ol>
 
-      <!-- Års-vælger (1:1 som 2022, men med 2011 valgt) -->
+      <!-- Års-vælger -->
       <div class="flex items-center gap-3 text-lg font-semibold">
         <label for="ftYearSelect" class="text-white whitespace-nowrap">
           Skift år:
@@ -138,7 +138,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
     </div>
   </section>
 
-  <!-- Topliste med partitotal-toggle (1:1 fra 2022) -->
+  <!-- Topliste med partitotal-toggle -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
       <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
@@ -238,7 +238,7 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 
 <script>
 /* ====== DATA-STI (FT 2011) ====== */
-const BASE_PATH = '../../data/ft/2011/';   // <— ændret til 2011
+const BASE_PATH = '../../data/ft/2011/';
 const KREDS_ALL_VALUE = "__ALL__";
 const DK_VALUE = "__DK__";
 
@@ -311,11 +311,17 @@ const state = {
   selectedKredse:new Set(),
   csvCache:new Map(),
   topListMode:"top10",
-  overviewMode:"cand",     // <— til partitotal
+  overviewMode:"cand",
   candidateSortMode:"alpha"
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+/* Procent-formattering */
+const fmtPct = (part, total) => {
+  if (!total) return "0,0 %";
+  const pct = (part * 100) / total;
+  return pct.toFixed(1).replace(".", ",") + " %";
+};
 const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => { const t = canon(name).toLowerCase(); return t==="partiliste" || t==="listestemmer" || t==="liste"; };
@@ -412,7 +418,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   initStorkredsDropdown();
   initCandidateSearch();
 
-  /* === ÅRSDROPDOWN: Skift år (1:1 som 2022) === */
+  /* År-dropdown */
   const yearSel = el("ftYearSelect");
   if (yearSel) {
     yearSel.addEventListener("change", () => {
@@ -423,7 +429,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     });
   }
 
-  // Mode-knapper: Kandidater / Partitotal (1:1 fra 2022)
+  // Mode-knapper: Kandidater / Partitotal
   el("btnModeCand").addEventListener("click", ()=>{
     if(state.overviewMode!=="cand"){
       state.overviewMode="cand";
@@ -528,7 +534,7 @@ function updateModeToggleUI(){
   if(info){
     info.classList.toggle("hidden", !isParty);
     if(isParty){
-      // Info-tekst kan evt. sættes her (fx "Inkluderer personlige + listestemmer")
+      // Info-tekst kan evt. sættes her
     }
   }
 }
@@ -805,7 +811,7 @@ function totalsByCandidate(rows){
   return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
 }
 
-/* NYT: Partitotal – personlige + listestemmer pr. parti (1:1 fra 2022) */
+/* Partitotal – personlige + listestemmer pr. parti */
 function totalsByPartyAllVotes(rows){
   const m = new Map();
   for(const r of rows){
@@ -828,15 +834,21 @@ function getOverviewRows(){
   return cached && cached.length ? cached : state.rows;
 }
 
-/* Render top-listen (med kandidater/partitotal) – 1:1 fra 2022 */
+/* ===== Top-liste med procenter (kandidater + partier) ===== */
 function renderOverview(){
   const rows = getOverviewRows();
   const isDK = !state.storkreds;
-  const atScope = isDK ? "Danmark" : (state.kreds && state.kreds !== KREDS_ALL_VALUE ? `${state.storkreds} / ${state.kreds}` : `${state.storkreds} / Alle kredse i storkredsen`);
+  const atScope = isDK
+    ? "Danmark"
+    : (state.kreds && state.kreds !== KREDS_ALL_VALUE
+        ? `${state.storkreds} / ${state.kreds}`
+        : `${state.storkreds} / Alle kredse i storkredsen`);
   el("top10Scope").textContent = rows.length ? atScope : "";
 
+  /* ---- PARTITOTAL-VISNING ---- */
   if(state.overviewMode==="party"){
     const ranked = totalsByPartyAllVotes(rows);
+    const totalAll = ranked.reduce((sum,p)=> sum + (p.total || 0), 0);
     const list = (state.topListMode==="top10") ? ranked.slice(0,10) : ranked;
 
     el("top10Title").textContent =
@@ -846,7 +858,7 @@ function renderOverview(){
 
     function itemHTML(p, idx){
       const bd = badge(p.letter);
-      const meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+      const meta = `${fmt(p.total)} stemmer i alt · ${fmtPct(p.total, totalAll)} af stemmerne`;
       return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -890,8 +902,10 @@ function renderOverview(){
       });
     });
 
+  /* ---- KANDIDAT-VISNING ---- */
   }else{
     const ranked = totalsByCandidate(rows);
+    const totalAll = ranked.reduce((sum,k)=> sum + (k.total || 0), 0);
 
     let list;
     if(state.topListMode==="top10"){
@@ -910,7 +924,7 @@ function renderOverview(){
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
       const bd = badge(letter);
-      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer · ${fmtPct(k.total, totalAll)} af stemmerne`;
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -924,8 +938,11 @@ function renderOverview(){
     const half = Math.ceil(list.length/2);
     const left = list.slice(0,half);
     const right = list.slice(half);
-    el("top10ColLeft").innerHTML = left.map((k,i)=>itemHTML(k, i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-    el("top10ColRight").innerHTML = right.map((k,i)=>itemHTML(k, i+1+half)).join("");
+    el("top10ColLeft").innerHTML =
+      left.map((k,i)=>itemHTML(k, i+1)).join("") ||
+      `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+    el("top10ColRight").innerHTML =
+      right.map((k,i)=>itemHTML(k, i+1+half)).join("");
 
     const bind = (rootId)=> {
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
@@ -934,7 +951,8 @@ function renderOverview(){
         item.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleCandidateFromTop(candId, rows); }});
       });
     };
-    bind('top10ColLeft'); bind('top10ColRight');
+    bind('top10ColLeft');
+    bind('top10ColRight');
   }
 }
 
@@ -1013,19 +1031,29 @@ function renderPartyCombobox(){
   el("candidateColLeft").innerHTML = ""; el("candidateColRight").innerHTML = "";
 }
 
-/* Kandidatliste */
+/* Kandidatliste med procenter inden for partiet */
 function renderPartyDetail(parti){
-  const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
+  const header=el("partyDetailHeader"),
+        left=el("candidateColLeft"),
+        right=el("candidateColRight");
   left.innerHTML=""; right.innerHTML="";
-  if(!parti){ header.textContent="Vælg et parti i drop-down menuen."; return; }
+  if(!parti){
+    header.textContent="Vælg et parti i drop-down menuen.";
+    return;
+  }
   header.textContent=parti;
 
-  const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
-  const sorted = kandidaterAll.slice().sort(state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes);
+  const partyStats = getPartyStats().find(x=>x.parti===parti);
+  const kandidaterAll = partyStats?.kandidater || [];
+  const totalParty = kandidaterAll.reduce((s,k)=> s + (k.total || 0), 0);
+
+  const sorted = kandidaterAll.slice().sort(
+    state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes
+  );
 
   const mid = Math.ceil(sorted.length/2);
   const leftArr = sorted.slice(0, mid);
-  const rightArr = sorted.slice( mid);
+  const rightArr = sorted.slice(mid);
 
   function addCandidate(k){
     if(!state.storkreds){
@@ -1035,14 +1063,22 @@ function renderPartyDetail(parti){
     }
     const check = canAddCandidate(k.kandidat_id);
     if(!check.ok){ showError(check.reason); return; }
-    state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
+    state.selected.set(k.kandidat_id,{
+      kandidat_id:k.kandidat_id,
+      kandidat_navn:k.kandidat_navn,
+      parti:k.parti
+    });
     renderAll();
   }
 
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
-    const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
+    const baseSubtitle = listestemmer
+      ? `${fmt(k.total)} listestemmer`
+      : `${fmt(k.total)} stemmer i alt`;
+    const pctText = fmtPct(k.total, totalParty);
+    const meta = `${escapeHtml(k.parti)} · ${baseSubtitle} · ${pctText} af partiets stemmer`;
+
     const div=document.createElement("div");
     div.className="rounded-xl border px-3 py-2";
     div.setAttribute("data-cand-id", k.kandidat_id);
@@ -1051,8 +1087,11 @@ function renderPartyDetail(parti){
         <div class="font-medium">${escapeHtml(k.kandidat_navn)}</div>
         <div class="text-xs text-gray-500">${meta}</div>
       </div>
-      ${state.storkreds ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>` : `<button class="vb-btn" data-see="${k.kandidat_id}">Se i storkreds</button>`}
+      ${state.storkreds
+        ? `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`
+        : `<button class="vb-btn" data-see="${k.kandidat_id}">Se i storkreds</button>`}
     </div>`;
+
     const add = div.querySelector("button[data-add]");
     if(add) add.onclick=()=>addCandidate(k);
     const see = div.querySelector("button[data-see]");
