@@ -106,6 +106,9 @@ font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
 <main class="mx-auto max-w-6xl p-4 space-y-6">
 
   <div id="contextBar" class="context-bar"></div>
+  <div class="mt-1 text-xs text-gray-500 max-w-3xl">
+    Procenterne viser en kandidats andel af alle personlige stemmer i den storkreds eller kreds, du har valgt.
+  </div>
 
   <!-- LANDING: 2×2 layout (Søg kandidat | Storkreds / Kreds på linjen under) -->
   <section class="vb-card p-4 space-y-3">
@@ -307,6 +310,7 @@ const state = {
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+const fmtPct = v => new Intl.NumberFormat("da-DK", { style:"percent", minimumFractionDigits:1, maximumFractionDigits:1 }).format(v);
 const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => { const t = canon(name).toLowerCase(); return t==="partiliste" || t==="listestemmer" || t==="liste"; };
@@ -542,8 +546,6 @@ function updateModeToggleUI(){
   }
   if(info){
     info.classList.toggle("hidden", !isParty);
-    if(isParty){
-    }
   }
 }
 
@@ -912,6 +914,18 @@ function getOverviewRows(){
   const cached = state.csvCache.get(`${state.storkreds}::__ALL__`);
   return cached && cached.length ? cached : state.rows;
 }
+
+/* ===== NYT: total personlige stemmer i et givet row-sæt ===== */
+function totalPersonalVotes(rows){
+  let sum = 0;
+  for(const r of rows){
+    if(!isListestemmer(r.kandidat_navn)){
+      sum += r.stemmer || 0;
+    }
+  }
+  return sum;
+}
+
 function renderOverview(){
   const rows = getOverviewRows();
   const isDK = !state.storkreds;
@@ -975,6 +989,12 @@ function renderOverview(){
 
   }else{
     const ranked = totalsByCandidate(rows);
+    const isStorkredsOrKreds = !!state.storkreds;
+    const totalPers = isStorkredsOrKreds ? totalPersonalVotes(rows) : 0;
+    const scopeLabel =
+      state.kreds && state.kreds !== KREDS_ALL_VALUE
+        ? "i kredsen"
+        : "i storkredsen";
 
     let list;
     if(state.topListMode==="top10"){
@@ -993,7 +1013,12 @@ function renderOverview(){
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
       const bd = badge(letter);
-      const meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const share = (isStorkredsOrKreds && totalPers > 0) ? (k.total || 0) / totalPers : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+      const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+      const meta = (isStorkredsOrKreds && shareLabel)
+        ? `${base} · ${shareLabel} af personlige stemmer ${scopeLabel}`
+        : base;
       return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at ${state.storkreds ? 'tilføje til sammenligning' : 'se i storkreds'}">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -1104,7 +1129,17 @@ function renderPartyDetail(parti){
   if(!parti){ header.textContent="Vælg et parti i drop-down menuen."; return; }
   header.textContent=parti;
 
-  const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
+  const stats = getPartyStats();
+  const partistat = stats.find(x=>x.parti===parti);
+  const kandidaterAll = partistat?.kandidater || [];
+  const rows = getActiveRows();
+  const isStorkredsOrKreds = !!state.storkreds;
+  const totalPers = isStorkredsOrKreds ? totalPersonalVotes(rows) : 0;
+  const scopeLabel =
+    state.kreds && state.kreds !== KREDS_ALL_VALUE
+      ? "i kredsen"
+      : (state.selectedKredse && state.selectedKredse.size>0 ? "i de valgte kredse" : "i storkredsen");
+
   const sorted = kandidaterAll.slice().sort(state.candidateSortMode==='alpha' ? sortKandidaterAlpha : sortKandidaterVotes);
 
   const mid = Math.ceil(sorted.length/2);
@@ -1125,7 +1160,17 @@ function renderPartyDetail(parti){
 
   function card(k){
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
+    const share = (isStorkredsOrKreds && !listestemmer && totalPers > 0) ? (k.total || 0) / totalPers : null;
+    const shareLabel = share !== null ? fmtPct(share) : null;
+
+    const subtitleBase = listestemmer
+      ? `${fmt(k.total)} listestemmer`
+      : `${fmt(k.total)} stemmer i alt`;
+
+    const subtitle = (!listestemmer && shareLabel)
+      ? `${subtitleBase} · ${shareLabel} af personlige stemmer ${scopeLabel}`
+      : subtitleBase;
+
     const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
     const div=document.createElement("div");
     div.className="rounded-xl border px-3 py-2";
@@ -1180,14 +1225,45 @@ function computeTotalsByCandidateScoped(){
   return totals;
 }
 
+/* NYT: total personlige stemmer i “aktuel sammenlignings-scope” */
+function computeTotalPersonalVotesScoped(){
+  if(!state.storkreds) return 0;
+  const rows = getActiveRows();
+  const allowedStk = getAllowedStorkredseForSelection();
+  let sum = 0;
+  for(const r of rows){
+    if(allowedStk && !allowedStk.has(r.storkreds)) continue;
+    if(!isListestemmer(r.kandidat_navn)){
+      sum += r.stemmer || 0;
+    }
+  }
+  return sum;
+}
+
 function renderSelected(){
   const root=el("selectedList"), totals=computeTotalsByCandidateScoped(), sel=getSelectedOrdered();
+  const totalScopedPers = computeTotalPersonalVotesScoped();
+  const scopeLabel =
+    state.kreds && state.kreds !== KREDS_ALL_VALUE
+      ? "i kredsen"
+      : (state.selectedKredse && state.selectedKredse.size>0 ? "i de valgte kredse" : "i storkredsen");
+
   function letterForParti(parti){ const stat=getPartyStats().find(s=>s.parti===parti); return stat?.letter||null; }
   root.innerHTML = sel.map(k=>{
     const letter=letterForParti(k.parti), bd=badge(letter);
     const total = totals.get(k.kandidat_id)||0;
     const listestemmer = isListestemmer(k.kandidat_navn);
-    const totalTekst = listestemmer ? `${fmt(total)} ${total===1 ? 'listestemme' : 'listestemmer'}` : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+    const share = (!listestemmer && totalScopedPers > 0) ? total / totalScopedPers : null;
+    const shareLabel = share !== null ? fmtPct(share) : null;
+
+    const baseMain = listestemmer
+      ? `${fmt(total)} listestemmer i alt`
+      : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+
+    const totalTekst = (!listestemmer && shareLabel)
+      ? `${baseMain} (${shareLabel} af personlige stemmer ${scopeLabel})`
+      : baseMain;
+
     return `<div class="rounded-xl border p-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="vb-badge" style="${bd.style}">${bd.text}</span>
@@ -1195,8 +1271,10 @@ function renderSelected(){
           ${escapeHtml(k.kandidat_navn)} <span class="text-gray-500">(${escapeHtml(k.parti)})</span>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="tabular-nums font-medium">${totalTekst}</div>
+      <div class="flex items-center gap-3 text-right">
+        <div class="tabular-nums text-sm">
+          <div class="font-medium">${totalTekst}</div>
+        </div>
         <button class="vb-btn" onclick="removeCandidate('${k.kandidat_id}')">Fjern</button>
       </div>
     </div>`;
@@ -1263,10 +1341,24 @@ function renderPsTable(psList, sel){
   }
   tbody.innerHTML = rowsHtml.join("");
   const totals=computeTotalsByCandidateScoped();
+  const totalScopedPers = computeTotalPersonalVotesScoped();
+  const scopeLabel =
+    state.kreds && state.kreds !== KREDS_ALL_VALUE
+      ? "i kredsen"
+      : (state.selectedKredse && state.selectedKredse.size>0 ? "i de valgte kredse" : "i storkredsen");
+
   tfoot.innerHTML=`<tr class="border-t">
     <th class="py-2 pr-3 text-left">Samlet</th>
     <th class="py-2 pr-3 text-left text-gray-500">(${fmt(filteredPs.length)} rækker)</th>
-    ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}
+    ${sel.map(s=>{
+      const total = totals.get(s.kandidat_id)||0;
+      const share = totalScopedPers > 0 ? total / totalScopedPers : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+      return `<td class="py-2 pr-3 tabular-nums font-medium">
+        ${fmt(total)}
+        ${shareLabel ? `<div class="text-xs text-gray-500">(${shareLabel} af personlige stemmer ${scopeLabel})</div>` : ""}
+      </td>`;
+    }).join("")}
   </tr>`;
 }
 
