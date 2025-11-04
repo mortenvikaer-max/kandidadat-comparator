@@ -928,10 +928,10 @@ function renderOverview(){
   const infoBox = document.getElementById('percentInfoOverview');
   if (infoBox) {
     if (state.overviewMode === "cand" && !isDK) {
-      infoBox.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer (personlige stemmer + listestemmer) i den valgte storkreds eller kreds.";
+      infoBox.textContent = "Procenttallet viser en kandidats samlede andel af alle gyldige stemmer i det valgte område.";
       infoBox.classList.remove('hidden');
     } else if (state.overviewMode === "party") {
-      infoBox.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (Danmark, storkreds eller kreds).";
+      infoBox.textContent = "Procenttallet viser partiets samlede andel af alle gyldige stemmer i det valgte område.";
       infoBox.classList.remove('hidden');
     } else {
       infoBox.classList.add('hidden');
