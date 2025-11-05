@@ -742,12 +742,20 @@
     const rows = parseCsvTextToRows(text);
 
     for (const r of rows) {
-      if (!r.kommune) r.kommune = k;
-      if (!r.region)  r.region  = regName;
-      if (!r.valgsted_id) {
-        const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
-        r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
-      }
+  if (!r.kommune) r.kommune = k;
+  if (!r.region)  r.region  = regName;
+
+  // --- SPECIALCASE: Lokallisten per kommune ---
+  const pLower = canon(r.parti).toLowerCase();
+  if (pLower === "lokallisten" && r.kommune) {
+    r.parti = `Lokallisten (${r.kommune})`;
+  }
+  // -------------------------------------------
+
+  if (!r.valgsted_id) {
+    const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
+    r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
+  }
       r.uid = makeUid(r);
     }
 
