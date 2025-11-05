@@ -1032,21 +1032,24 @@
 
   /* Ny detectPartyLetter: kun de store partier får bogstav/farve, resten er grå */
   function detectPartyLetter(rowsForParti){
-    if(!rowsForParti || !rowsForParti.length) return null;
-    const name = (rowsForParti[0].parti || "").toLowerCase();
+  if(!rowsForParti || !rowsForParti.length) return null;
+  const name = (rowsForParti[0].parti || "").toLowerCase();
 
-    if (name.includes("socialdemokratiet")) return "A";
-    if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
-    if (name.includes("radikale venstre")) return "B";
-    if (name.includes("det konservative folkeparti") || name.includes("konservative")) return "C";
-    if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti") || name.includes("socialistisk folkeparti")) return "F";
-    if (name.includes("enhedslisten")) return "Ø";
-    if (name.includes("liberal alliance")) return "I";
-    if (name.includes("kristendemokraterne")) return "K";
-    if (name.includes("dansk folkeparti")) return "O";
+  // Åbenhedslisten skal *ikke* have partibogstav
+  if (name.includes("åbenhedslisten")) return null;
 
-    return null; // alle andre → grå cirkel
-  }
+  if (name.includes("socialdemokratiet")) return "A";
+  if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
+  if (name.includes("radikale venstre")) return "B";
+  if (name.includes("det konservative folkeparti") || name.includes("konservative")) return "C";
+  if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti") || name.includes("socialistisk folkeparti")) return "F";
+  if (name.includes("enhedslisten")) return "Ø";
+  if (name.includes("liberal alliance")) return "I";
+  if (name.includes("kristendemokraterne")) return "K";
+  if (name.includes("dansk folkeparti")) return "O";
+
+  return null; // alle andre → grå cirkel
+}
 
   function getPartyStats(){
     const byParti=new Map();
