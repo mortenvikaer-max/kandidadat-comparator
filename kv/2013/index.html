@@ -275,6 +275,14 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
+  /* Lokale lister, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
+  const LOCAL_MULTI_COMMUNE_PARTIES = [
+    "lokallisten",
+    "fælleslisten",
+    "borgerlisten",
+    "beboerlisten"
+  ];
+
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
@@ -371,7 +379,7 @@
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
     const region = canon(r.region || "");
-    const kommune = canon(r.kommune || "");
+    the kommune = canon(r.kommune || "");
     const parti = canon(r.parti || "");
     const kid = canon(r.kandidat_id || "");
     return `${region}|||${kommune}|||${parti}|||${kid}`;
@@ -749,6 +757,14 @@
     for (const r of rows) {
       if (!r.kommune) r.kommune = k;
       if (!r.region)  r.region  = regName;
+
+      // Lokale lister: gør dem unikke pr. kommune
+      const pLower = canon(r.parti).toLowerCase();
+      if (LOCAL_MULTI_COMMUNE_PARTIES.includes(pLower) && r.kommune) {
+        const baseName = canon(r.parti); // bevar original stavning
+        r.parti = `${baseName} (${r.kommune})`;
+      }
+
       if (!r.valgsted_id) {
         const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
         r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
@@ -1013,11 +1029,22 @@
     }
   }
 
+  /* Ny detectPartyLetter: kun de store partier får bogstav/farve, resten er grå */
   function detectPartyLetter(rowsForParti){
-    for(const r of rowsForParti){
-      const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
-      const L=m?.[1]; if(L && PARTY_COLORS[L]) return L;
-    } return null;
+    if(!rowsForParti || !rowsForParti.length) return null;
+    const name = (rowsForParti[0].parti || "").toLowerCase();
+
+    if (name.includes("socialdemokratiet")) return "A";
+    if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
+    if (name.includes("radikale venstre")) return "B";
+    if (name.includes("det konservative folkeparti") || name.includes("konservative")) return "C";
+    if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti") || name.includes("socialistisk folkeparti")) return "F";
+    if (name.includes("enhedslisten")) return "Ø";
+    if (name.includes("liberal alliance")) return "I";
+    if (name.includes("kristendemokraterne")) return "K";
+    if (name.includes("dansk folkeparti")) return "O";
+
+    return null; // alle andre → grå cirkel
   }
 
   function getPartyStats(){
