@@ -270,6 +270,13 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
+  /* Partinavne, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
+  const LOCAL_MULTI_COMMUNE_PARTIES = [
+    "lokallisten",
+    "fælleslisten",
+    "borgerlisten"
+  ];
+
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
 
@@ -366,7 +373,7 @@
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
     const region = canon(r.region || "");
-       const kommune = canon(r.kommune || "");
+    const kommune = canon(r.kommune || "");
     const parti = canon(r.parti || "");
     const kid = canon(r.kandidat_id || "");
     return `${region}|||${kommune}|||${parti}|||${kid}`;
@@ -742,20 +749,21 @@
     const rows = parseCsvTextToRows(text);
 
     for (const r of rows) {
-  if (!r.kommune) r.kommune = k;
-  if (!r.region)  r.region  = regName;
+      if (!r.kommune) r.kommune = k;
+      if (!r.region)  r.region  = regName;
 
-  // --- SPECIALCASE: Lokallisten per kommune ---
-  const pLower = canon(r.parti).toLowerCase();
-  if (pLower === "lokallisten" && r.kommune) {
-    r.parti = `Lokallisten (${r.kommune})`;
-  }
-  // -------------------------------------------
+      // --- SPECIALCASE: Lokallisten/Fælleslisten/Borgerlisten pr. kommune ---
+      const pLower = canon(r.parti).toLowerCase();
+      if (LOCAL_MULTI_COMMUNE_PARTIES.includes(pLower) && r.kommune) {
+        const baseName = canon(r.parti); // bevar original stavning
+        r.parti = `${baseName} (${r.kommune})`;
+      }
+      // -----------------------------------------------------------------------
 
-  if (!r.valgsted_id) {
-    const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
-    r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
-  }
+      if (!r.valgsted_id) {
+        const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
+        r.valgsted_id = `${base}__${shortHash(r.valgsted_navn)}`;
+      }
       r.uid = makeUid(r);
     }
 
@@ -993,8 +1001,7 @@
         state.pendingCandidateIds=[uid];
         persistUrl(true);
         const u=new URL(location.href);
-        if(nextCand.length) u.searchParams.set("cand", nextCand.join(","));
-        else u.searchParams.delete("cand");
+        if(nextCand.length) u.searchParams.set("cand", nextCand.join(",")); else u.searchParams.delete("cand");
         history.replaceState({}, "", u);
         loadKommuneData(target.kommune);
         return;
