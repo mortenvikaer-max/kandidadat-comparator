@@ -121,7 +121,7 @@
     <p class="text-sm text-gray-600">Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne. Nedenfor vises Top 10 kandidater for det valgte område.</p>
   </section>
 
-  <!-- TOP 10/50 – opdateret til 2021-design med kandidat/parti-toggle + procentlogik -->
+  <!-- TOP 10/50 – kandidat/parti-toggle -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
       <div>
@@ -210,7 +210,7 @@
 </main>
 
 <script>
-  /* ===== DATA-STI (KV2017) – UÆNDRET ===== */
+  /* ===== DATA-STI (KV2017) ===== */
   const BASE_PATH = '/data/kv/2017/';
 
   /* Regioner & kommuner (som 2021) */
@@ -224,6 +224,21 @@
 
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
+
+  /* Kun disse partier må få farvet bogstav */
+  const LETTER_PARTIES = new Set([
+    "Socialdemokratiet",
+    "Venstre, Danmarks Liberale Parti",
+    "Det Konservative Folkeparti",
+    "Dansk Folkeparti",
+    "Enhedslisten - De Rød-Grønne",
+    "SF - Socialistisk Folkeparti",
+    "Radikale Venstre",
+    "Alternativet",
+    "Liberal Alliance",
+    "Nye Borgerlige",
+    "Kristendemokraterne"
+  ]);
 
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
@@ -510,7 +525,7 @@
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
 
-  /* ===== Data: fetch & parse (2017-logik bevaret) ===== */
+  /* ===== Data: fetch & parse ===== */
   async function fetchText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
 
   function pick(obj, ...cands) {
@@ -522,13 +537,26 @@
     return "";
   }
 
+  /* Normaliser partinavne:
+     - "Venstre"  -> "Venstre, Danmarks Liberale Parti"
+     - SF-varianter / F-liste -> "SF - Socialistisk Folkeparti"
+  */
   function normalizePartyName(rawName, parti_bogstav) {
-    const n = canon(rawName);
+    const n0 = canon(rawName);
     const b = canon(parti_bogstav).toUpperCase();
-    if (b === "F" || n.includes("Socialistisk Folkeparti")) {
+    const lower = n0.toLowerCase();
+
+    // Venstre
+    if (lower === "venstre") {
+      return "Venstre, Danmarks Liberale Parti";
+    }
+
+    // SF
+    if (b === "F" || /socialistisk folkeparti/i.test(n0)) {
       return "SF - Socialistisk Folkeparti";
     }
-    return n;
+
+    return n0;
   }
 
   function mapRowCommon(r){
@@ -805,11 +833,17 @@
     }
   }
 
+  /* Returner partibogstav KUN hvis partiet er i LETTER_PARTIES, ellers null (grå cirkel) */
   function detectPartyLetter(rowsForParti){
+    if(!rowsForParti || !rowsForParti.length) return null;
+    const partyName = rowsForParti[0].parti;
+    if(!LETTER_PARTIES.has(partyName)) return null;
+
     for(const r of rowsForParti){
       const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
       const L=m?.[1]; if(L && PARTY_COLORS[L]) return L;
-    } return null;
+    }
+    return null;
   }
 
   function getPartyStats(){
@@ -973,7 +1007,7 @@
     </tr>`;
   }
 
-  /* ===== BRODKRUMMER – som 2021, men med 2017-data ===== */
+  /* ===== BRODKRUMMER ===== */
   function renderContextBar(){
     const bar = document.getElementById('contextBar');
     const parts = [];
