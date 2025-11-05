@@ -870,7 +870,7 @@ function renderOverview(){
       let meta;
       if (totalAll > 0) {
         const pct = (p.total / totalAll) * 100;
-        const pctStr = pct.toFixed(1).replace('.', ',');
+        const pctStr = pct.toFixed(2).replace('.', ',');
         meta = `${fmt(p.total)} stemmer i alt (personlige + liste) · ${pctStr} %`;
       } else {
         meta = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
@@ -944,7 +944,7 @@ function renderOverview(){
       let meta;
       if (showPct && totalVotesScope > 0) {
         const pct = (k.total / totalVotesScope) * 100;
-        const pctStr = pct.toFixed(1).replace('.', ',');
+        const pctStr = pct.toFixed(2).replace('.', ',');
         meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer · ${pctStr} %`;
       } else {
         meta = `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
