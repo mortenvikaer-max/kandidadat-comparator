@@ -285,10 +285,12 @@
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  // Normaliser partinavne, så Venstre-varianter samles
+  // Normaliser partinavne, så varianter samles under det rigtige navn
   function normalizePartyName(p){
     const t = canon(p);
     const lower = t.toLowerCase();
+
+    // Venstre, Danmarks Liberale Parti
     if(
       lower === "venstre, danmarks liberale parti" ||
       lower === "venstre - danmarks liberale parti" ||
@@ -296,6 +298,39 @@
     ){
       return "Venstre, Danmarks Liberale Parti";
     }
+
+    // SF - Socialistisk Folkeparti
+    if(
+      lower === "sf - socialistisk folkeparti" ||
+      lower === "sf - socialistiske folkeparti" ||
+      lower === "sf-socialistisk folkeparti" ||
+      lower === "sf- socialistisk folkeparti"
+    ){
+      return "SF - Socialistisk Folkeparti";
+    }
+
+    // Det Konservative Folkeparti
+    if(
+      lower === "det konservative folkeparti" ||
+      lower === "det konservative folkeparti." // just in case of trailing punctuation
+    ){
+      return "Det Konservative Folkeparti";
+    }
+
+    // Det Radikale Venstre
+    if(
+      lower === "det radikale venstre - gribskov ra"
+    ){
+      return "Det Radikale Venstre";
+    }
+
+    // Enhedslisten - De Rød-Grønne
+    if(
+      lower === "enhedslisten, de rød-grønne"
+    ){
+      return "Enhedslisten - De Rød-Grønne";
+    }
+
     return t;
   }
 
@@ -330,7 +365,7 @@
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
     const region = canon(r.region || "");
-    const kommune = canon(r.kommune || "");
+       const kommune = canon(r.kommune || "");
     const parti = canon(r.parti || "");
     const kid = canon(r.kandidat_id || "");
     return `${region}|||${kommune}|||${parti}|||${kid}`;
