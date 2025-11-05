@@ -297,7 +297,15 @@
     "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
   };
 
-  /* Partier der ikke må have partibogstav/badge-bogstav */
+  /* Lokale lister der findes i flere kommuner – skal have kommunenavn på */
+  const LOCAL_MULTI_COMMUNE_PARTIES = new Set([
+    "Lokallisten",
+    "Fælleslisten",
+    "Borgerlisten",
+    "Beboerlisten"
+  ]);
+
+  /* Partier der ikke må have partibogstav/badge-bogstav (brugt sammen med LETTER_PARTIES) */
   const NO_LETTER_PARTIES = new Set([
     "Frihedslisten",
     "Bornholmerlisten",
@@ -313,6 +321,21 @@
     "Frigængerne",
     "Partiet Samfundssind",
     "Sten i Skoen"
+  ]);
+
+  /* Kun disse nationale partier må have farvet partibogstav */
+  const LETTER_PARTIES = new Set([
+    "Socialdemokratiet",
+    "Venstre, Danmarks Liberale Parti",
+    "Det Konservative Folkeparti",
+    "SF - Socialistisk Folkeparti",
+    "Enhedslisten - De Rød-Grønne",
+    "Radikale Venstre",
+    "Dansk Folkeparti",
+    "Nye Borgerlige",
+    "Liberal Alliance",
+    "Kristendemokraterne",
+    "Alternativet"
   ]);
 
   /* State & helpers */
@@ -363,8 +386,10 @@
 
   function detectPartyLetter(rowsForParti){
     if(!rowsForParti || !rowsForParti.length) return null;
-    // Partier i NO_LETTER_PARTIES skal aldrig have bogstav
-    if(NO_LETTER_PARTIES.has(rowsForParti[0].parti)) return null;
+    const partyName = rowsForParti[0].parti;
+    // Kun de definerede nationale partier får bogstav
+    if(!LETTER_PARTIES.has(partyName)) return null;
+
     for(const r of rowsForParti){
       const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
       const L=m?.[1];
@@ -775,7 +800,12 @@
       // Fix partinavn hvis nødvendigt
       let partiRaw = canon(r.parti);
       const fixedName = PARTY_NAME_FIX[partiRaw] || partiRaw;
-      const parti = fixedName;
+      let parti = fixedName;
+
+      // Lokale lister der går igen i flere kommuner → skiln på kommunenavn
+      if(LOCAL_MULTI_COMMUNE_PARTIES.has(parti) && kommune){
+        parti = `${parti} (${kommune})`;
+      }
 
       const noLetter = NO_LETTER_PARTIES.has(parti);
       const parti_bogstav = noLetter ? "" : canon(r.parti_bogstav||r.listebogstav||"");
