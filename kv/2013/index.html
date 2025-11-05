@@ -378,12 +378,13 @@
 
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
-    const region = canon(r.region || "");
-    the kommune = canon(r.kommune || "");
-    const parti = canon(r.parti || "");
-    const kid = canon(r.kandidat_id || "");
-    return `${region}|||${kommune}|||${parti}|||${kid}`;
-  };
+  const region  = canon(r.region || "");
+  const kommune = canon(r.kommune || "");
+  const parti   = canon(r.parti || "");
+  const kid     = canon(r.kandidat_id || "");
+  return `${region}|||${kommune}|||${parti}|||${kid}`;
+};
+
 
   /* ===== App-state ===== */
   const state = {
