@@ -1025,12 +1025,49 @@
     }
   }
 
-  function detectPartyLetter(rowsForParti){
-    for(const r of rowsForParti){
-      const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
-      const L=m?.[1]; if(L && PARTY_COLORS[L]) return L;
-    } return null;
-  }
+function detectPartyLetter(rowsForParti){
+  if (!rowsForParti || !rowsForParti.length) return null;
+
+  const name = (rowsForParti[0].parti || "").toLowerCase();
+
+  // Socialdemokratiet
+  if (name.includes("socialdemokratiet")) return "A";
+
+  // Venstre, Danmarks Liberale Parti
+  if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
+
+  // SF - Socialistisk Folkeparti
+  if (
+    name.startsWith("sf ") ||
+    name.includes("sf - socialistisk folkeparti") ||
+    name.includes("sf-socialistisk folkeparti") ||
+    name.includes("sf- socialistisk folkeparti")
+  ) return "F";
+
+  // Det Konservative Folkeparti / Konservative
+  if (name.includes("konservative")) return "C";
+
+  // Dansk Folkeparti
+  if (name.includes("dansk folkeparti")) return "O";
+
+  // Radikale Venstre
+  if (name.includes("radikale venstre")) return "B";
+
+  // Enhedslisten
+  if (name.includes("enhedslisten")) return "Ø";
+
+  // Liberal Alliance
+  if (name.includes("liberal alliance")) return "I";
+
+  // Kristendemokraterne
+  if (name.includes("kristendemokraterne")) return "K";
+
+  // Alternativet
+  if (name.includes("alternativet")) return "Å";
+
+  // Alle andre partier → grå cirkel uden bogstav
+  return null;
+}
 
   function getPartyStats(){
     const byParti=new Map();
