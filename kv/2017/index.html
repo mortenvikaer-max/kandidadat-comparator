@@ -243,7 +243,7 @@
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-  const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(v);
+  const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
