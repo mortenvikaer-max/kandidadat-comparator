@@ -324,7 +324,7 @@ const fmt = n => new Intl.NumberFormat("da-DK").format(n);
 const fmtPct = (part, total) => {
   if (!total) return "0,0 %";
   const pct = (part * 100) / total;
-  return pct.toFixed(1).replace(".", ",") + " %";
+  return pct.toFixed(2).replace(".", ",") + " %";
 };
 const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
