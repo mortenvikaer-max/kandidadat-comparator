@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Valgbar – Folkeafstemningen om Danmarks tilslutning til den fælles europæiske patentdomstol, 2014</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{ --vb-navy:#234a5a; --vb-navy-2:#1b3d4d; }
+.vb-card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+.vb-btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
+.vb-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+.vb-hero{ background:linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%); color:#fff; }
+
+/* Loader */
+.loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
+.progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
+.progress::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, rgba(0,0,0,0) 0%, #c7d2fe 50%, rgba(0,0,0,0) 100%);
+  animation:loadbar 1.2s infinite;
+}
+@keyframes loadbar{
+  0%{ transform:translateX(-100%); }
+  50%{ transform:translateX(0%); }
+  100%{ transform:translateX(100%); }
+}
+
+/* Context bar */
+.context-bar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.5rem;
+  padding:.6rem .8rem;
+  background:#f9fafb;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  font-size:.9rem;
+}
+.crumb{ color:#374151; text-decoration:underline; cursor:pointer; }
+.crumb-strong{
+  background:#111827;
+  color:#fff;
+  border-radius:9999px;
+  padding:.15rem .6rem;
+  font-weight:600;
+}
+.sep{ color:#9ca3af; }
+
+/* Resultat-kort (Ja/Nej) */
+.answer-card{
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+  padding:1.1rem 1.2rem;
+  background:#f9fafb;
+}
+.answer-card-sm{
+  padding:.65rem .75rem;
+  border-radius:12px;
+}
+.answer-label{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  font-weight:600;
+}
+.answer-dot{
+  width:10px;
+  height:10px;
+  border-radius:9999px;
+}
+.answer-dot-ja{ background:#16a34a; }
+.answer-dot-nej{ background:#dc2626; }
+.answer-bar-track{
+  margin-top:.6rem;
+  width:100%;
+  height:10px;
+  border-radius:9999px;
+  background:#e5e7eb;
+  overflow:hidden;
+}
+.answer-bar-fill{
+  height:100%;
+  border-radius:9999px;
+}
+.answer-bar-fill-ja{ background:#16a34a; }
+.answer-bar-fill-nej{ background:#dc2626; }
+
+/* Små labels */
+.badge-soft{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.2rem .7rem;
+  border-radius:9999px;
+  font-size:.75rem;
+  background:#111827;
+  color:#fff;
+}
+
+/* Storkreds-kort */
+.storkreds-card{
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  overflow:hidden;
+}
+.storkreds-header{
+  padding:.85rem 1rem;
+  cursor:pointer;
+}
+.storkreds-header:hover{
+  background:#f9fafb;
+}
+.storkreds-title-row{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+}
+.storkreds-name{
+  font-weight:600;
+  font-size:1rem;
+}
+.storkreds-header-grid{
+  margin-top:.6rem;
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr);
+  gap:.5rem;
+}
+@media (min-width:768px){
+  .storkreds-header-grid{
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr);
+  }
+}
+.chevron{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  border-radius:9999px;
+  border:1px solid #e5e7eb;
+  background:#f3f4f6;
+  font-size:12px;
+  flex-shrink:0;
+}
+.chevron span{
+  display:inline-block;
+  transition:transform .15s ease-out;
+}
+.chevron-open span{
+  transform:rotate(90deg);
+}
+
+/* Kreds-/valgsted-tabel */
+.kreds-wrapper{
+  border-top:1px solid #e5e7eb;
+  background:#f9fafb;
+}
+.kreds-table-container{
+  padding:.75rem 1rem 1rem 1rem;
+  overflow-x:auto;
+}
+.kreds-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.85rem;
+  table-layout:fixed;   /* fast kolonnebredde = samme justering for alle rækker */
+}
+.kreds-table thead th{
+  padding:.45rem .4rem;
+  text-align:left;
+  border-bottom:1px solid #e5e7eb;
+  white-space:nowrap;
+}
+.kreds-table thead th.text-right{
+  text-align:right;
+}
+.kreds-table tbody td{
+  padding:.45rem .4rem;
+  vertical-align:middle;
+}
+.kreds-table tbody tr{
+  cursor:pointer;
+}
+.kreds-table tbody tr:hover{
+  background:#f3f4f6;
+}
+.kreds-name{
+  font-weight:500;
+}
+
+/* Valgsted-rækker – samme kolonner, bare mindre tekst og indryk */
+.kreds-table tbody tr.valgsted-row{
+  cursor:default;
+  background:#ffffff;
+}
+.kreds-table tbody tr.valgsted-row:hover{
+  background:#ffffff;
+}
+.kreds-table tbody tr.valgsted-row td{
+  border-top:1px solid #f3f4f6;
+  font-size:.78rem;
+}
+.valgsted-label{
+  padding-left:1.25rem; /* lidt indryk, men ingen prik mere */
+}
+
+/* NA-celle */
+.cell-na{ color:#9ca3af; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<header class="vb-hero">
+  <div class="mx-auto max-w-6xl px-4 py-6 flex items-center gap-4">
+    <a href="../../" class="flex items-center gap-3">
+      <img src="../../Valgbar-transparent3.png" alt="Valgbar" class="h-32 w-auto" />
+    </a>
+  </div>
+
+  <div class="mx-auto max-w-6xl px-4 pb-1">
+    <div id="error" class="mt-2 text-sm text-red-200"></div>
+  </div>
+
+  <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li>
+          <span aria-current="page" class="text-white">
+            Folkeafstemningen om Danmarks tilslutning til den fælles europæiske patentdomstol, 2014
+          </span>
+        </li>
+      </ol>
+
+      <!-- Årsvælger (2014 / 2015 / 2022) -->
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="faYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
+        <select id="faYearSelect"
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <option value="../2014/" selected>Folkeafstemning 2014</option>
+          <option value="../2015/">Folkeafstemning 2015</option>
+          <option value="../2022/">Folkeafstemning 2022</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-6xl p-4 space-y-6">
+
+  <div id="contextBar" class="context-bar"></div>
+
+  <!-- Områdevælger -->
+  <section class="vb-card p-4 space-y-3">
+    <h2 class="font-semibold text-lg">Vælg område</h2>
+    <p class="text-sm text-gray-600">
+      Vælg først storkreds – og eventuelt en kreds – for at se Ja/Nej-fordelingen.
+    </p>
+    <div class="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:items-end">
+      <div>
+        <label class="text-sm text-gray-600" for="storkredsSelect">Storkreds</label>
+        <select id="storkredsSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600" for="kredsSelect">Kreds</label>
+        <select id="kredsSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled>
+          <option value="">(Vælg storkreds først)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loader-sektion -->
+  <section id="loaderSection" class="vb-card p-4 hidden">
+    <div class="loader-wrap" aria-live="polite">
+      <div class="progress w-48 rounded-full"></div>
+      <span id="loaderText">Indlæser…</span>
+    </div>
+  </section>
+
+  <!-- Overblik: Ja/Nej -->
+  <section class="vb-card p-4 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-xl font-semibold" id="overviewTitle">Resultat – Hele Danmark</h2>
+        <p class="text-sm text-gray-600" id="overviewSubtitle">
+          Viser fordelingen af gyldige stemmer (Ja/Nej) i det valgte område.
+        </p>
+      </div>
+      <div class="text-right text-sm text-gray-600">
+        <div>I alt: <span id="totalVotesLabel" class="font-semibold">–</span> gyldige stemmer</div>
+        <div class="text-xs" id="scopeLabel">(Danmark)</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- JA -->
+      <div class="answer-card">
+        <div class="flex items-center justify-between gap-2">
+          <div class="answer-label">
+            <span class="answer-dot answer-dot-ja"></span>
+            <span>Ja</span>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-semibold tabular-nums" id="jaPct">–</div>
+            <div class="text-sm text-gray-600 tabular-nums">
+              Ja (antal): <span id="jaCount">–</span>
+            </div>
+          </div>
+        </div>
+        <div class="answer-bar-track" aria-hidden="true">
+          <div id="jaBar" class="answer-bar-fill answer-bar-fill-ja" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- NEJ -->
+      <div class="answer-card">
+        <div class="flex items-center justify-between gap-2">
+          <div class="answer-label">
+            <span class="answer-dot answer-dot-nej"></span>
+            <span>Nej</span>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-semibold tabular-nums" id="nejPct">–</div>
+            <div class="text-sm text-gray-600 tabular-nums">
+              Nej (antal): <span id="nejCount">–</span>
+            </div>
+          </div>
+        </div>
+        <div class="answer-bar-track" aria-hidden="true">
+          <div id="nejBar" class="answer-bar-fill answer-bar-fill-nej" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500">
+      Procenttallene viser fordelingen mellem Ja og Nej blandt de gyldige stemmer i det valgte område.
+    </div>
+  </section>
+
+  <!-- Hierarkisk resultat: Storkreds → Kredse → Valgsteder -->
+  <section class="vb-card p-4 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-lg md:text-xl font-semibold">Resultat pr. storkreds</h2>
+        <p class="text-sm text-gray-600">
+          Klik på en storkreds for at se kredsene. Klik derefter på en kreds for at folde valgsteder ud.
+        </p>
+      </div>
+      <div class="badge-soft">
+        <span id="hierarchyScopeLabel">Danmark</span>
+      </div>
+    </div>
+
+    <div id="hierarchyContainer" class="space-y-3"></div>
+  </section>
+</main>
+
+<footer class="mt-10 border-t bg-gray-100">
+  <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
+              flex flex-col md:flex-row items-center justify-between
+              gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+
+    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
+      hej@valgbar.dk
+    </a>
+
+    <p class="text-center">
+      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
+    </p>
+
+    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
+      Om Valgbar
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ====== DATA-STI (Folkeafstemning 2014) ====== */
+const BASE_PATH = '/data/fa/2014/';
+const KREDS_ALL_VALUE = "__ALL__";
+const DK_VALUE = "__DK__";
+
+/* Storkredse */
+const STORKREDSE = [
+  "Bornholms Storkreds","Fyns Storkreds","Københavns Omegns Storkreds","Københavns Storkreds",
+  "Nordjyllands Storkreds","Nordsjællands Storkreds","Sjællands Storkreds","Sydjyllands Storkreds",
+  "Vestjyllands Storkreds","Østjyllands Storkreds"
+];
+
+/* Kredse – visningsnavne */
+const KREDS_BY_STORKREDS = {
+  "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
+  "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
+  "Københavns Omegns Storkreds": [
+    "Ballerupkredsen","Brøndbykredsen","Gentoftekredsen","Gladsaxekredsen",
+    "Hvidovrekredsen","Lyngbykredsen","Rødovrekredsen","Taastrupkredsen"
+  ],
+  "Københavns Storkreds": [ "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre Bykredsen","Nørrebrokredsen","Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen","Vesterbrokredsen","Østerbrokredsen" ],
+  "Nordjyllands Storkreds": [ "Brønderslevkredsen","Frederikshavnkredsen","Himmerlandkredsen","Hjørringkredsen","Mariagerfjordkredsen","Thistedkredsen","Aalborg Nordkredsen","Aalborg Vestkredsen","Aalborg Østkredsen" ],
+  "Nordsjællands Storkreds": [ "Egedalkredsen","Fredensborgkredsen","Frederikssundkredsen","Helsingørkredsen","Hillerødkredsen","Rudersdalkredsen" ],
+  "Sjællands Storkreds": [ "Faxekredsen","Grevekredsen","Guldborgsundkredsen","Holbækkredsen","Kalundborgkredsen","Køgekredsen","Lollandkredsen","Næstvedkredsen","Ringstedkredsen","Roskildekredsen","Slagelsekredsen","Vordingborgkredsen" ],
+  "Sydjyllands Storkreds": [ "Esbjerg Bykredsen","Esbjerg Omegnskredsen","Fredericiakredsen","Haderslevkredsen","Kolding Nordkredsen","Kolding Sydkredsen","Sønderborgkredsen","Tønderkredsen","Vardekredsen","Vejenkredsen","Vejle Nordkredsen","Vejle Sydkredsen","Aabenraakredsen" ],
+  "Vestjyllands Storkreds": [ "Herning Nordkredsen","Herning Sydkredsen","Holstebrokredsen","Ikastkredsen","Ringkøbingkredsen","Silkeborg Nordkredsen","Silkeborg Sydkredsen","Skivekredsen","Struerkredsen","Viborg Vestkredsen","Viborg Østkredsen" ],
+  "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
+};
+
+const el      = id => document.getElementById(id);
+const canon   = s => (s || "").toString().trim();
+const fmt     = n => new Intl.NumberFormat("da-DK").format(n);
+const fmtPct  = v => new Intl.NumberFormat("da-DK", {
+  style:"percent",
+  minimumFractionDigits:1,
+  maximumFractionDigits:1
+}).format(v);
+const escapeHtml = s => (s||"").replace(/[&<>"]/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;'}[c] || c
+)).replace(/"/g,'&quot;');
+
+const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
+
+/* Konverterer decimal-komma til tal */
+function toNumberComma(str){
+  if(str == null) return null;
+  const t = str.toString().trim().replace('.','').replace(',','.');
+  const v = Number(t);
+  return isNaN(v) ? null : v;
+}
+
+/* Storkreds -> filnavnsslug (Københavns Omegns Storkreds -> Københavns_Omegns_Storkreds) */
+function storkredsSlug(name){
+  return (name || "").toString().replace(/\s+/g,"_");
+}
+
+/* Global state */
+const state = {
+  storkreds: "",
+  kreds: "",
+  csvCache: new Map(),         // key: storkreds-navn, value: rows[]
+  openStorkredse: new Set(),   // storkreds-navne
+  openKredse: new Set()        // key: "storkreds||kreds"
+};
+
+/* Loader-hjælpere */
+function showLoading(msg = "Indlæser…"){
+  const sec = el("loaderSection");
+  if(sec) sec.classList.remove("hidden");
+  const txt = el("loaderText");
+  if(txt) txt.textContent = msg;
+  el("storkredsSelect")?.setAttribute("disabled","");
+  el("kredsSelect")?.setAttribute("disabled","");
+}
+function hideLoading(){
+  const sec = el("loaderSection");
+  if(sec) sec.classList.add("hidden");
+  el("storkredsSelect")?.removeAttribute("disabled");
+  if(state.storkreds) el("kredsSelect")?.removeAttribute("disabled");
+}
+
+/* CSV-indlæsning pr. storkreds */
+async function ensureStorkredsLoaded(storkredsName){
+  if(state.csvCache.has(storkredsName)) return;
+  const slug = storkredsSlug(storkredsName);
+  const url = `${BASE_PATH}${encodeURIComponent(slug)}.csv`;
+  const res = await fetch(url, { cache:"no-store" });
+  if(!res.ok){
+    throw new Error(`Kunne ikke hente data for ${storkredsName} (${url}).`);
+  }
+  const text = await res.text();
+  const rows = parseCsv(text, storkredsName);
+  state.csvCache.set(storkredsName, rows);
+}
+
+/* Parse CSV -> rows */
+function parseCsv(text, storkredsNavn){
+  const parsed = Papa.parse(text, {
+    header:true,
+    skipEmptyLines:true,
+    delimiter:";",
+    transformHeader:h => canon(h)
+  });
+  return parsed.data.map(r => {
+    const kreds = canon(r["Opstillingskreds"]);
+    const valgstedRaw = r["Afstemningsområde"];
+    const svar = canon(r["Svarmulighed"]);
+    const stemmer = Number(toNumberComma(r["Stemmetal"]) || 0);
+    return {
+      storkreds: storkredsNavn,
+      kreds,
+      valgsted_navn: cleanPollingPlaceName(valgstedRaw),
+      svar,
+      stemmer
+    };
+  }).filter(r => r.svar === "Ja" || r.svar === "Nej");
+}
+
+/* Hent aktive rows for nuværende scope (DK / storkreds / kreds) */
+function getCurrentRows(){
+  if(!state.storkreds){
+    let all = [];
+    for(const rows of state.csvCache.values()){
+      all = all.concat(rows);
+    }
+    return all;
+  }
+  const rowsSk = state.csvCache.get(state.storkreds) || [];
+  if(!state.kreds || state.kreds === KREDS_ALL_VALUE) return rowsSk;
+  return rowsSk.filter(r => r.kreds === state.kreds);
+}
+
+/* Aggreger Ja/Nej for et sæt rows */
+function aggregateYesNo(rows){
+  let ja = 0, nej = 0;
+  for(const r of rows){
+    if(r.svar === "Ja") ja += r.stemmer || 0;
+    else if(r.svar === "Nej") nej += r.stemmer || 0;
+  }
+  const total = ja + nej;
+  const jaPct = total > 0 ? ja / total : null;
+  const nejPct = total > 0 ? nej / total : null;
+  return { ja, nej, total, jaPct, nejPct };
+}
+
+/* Aggreger pr. kreds inden for en storkreds */
+function aggregateByKreds(rows){
+  const m = new Map();
+  for(const r of rows){
+    const k = r.kreds || "(ingen kreds)";
+    if(!m.has(k)) m.set(k, []);
+    m.get(k).push(r);
+  }
+  const out = [];
+  for(const [k, rs] of m.entries()){
+    const agg = aggregateYesNo(rs);
+    out.push({ storkreds: rs[0]?.storkreds || "", kreds:k, ...agg });
+  }
+  out.sort((a,b)=>a.kreds.localeCompare(b.kreds,"da"));
+  return out;
+}
+
+/* Aggreger pr. valgsted inden for en kreds */
+function aggregateByPollingStation(rows){
+  const m = new Map();
+  for(const r of rows){
+    const key = r.valgsted_navn || "";
+    if(!m.has(key)){
+      m.set(key, { valgsted_navn:key, ja:0, nej:0 });
+    }
+    const ps = m.get(key);
+    if(r.svar === "Ja") ps.ja += r.stemmer || 0;
+    else if(r.svar === "Nej") ps.nej += r.stemmer || 0;
+  }
+  const list = Array.from(m.values());
+  list.forEach(ps=>{
+    ps.total = ps.ja + ps.nej;
+    ps.jaPct = ps.total > 0 ? ps.ja / ps.total : null;
+    ps.nejPct = ps.total > 0 ? ps.nej / ps.total : null;
+  });
+  list.sort((a,b)=>a.valgsted_navn.localeCompare(b.valgsted_navn,"da"));
+  return list;
+}
+
+/* Tekst for scope (DK / storkreds / kreds) */
+function getScopeLabel(){
+  if(!state.storkreds) return "Danmark";
+  if(!state.kreds || state.kreds === KREDS_ALL_VALUE) return state.storkreds;
+  return `${state.kreds} (${state.storkreds})`;
+}
+
+/* Render overbliksboksen */
+function renderOverview(){
+  const rows = getCurrentRows();
+  const agg = aggregateYesNo(rows);
+
+  const scopeText = getScopeLabel();
+  el("overviewTitle").textContent = `Resultat – ${scopeText}`;
+  el("scopeLabel").textContent = `(${scopeText})`;
+
+  if(agg.total === 0){
+    el("totalVotesLabel").textContent = "0";
+    el("jaCount").textContent = "0";
+    el("nejCount").textContent = "0";
+    el("jaPct").textContent = "–";
+    el("nejPct").textContent = "–";
+    el("jaBar").style.width = "0%";
+    el("nejBar").style.width = "0%";
+    return;
+  }
+
+  el("totalVotesLabel").textContent = fmt(agg.total);
+  el("jaCount").textContent = fmt(agg.ja);
+  el("nejCount").textContent = fmt(agg.nej);
+
+  el("jaPct").textContent = agg.jaPct != null ? fmtPct(agg.jaPct) : "–";
+  el("nejPct").textContent = agg.nejPct != null ? fmtPct(agg.nejPct) : "–";
+
+  const wJa = agg.jaPct != null ? (agg.jaPct*100).toFixed(1) : "0";
+  const wNej = agg.nejPct != null ? (agg.nejPct*100).toFixed(1) : "0";
+  el("jaBar").style.width = `${wJa}%`;
+  el("nejBar").style.width = `${wNej}%`;
+}
+
+/* Render “Hvor er jeg?” bar */
+function renderContextBar(){
+  const bar = el("contextBar");
+  const parts = [];
+
+  if(!state.storkreds){
+    parts.push(`<span class="crumb-strong">Hele Danmark</span>`);
+  } else {
+    parts.push(`<span class="crumb" data-nav="dk">Hele Danmark</span>`);
+    parts.push(`<span class="sep">/</span>`);
+
+    const isStorkredsAll = !state.kreds || state.kreds === KREDS_ALL_VALUE;
+    if(isStorkredsAll){
+      parts.push(`<span class="crumb-strong">${escapeHtml(state.storkreds)}</span>`);
+    }else{
+      parts.push(`<span class="crumb" data-nav="storkreds">${escapeHtml(state.storkreds)}</span>`);
+      parts.push(`<span class="sep">/</span>`);
+      parts.push(`<span class="crumb-strong">${escapeHtml(state.kreds)}</span>`);
+    }
+  }
+
+  bar.innerHTML = parts.join("");
+
+  const dk = bar.querySelector('[data-nav="dk"]');
+  dk?.addEventListener('click', async ()=>{
+    el("storkredsSelect").value = DK_VALUE;
+    state.storkreds = "";
+    state.kreds = "";
+    const u = new URL(location.href);
+    u.searchParams.delete("storkreds");
+    u.searchParams.delete("kreds");
+    history.replaceState({}, "", u);
+    await loadDKScope();
+  });
+
+  const sk = bar.querySelector('[data-nav="storkreds"]');
+  sk?.addEventListener('click', async ()=>{
+    const s = state.storkreds;
+    el("kredsSelect").value = KREDS_ALL_VALUE;
+    state.kreds = KREDS_ALL_VALUE;
+    const u = new URL(location.href);
+    u.searchParams.set("storkreds", s);
+    u.searchParams.set("kreds", KREDS_ALL_VALUE);
+    history.replaceState({}, "", u);
+    await loadStorkredsScope(s);
+  });
+}
+
+/* Hierarki: Storkreds → Kredse → Valgsteder */
+function renderHierarchy(){
+  const container = el("hierarchyContainer");
+  const scopeLabel = getScopeLabel();
+  el("hierarchyScopeLabel").textContent = scopeLabel;
+
+  const storkredseToShow = !state.storkreds ? STORKREDSE : [state.storkreds];
+  let html = "";
+
+  for(const sk of storkredseToShow){
+    const rowsSk = state.csvCache.get(sk) || [];
+    if(!rowsSk.length) continue;
+
+    const aggSk = aggregateYesNo(rowsSk);
+    const isOpenSk = state.openStorkredse.has(sk);
+
+    const jaPctSk = aggSk.jaPct != null ? fmtPct(aggSk.jaPct) : "–";
+    const nejPctSk = aggSk.nejPct != null ? fmtPct(aggSk.nejPct) : "–";
+    const jaWidth = aggSk.jaPct != null ? (aggSk.jaPct*100).toFixed(1) : "0";
+    const nejWidth = aggSk.nejPct != null ? (aggSk.nejPct*100).toFixed(1) : "0";
+
+    html += `
+      <div class="storkreds-card">
+        <div class="storkreds-header" data-role="toggle-storkreds" data-sk="${escapeHtml(sk)}">
+          <div class="storkreds-title-row">
+            <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
+              <span>&rsaquo;</span>
+            </span>
+            <span class="storkreds-name">${escapeHtml(sk)}</span>
+          </div>
+
+          <div class="storkreds-header-grid mt-3">
+            <!-- Ja-boks -->
+            <div class="answer-card answer-card-sm">
+              <div class="flex items-center justify-between gap-2">
+                <div class="answer-label text-sm">
+                  <span class="answer-dot answer-dot-ja"></span>
+                  <span>Ja</span>
+                </div>
+                <div class="text-right">
+                  <div class="font-semibold text-sm md:text-base tabular-nums">${jaPctSk}</div>
+                  <div class="text-[0.7rem] md:text-xs text-gray-600 tabular-nums">
+                    Ja (antal): ${fmt(aggSk.ja)}
+                  </div>
+                </div>
+              </div>
+              <div class="answer-bar-track" aria-hidden="true">
+                <div class="answer-bar-fill answer-bar-fill-ja" style="width:${jaWidth}%"></div>
+              </div>
+            </div>
+
+            <!-- Nej-boks -->
+            <div class="answer-card answer-card-sm">
+              <div class="flex items-center justify-between gap-2">
+                <div class="answer-label text-sm">
+                  <span class="answer-dot answer-dot-nej"></span>
+                  <span>Nej</span>
+                </div>
+                <div class="text-right">
+                  <div class="font-semibold text-sm md:text-base tabular-nums">${nejPctSk}</div>
+                  <div class="text-[0.7rem] md:text-xs text-gray-600 tabular-nums">
+                    Nej (antal): ${fmt(aggSk.nej)}
+                  </div>
+                </div>
+              </div>
+              <div class="answer-bar-track" aria-hidden="true">
+                <div class="answer-bar-fill answer-bar-fill-nej" style="width:${nejWidth}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${isOpenSk ? renderKredsTable(sk, rowsSk) : ""}
+      </div>
+    `;
+  }
+
+  if(!html){
+    html = `<div class="text-sm text-gray-500">Ingen data indlæst endnu.</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Bind events
+  container.querySelectorAll('[data-role="toggle-storkreds"]').forEach(btn=>{
+    const sk = btn.getAttribute('data-sk');
+    btn.addEventListener('click', ()=>{
+      if(state.openStorkredse.has(sk)) state.openStorkredse.delete(sk);
+      else state.openStorkredse.add(sk);
+      renderHierarchy();
+    });
+  });
+
+  container.querySelectorAll('[data-role="toggle-kreds"]').forEach(btn=>{
+    const sk = btn.getAttribute('data-sk');
+    const kreds = btn.getAttribute('data-kreds');
+    const key = `${sk}||${kreds}`;
+    btn.addEventListener('click', ()=>{
+      if(state.openKredse.has(key)) state.openKredse.delete(key);
+      else state.openKredse.add(key);
+      renderHierarchy();
+    });
+  });
+}
+
+/* Kreds- OG valgsted-rækker i én tabel – med fast kolonnebredde via colgroup */
+function renderKredsTable(storkredsName, rowsSk){
+  const kredsAgg = aggregateByKreds(rowsSk);
+  if(!kredsAgg.length){
+    return `<div class="kreds-wrapper"><div class="kreds-table-container text-xs text-gray-500">Ingen kredse fundet.</div></div>`;
+  }
+  let html = `
+    <div class="kreds-wrapper">
+      <div class="kreds-table-container">
+        <table class="kreds-table">
+          <colgroup>
+            <col style="width:38%">
+            <col style="width:12%">
+            <col style="width:12%">
+            <col style="width:18%">
+            <col style="width:18%">
+            <col style="width:10%">
+          </colgroup>
+          <thead>
+            <tr class="text-gray-700">
+              <th>Kreds / valgsted</th>
+              <th class="text-right">Ja %</th>
+              <th class="text-right">Nej %</th>
+              <th class="text-right">Ja (antal)</th>
+              <th class="text-right">Nej (antal)</th>
+              <th class="text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+  for(const k of kredsAgg){
+    const key = `${storkredsName}||${k.kreds}`;
+    const isOpen = state.openKredse.has(key);
+    const jaPct = k.jaPct != null ? fmtPct(k.jaPct) : "–";
+    const nejPct = k.nejPct != null ? fmtPct(k.nejPct) : "–";
+
+    html += `
+      <tr data-role="toggle-kreds"
+          data-sk="${escapeHtml(storkredsName)}"
+          data-kreds="${escapeHtml(k.kreds)}">
+        <td class="kreds-name">${escapeHtml(k.kreds)}</td>
+        <td class="text-right tabular-nums">${jaPct}</td>
+        <td class="text-right tabular-nums">${nejPct}</td>
+        <td class="text-right tabular-nums">${fmt(k.ja)}</td>
+        <td class="text-right tabular-nums">${fmt(k.nej)}</td>
+        <td class="text-right text-[0.7rem] md:text-xs text-gray-500">
+          ${isOpen ? "Skjul valgsteder" : "Vis valgsteder"}
+        </td>
+      </tr>
+    `;
+    if(isOpen){
+      const valgsteder = aggregateByPollingStation(
+        rowsSk.filter(r => r.kreds === k.kreds)
+      );
+      for(const ps of valgsteder){
+        const jaPctPs = ps.jaPct != null ? fmtPct(ps.jaPct) : "–";
+        const nejPctPs = ps.nejPct != null ? fmtPct(ps.nejPct) : "–";
+        html += `
+          <tr class="valgsted-row">
+            <td class="valgsted-label">${escapeHtml(ps.valgsted_navn)}</td>
+            <td class="text-right tabular-nums">${jaPctPs}</td>
+            <td class="text-right tabular-nums">${nejPctPs}</td>
+            <td class="text-right tabular-nums">${fmt(ps.ja)}</td>
+            <td class="text-right tabular-nums">${fmt(ps.nej)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
+    }
+  }
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  return html;
+}
+
+/* Dropdowns */
+function initStorkredsDropdown(){
+  const ssel = el("storkredsSelect");
+  ssel.innerHTML =
+    `<option value="">Vælg storkreds…</option>` +
+    `<option value="${DK_VALUE}">Hele Danmark</option>` +
+    STORKREDSE.map(s=>`<option value="${s}">${s}</option>`).join("");
+
+  ssel.onchange = async ()=>{
+    const v = ssel.value;
+    const ksel = el("kredsSelect");
+    state.kreds = "";
+    const u = new URL(location.href);
+
+    state.openStorkredse.clear();
+    state.openKredse.clear();
+
+    if(v === DK_VALUE || !v){
+      state.storkreds = "";
+      u.searchParams.delete("storkreds");
+      u.searchParams.delete("kreds");
+      history.replaceState({}, "", u);
+
+      ksel.disabled = true;
+      ksel.innerHTML = `<option value="">(Vælg storkreds først)</option>`;
+      await loadDKScope();
+    }else{
+      state.storkreds = v;
+      u.searchParams.set("storkreds", v);
+      u.searchParams.delete("kreds");
+      history.replaceState({}, "", u);
+
+      populateKredse(v);
+      state.openStorkredse.add(v);
+      await loadStorkredsScope(v);
+    }
+  };
+
+  el("kredsSelect").disabled = true;
+}
+
+function populateKredse(storkreds){
+  const ks = KREDS_BY_STORKREDS[storkreds] || [];
+  const ksel = el("kredsSelect");
+  if(ks.length){
+    ksel.disabled = false;
+    const allOpt = `<option value="${KREDS_ALL_VALUE}">Alle kredse i storkredsen</option>`;
+    ksel.innerHTML = `<option value="">Vælg kreds…</option>${allOpt}` +
+      ks.map(k=>`<option value="${k}">${k}</option>`).join("");
+
+    ksel.onchange = async ()=>{
+      const v = ksel.value;
+      const u = new URL(location.href);
+      u.searchParams.set("storkreds", storkreds);
+
+      state.openStorkredse.clear();
+      state.openKredse.clear();
+      state.openStorkredse.add(storkreds);
+
+      if(v === KREDS_ALL_VALUE){
+        state.kreds = KREDS_ALL_VALUE;
+        u.searchParams.set("kreds", KREDS_ALL_VALUE);
+        history.replaceState({}, "", u);
+        await loadStorkredsScope(storkreds);
+      } else if(v){
+        state.kreds = v;
+        u.searchParams.set("kreds", v);
+        history.replaceState({}, "", u);
+        state.openKredse.add(`${storkreds}||${v}`);
+        await loadKredsScope(storkreds, v);
+      }
+    };
+  }else{
+    ksel.disabled = true;
+    ksel.innerHTML = `<option value="">(Ingen kredsvalg – viser hele storkredsen)</option>`;
+  }
+}
+
+/* Scope-loadere */
+async function loadDKScope(){
+  showLoading("Indlæser Danmark…");
+  el("error").textContent = "";
+  try{
+    const promises = STORKREDSE.map(sk => ensureStorkredsLoaded(sk).catch(err=>{
+      console.error(err);
+      return null;
+    }));
+    await Promise.all(promises);
+    renderContextBar();
+    renderOverview();
+    renderHierarchy();
+  }catch(e){
+    el("error").textContent = "Kunne ikke indlæse alle storkredse for Danmark.";
+  }finally{
+    hideLoading();
+  }
+}
+
+async function loadStorkredsScope(storkreds){
+  showLoading("Indlæser…");
+  el("error").textContent = "";
+  try{
+    await ensureStorkredsLoaded(storkreds);
+    renderContextBar();
+    renderOverview();
+    renderHierarchy();
+  }catch(e){
+    console.error(e);
+    el("error").textContent = `Kunne ikke finde data for ${storkreds}.`;
+  }finally{
+    hideLoading();
+  }
+}
+
+async function loadKredsScope(storkreds, kreds){
+  showLoading("Indlæser…");
+  el("error").textContent = "";
+  try{
+    await ensureStorkredsLoaded(storkreds);
+    renderContextBar();
+    renderOverview();
+    renderHierarchy();
+  }catch(e){
+    console.error(e);
+    el("error").textContent = `Kunne ikke finde data for ${storkreds} / ${kreds}.`;
+  }finally{
+    hideLoading();
+  }
+}
+
+/* Årsvælger */
+function initYearSelect(){
+  const sel = document.getElementById("faYearSelect");
+  if(!sel) return;
+  sel.addEventListener("change", () => {
+    const url = sel.value;
+    if(url) window.location.href = url;
+  });
+}
+
+/* Init */
+window.addEventListener("DOMContentLoaded", async ()=>{
+  initYearSelect();
+  initStorkredsDropdown();
+
+  const p = new URLSearchParams(location.search);
+  const s = p.get("storkreds");
+  const k = p.get("kreds");
+
+  if(s && STORKREDSE.includes(s)){
+    el("storkredsSelect").value = s;
+    state.storkreds = s;
+    populateKredse(s);
+
+    state.openStorkredse.add(s);
+
+    if(k === KREDS_ALL_VALUE){
+      el("kredsSelect").value = KREDS_ALL_VALUE;
+      state.kreds = KREDS_ALL_VALUE;
+      await loadStorkredsScope(s);
+    }else if(k && (KREDS_BY_STORKREDS[s] || []).includes(k)){
+      el("kredsSelect").value = k;
+      state.kreds = k;
+      state.openKredse.add(`${s}||${k}`);
+      await loadKredsScope(s, k);
+    }else{
+      await loadStorkredsScope(s);
+    }
+  }else{
+    el("storkredsSelect").value = DK_VALUE;
+    state.storkreds = "";
+    state.kreds = "";
+    await loadDKScope();
+  }
+});
+</script>
+</body>
+</html>
