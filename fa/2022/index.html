@@ -57,6 +57,10 @@
   padding:1.1rem 1.2rem;
   background:#f9fafb;
 }
+.answer-card-sm{
+  padding:.65rem .75rem;
+  border-radius:12px;
+}
 .answer-label{
   display:inline-flex;
   align-items:center;
@@ -105,17 +109,13 @@
   overflow:hidden;
 }
 .storkreds-header{
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  gap:.55rem;
   padding:.85rem 1rem;
   cursor:pointer;
 }
 .storkreds-header:hover{
   background:#f9fafb;
 }
-.storkreds-title{
+.storkreds-title-row{
   display:flex;
   align-items:center;
   gap:.6rem;
@@ -124,20 +124,16 @@
   font-weight:600;
   font-size:1rem;
 }
-.storkreds-header-main{
-  display:flex;
-  flex-direction:column;
-  gap:.25rem;
+.storkreds-header-grid{
+  margin-top:.6rem;
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr);
+  gap:.5rem;
 }
-.storkreds-metrics{
-  text-align:left;
-}
-.storkreds-metrics-main{
-  font-size:.95rem;
-}
-.storkreds-metrics-sub{
-  font-size:.78rem;
-  color:#6b7280;
+@media (min-width:768px){
+  .storkreds-header-grid{
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr);
+  }
 }
 .chevron{
   display:inline-flex;
@@ -159,7 +155,7 @@
   transform:rotate(90deg);
 }
 
-/* Kreds-tabel */
+/* Kreds-/valgsted-tabel */
 .kreds-wrapper{
   border-top:1px solid #e5e7eb;
   background:#f9fafb;
@@ -193,33 +189,32 @@
   font-weight:500;
 }
 
-/* Valgsted-tabel inde i en kreds-række */
-.valgsted-wrapper{
+/* Valgsted-rækker i samme tabel – så kolonner flugter */
+.kreds-table tbody tr.valgsted-row{
+  cursor:default;
   background:#ffffff;
-  border-radius:12px;
-  border:1px solid #e5e7eb;
-  margin-top:.4rem;
 }
-.valgsted-inner{
-  padding:.5rem .6rem .6rem .6rem;
-  overflow-x:auto;
+.kreds-table tbody tr.valgsted-row:hover{
+  background:#ffffff;
 }
-.valgsted-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:.8rem;
-}
-.valgsted-table thead th{
-  padding:.3rem .35rem;
-  text-align:left;
-  border-bottom:1px solid #e5e7eb;
-  white-space:nowrap;
-}
-.valgsted-table tbody td{
-  padding:.25rem .35rem;
-}
-.valgsted-table tbody tr + tr td{
+.kreds-table tbody tr.valgsted-row td{
   border-top:1px solid #f3f4f6;
+  font-size:.78rem;
+}
+.valgsted-label{
+  padding-left:1.5rem;
+  position:relative;
+}
+.valgsted-label::before{
+  content:"";
+  position:absolute;
+  left:.4rem;
+  top:50%;
+  transform:translateY(-50%);
+  width:6px;
+  height:6px;
+  border-radius:9999px;
+  background:#9ca3af;
 }
 
 /* NA-celle */
@@ -665,25 +660,59 @@ function renderHierarchy(){
     if(!rowsSk.length) continue;
 
     const aggSk = aggregateYesNo(rowsSk);
+    const isOpenSk = state.openStorkredse.has(sk);
+
     const jaPctSk = aggSk.jaPct != null ? fmtPct(aggSk.jaPct) : "–";
     const nejPctSk = aggSk.nejPct != null ? fmtPct(aggSk.nejPct) : "–";
-    const isOpenSk = state.openStorkredse.has(sk);
+    const jaWidth = aggSk.jaPct != null ? (aggSk.jaPct*100).toFixed(1) : "0";
+    const nejWidth = aggSk.nejPct != null ? (aggSk.nejPct*100).toFixed(1) : "0";
 
     html += `
       <div class="storkreds-card">
         <div class="storkreds-header" data-role="toggle-storkreds" data-sk="${escapeHtml(sk)}">
-          <div class="storkreds-header-main">
-            <div class="storkreds-title">
-              <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
-                <span>&rsaquo;</span>
-              </span>
-              <span class="storkreds-name">${escapeHtml(sk)}</span>
+          <div class="storkreds-title-row">
+            <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
+              <span>&rsaquo;</span>
+            </span>
+            <span class="storkreds-name">${escapeHtml(sk)}</span>
+          </div>
+
+          <div class="storkreds-header-grid mt-3">
+            <!-- Ja-boks -->
+            <div class="answer-card answer-card-sm">
+              <div class="flex items-center justify-between gap-2">
+                <div class="answer-label text-sm">
+                  <span class="answer-dot answer-dot-ja"></span>
+                  <span>Ja</span>
+                </div>
+                <div class="text-right">
+                  <div class="font-semibold text-sm md:text-base tabular-nums">${jaPctSk}</div>
+                  <div class="text-[0.7rem] md:text-xs text-gray-600 tabular-nums">
+                    Ja (antal): ${fmt(aggSk.ja)}
+                  </div>
+                </div>
+              </div>
+              <div class="answer-bar-track" aria-hidden="true">
+                <div class="answer-bar-fill answer-bar-fill-ja" style="width:${jaWidth}%"></div>
+              </div>
             </div>
-            <div class="storkreds-metrics tabular-nums">
-              <div class="storkreds-metrics-main">
-                Ja: ${jaPctSk} (${fmt(aggSk.ja)} stemmer)
-                <span class="mx-1 text-gray-400">–</span>
-                Nej: ${nejPctSk} (${fmt(aggSk.nej)} stemmer)
+
+            <!-- Nej-boks -->
+            <div class="answer-card answer-card-sm">
+              <div class="flex items-center justify-between gap-2">
+                <div class="answer-label text-sm">
+                  <span class="answer-dot answer-dot-nej"></span>
+                  <span>Nej</span>
+                </div>
+                <div class="text-right">
+                  <div class="font-semibold text-sm md:text-base tabular-nums">${nejPctSk}</div>
+                  <div class="text-[0.7rem] md:text-xs text-gray-600 tabular-nums">
+                    Nej (antal): ${fmt(aggSk.nej)}
+                  </div>
+                </div>
+              </div>
+              <div class="answer-bar-track" aria-hidden="true">
+                <div class="answer-bar-fill answer-bar-fill-nej" style="width:${nejWidth}%"></div>
               </div>
             </div>
           </div>
@@ -721,7 +750,7 @@ function renderHierarchy(){
   });
 }
 
-/* Kreds-tabel pr. storkreds */
+/* Kreds- OG valgsted-rækker i én tabel */
 function renderKredsTable(storkredsName, rowsSk){
   const kredsAgg = aggregateByKreds(rowsSk);
   if(!kredsAgg.length){
@@ -733,7 +762,7 @@ function renderKredsTable(storkredsName, rowsSk){
         <table class="kreds-table">
           <thead>
             <tr class="text-gray-700">
-              <th>Kreds</th>
+              <th>Kreds / valgsted</th>
               <th class="text-right">Ja %</th>
               <th class="text-right">Nej %</th>
               <th class="text-right">Ja (antal)</th>
@@ -763,63 +792,27 @@ function renderKredsTable(storkredsName, rowsSk){
         </td>
       </tr>
     `;
+
     if(isOpen){
-      html += `
-        <tr>
-          <td colspan="6">
-            ${renderValgstederForKreds(rowsSk, k.kreds)}
-          </td>
-        </tr>
-      `;
+      const valgsteder = aggregateByPollingStation(
+        rowsSk.filter(r => r.kreds === k.kreds)
+      );
+      for(const ps of valgsteder){
+        const jaPctPs = ps.jaPct != null ? fmtPct(ps.jaPct) : "–";
+        const nejPctPs = ps.nejPct != null ? fmtPct(ps.nejPct) : "–";
+        html += `
+          <tr class="valgsted-row">
+            <td class="valgsted-label">${escapeHtml(ps.valgsted_navn)}</td>
+            <td class="text-right tabular-nums">${jaPctPs}</td>
+            <td class="text-right tabular-nums">${nejPctPs}</td>
+            <td class="text-right tabular-nums">${fmt(ps.ja)}</td>
+            <td class="text-right tabular-nums">${fmt(ps.nej)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
     }
   }
-  html += `
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-  return html;
-}
-
-/* Valgsteder for en kreds (indeni en kreds-række) */
-function renderValgstederForKreds(rowsSk, kredsName){
-  const rowsKreds = rowsSk.filter(r => r.kreds === kredsName);
-  const valgsteder = aggregateByPollingStation(rowsKreds);
-  if(!valgsteder.length){
-    return `<div class="valgsted-wrapper"><div class="valgsted-inner text-xs text-gray-500">Ingen valgsteder fundet.</div></div>`;
-  }
-
-  let html = `
-    <div class="valgsted-wrapper">
-      <div class="valgsted-inner">
-        <table class="valgsted-table">
-          <thead>
-            <tr class="text-gray-700">
-              <th>Valgsted</th>
-              <th class="text-right">Ja %</th>
-              <th class="text-right">Nej %</th>
-              <th class="text-right">Ja (antal)</th>
-              <th class="text-right">Nej (antal)</th>
-            </tr>
-          </thead>
-          <tbody>
-  `;
-
-  for(const ps of valgsteder){
-    const jaPct = ps.jaPct != null ? fmtPct(ps.jaPct) : "–";
-    const nejPct = ps.nejPct != null ? fmtPct(ps.nejPct) : "–";
-    html += `
-      <tr>
-        <td>${escapeHtml(ps.valgsted_navn)}</td>
-        <td class="text-right tabular-nums">${jaPct}</td>
-        <td class="text-right tabular-nums">${nejPct}</td>
-        <td class="text-right tabular-nums">${fmt(ps.ja)}</td>
-        <td class="text-right tabular-nums">${fmt(ps.nej)}</td>
-      </tr>
-    `;
-  }
-
   html += `
           </tbody>
         </table>
