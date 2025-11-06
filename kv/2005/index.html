@@ -398,8 +398,6 @@ function normalizePartyName(p){
   return t;
 }
 
-  }
-
   const totalValidVotes = (rows) => {
     let sum = 0;
     for(const r of rows){ sum += r.stemmer || 0; }
