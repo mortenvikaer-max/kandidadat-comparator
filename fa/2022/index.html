@@ -14,14 +14,6 @@
 
 .vb-hero{ background:linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%); color:#fff; }
 
-.table-sticky thead th:first-child,
-.table-sticky tbody td:first-child,
-.table-sticky tfoot th:first-child{
-  position:sticky;
-  left:0;
-  background:#fff;
-}
-
 /* Loader */
 .loader-wrap{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#6b7280; }
 .progress{ position:relative; height:6px; background:#f3f4f6; border-radius:9999px; overflow:hidden; }
@@ -105,7 +97,65 @@
   color:#fff;
 }
 
-/* Kreds-divider i tabel */
+/* Hierarki-styles */
+.h-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:.75rem;
+  padding:.55rem .75rem;
+}
+.h-row + .h-row{
+  border-top:1px solid #e5e7eb;
+}
+.h-header-btn{
+  width:100%;
+  text-align:left;
+}
+.chevron{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:9999px;
+  border:1px solid #e5e7eb;
+  background:#f9fafb;
+  font-size:12px;
+}
+.chevron span{
+  display:inline-block;
+  transition:transform .15s ease-out;
+}
+.chevron-open span{
+  transform:rotate(90deg);
+}
+
+/* Indentering */
+.kreds-block{
+  background:#f9fafb;
+  border-top:1px solid #e5e7eb;
+}
+.kreds-inner{
+  padding:.3rem .75rem .6rem .75rem;
+}
+.valgsted-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.8rem;
+}
+.valgsted-table th,
+.valgsted-table td{
+  padding:.25rem .35rem;
+}
+.valgsted-table thead th{
+  border-bottom:1px solid #e5e7eb;
+}
+.valgsted-table tbody tr + tr td{
+  border-top:1px solid #f3f4f6;
+}
+
+/* Kreds-divider i valgsteds-lister (ikke tabel) – hvis du vil bruge senere */
 .kreds-divider{
   padding:0;
   line-height:0;
@@ -204,8 +254,10 @@
             <span>Ja</span>
           </div>
           <div class="text-right">
-            <div class="text-lg font-semibold tabular-nums" id="jaCount">–</div>
-            <div class="text-sm text-gray-600 tabular-nums" id="jaPct">–</div>
+            <div class="text-lg font-semibold tabular-nums" id="jaPct">–</div>
+            <div class="text-sm text-gray-600 tabular-nums">
+              Ja (antal): <span id="jaCount">–</span>
+            </div>
           </div>
         </div>
         <div class="answer-bar-track" aria-hidden="true">
@@ -221,8 +273,10 @@
             <span>Nej</span>
           </div>
           <div class="text-right">
-            <div class="text-lg font-semibold tabular-nums" id="nejCount">–</div>
-            <div class="text-sm text-gray-600 tabular-nums" id="nejPct">–</div>
+            <div class="text-lg font-semibold tabular-nums" id="nejPct">–</div>
+            <div class="text-sm text-gray-600 tabular-nums">
+              Nej (antal): <span id="nejCount">–</span>
+            </div>
           </div>
         </div>
         <div class="answer-bar-track" aria-hidden="true">
@@ -232,41 +286,25 @@
     </div>
 
     <div class="text-xs text-gray-500">
-      Procenttallene beregnes ud fra gyldige Ja- og Nej-stemmer i det valgte område (blanke/ugyldige er ikke medregnet).
+      Procenttallene viser fordelingen mellem Ja og Nej blandt de gyldige stemmer i det valgte område.
     </div>
   </section>
 
-  <!-- Tabel: Valgsteder -->
+  <!-- Hierarkisk resultat: Storkreds → Kredse → Valgsteder -->
   <section class="vb-card p-4 space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
-        <h2 class="text-lg font-semibold">Resultat pr. valgsted</h2>
+        <h2 class="text-lg font-semibold">Resultat pr. storkreds</h2>
         <p class="text-sm text-gray-600">
-          Antal Ja- og Nej-stemmer samt stemmeprocent på de enkelte valgsteder i det valgte område.
+          Klik på en storkreds for at folde kredsene ud. Klik dernæst på en kreds for at se resultat pr. valgsted.
         </p>
       </div>
       <div class="badge-soft">
-        <span id="tableScopeLabel">Danmark</span>
+        <span id="hierarchyScopeLabel">Danmark</span>
       </div>
     </div>
 
-    <div class="overflow-auto">
-      <table class="table-sticky w-full text-sm min-w-[720px]" id="psTable">
-        <thead>
-          <tr class="border-b text-left">
-            <th class="py-2 pr-3">Valgsted</th>
-            <th class="py-2 pr-3">Kreds</th>
-            <th class="py-2 pr-3 text-right">Ja</th>
-            <th class="py-2 pr-3 text-right">Nej</th>
-            <th class="py-2 pr-3 text-right">I alt</th>
-            <th class="py-2 pr-3 text-right">Ja %</th>
-            <th class="py-2 pr-3 text-right">Stemmeprocent</th>
-          </tr>
-        </thead>
-        <tbody id="psTbody"></tbody>
-        <tfoot id="psTFoot"></tfoot>
-      </table>
-    </div>
+    <div id="hierarchyContainer" class="space-y-2"></div>
   </section>
 </main>
 
@@ -291,7 +329,6 @@
 
 <script>
 /* ====== DATA-STI (Folkeafstemning 2022) ====== */
-/* Bruger absolut sti som angivet: /data/fa/2022/[Område]_storkreds.csv */
 const BASE_PATH = '/data/fa/2022/';
 const KREDS_ALL_VALUE = "__ALL__";
 const DK_VALUE = "__DK__";
@@ -303,7 +340,7 @@ const STORKREDSE = [
   "Vestjyllands Storkreds","Østjyllands Storkreds"
 ];
 
-/* Kredse – visningsnavne (bruges kun til dropdown/filter) */
+/* Kredse – visningsnavne */
 const KREDS_BY_STORKREDS = {
   "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
   "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
@@ -320,14 +357,17 @@ const KREDS_BY_STORKREDS = {
   "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
 };
 
-const el     = id => document.getElementById(id);
-const canon  = s => (s || "").toString().trim();
-const fmt    = n => new Intl.NumberFormat("da-DK").format(n);
-const fmtPct = v => new Intl.NumberFormat("da-DK", {
+const el      = id => document.getElementById(id);
+const canon   = s => (s || "").toString().trim();
+const fmt     = n => new Intl.NumberFormat("da-DK").format(n);
+const fmtPct  = v => new Intl.NumberFormat("da-DK", {
   style:"percent",
   minimumFractionDigits:1,
   maximumFractionDigits:1
 }).format(v);
+const escapeHtml = s => (s||"").replace(/[&<>"]/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;'}[c] || c
+)).replace(/"/g,'&quot;');
 
 /* Rens valgstedsnavn: fjern fx "7. " foran */
 const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
@@ -349,7 +389,9 @@ function storkredsSlug(name){
 const state = {
   storkreds: "",
   kreds: "",
-  csvCache: new Map()   // key: storkreds-navn, value: rows[]
+  csvCache: new Map(),         // key: storkreds-navn, value: rows[]
+  openStorkredse: new Set(),   // storkreds-navne
+  openKredse: new Set()        // key: "storkreds||kreds"
 };
 
 /* Loader-hjælpere */
@@ -368,7 +410,7 @@ function hideLoading(){
   if(state.storkreds) el("kredsSelect")?.removeAttribute("disabled");
 }
 
-/* Indlæs CSV for en storkreds (hvis ikke cached) */
+/* CSV-indlæsning pr. storkreds */
 async function ensureStorkredsLoaded(storkredsName){
   if(state.csvCache.has(storkredsName)) return;
   const slug = storkredsSlug(storkredsName);
@@ -395,14 +437,14 @@ function parseCsv(text, storkredsNavn){
     const valgstedRaw = r["Afstemningsområde"];
     const svar = canon(r["Svarmulighed"]);
     const stemmer = Number(toNumberComma(r["Stemmetal"]) || 0);
-    const stemmeprocent = toNumberComma(r["Stemmeprocent"]);
+    // Stemmeprocent findes, men bruges ikke i visningen:
+    // const stemmeprocent = toNumberComma(r["Stemmeprocent"]);
     return {
       storkreds: storkredsNavn,
       kreds,
       valgsted_navn: cleanPollingPlaceName(valgstedRaw),
       svar,
-      stemmer,
-      stemmeprocent
+      stemmer
     };
   }).filter(r => r.svar === "Ja" || r.svar === "Nej");
 }
@@ -435,33 +477,42 @@ function aggregateYesNo(rows){
   return { ja, nej, total, jaPct, nejPct };
 }
 
-/* Aggreger pr. valgsted (Ja/Nej + stemmeprocent) */
-function aggregateByPollingStation(rows){
-  const map = new Map(); // key: kreds::valgsted
+/* Aggreger pr. kreds inden for en storkreds */
+function aggregateByKreds(rows){
+  const m = new Map();
   for(const r of rows){
-    const key = `${r.kreds}::${r.valgsted_navn}`;
-    if(!map.has(key)){
-      map.set(key, {
-        storkreds: r.storkreds,
-        kreds: r.kreds,
-        valgsted_navn: r.valgsted_navn,
-        ja:0,
-        nej:0,
-        stemmeprocent: r.stemmeprocent
-      });
+    const k = r.kreds || "(ingen kreds)";
+    if(!m.has(k)) m.set(k, []);
+    m.get(k).push(r);
+  }
+  const out = [];
+  for(const [k, rs] of m.entries()){
+    const agg = aggregateYesNo(rs);
+    out.push({ storkreds: rs[0]?.storkreds || "", kreds:k, ...agg });
+  }
+  out.sort((a,b)=>a.kreds.localeCompare(b.kreds,"da"));
+  return out;
+}
+
+/* Aggreger pr. valgsted (Ja/Nej) inden for en kreds */
+function aggregateByPollingStation(rows){
+  const m = new Map(); // key: valgsted
+  for(const r of rows){
+    const key = r.valgsted_navn || "";
+    if(!m.has(key)){
+      m.set(key, { valgsted_navn:key, ja:0, nej:0 });
     }
-    const ps = map.get(key);
+    const ps = m.get(key);
     if(r.svar === "Ja") ps.ja += r.stemmer || 0;
     else if(r.svar === "Nej") ps.nej += r.stemmer || 0;
-    if(r.stemmeprocent != null && ps.stemmeprocent == null){
-      ps.stemmeprocent = r.stemmeprocent;
-    }
   }
-  const list = Array.from(map.values());
-  list.sort((a,b)=>{
-    if(a.kreds !== b.kreds) return a.kreds.localeCompare(b.kreds,"da");
-    return a.valgsted_navn.localeCompare(b.valgsted_navn,"da");
+  const list = Array.from(m.values());
+  list.forEach(ps=>{
+    ps.total = ps.ja + ps.nej;
+    ps.jaPct = ps.total > 0 ? ps.ja / ps.total : null;
+    ps.nejPct = ps.total > 0 ? ps.nej / ps.total : null;
   });
+  list.sort((a,b)=>a.valgsted_navn.localeCompare(b.valgsted_navn,"da"));
   return list;
 }
 
@@ -505,66 +556,6 @@ function renderOverview(){
   el("nejBar").style.width = `${wNej}%`;
 }
 
-/* Render tabel pr. valgsted */
-function renderPollingStationTable(){
-  const rows = getCurrentRows();
-  const psList = aggregateByPollingStation(rows);
-  const tbody = el("psTbody");
-  const tfoot = el("psTFoot");
-
-  el("tableScopeLabel").textContent = getScopeLabel();
-
-  if(!psList.length){
-    tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-sm text-gray-500">
-      Ingen data at vise for det valgte område.
-    </td></tr>`;
-    tfoot.innerHTML = "";
-    return;
-  }
-
-  const trs = [];
-  let prevKreds = null;
-  for(const ps of psList){
-    if(prevKreds !== null && ps.kreds !== prevKreds){
-      trs.push(`<tr><td class="kreds-divider" colspan="7"></td></tr>`);
-    }
-    const total = ps.ja + ps.nej;
-    const jaShare = total > 0 ? ps.ja / total : null;
-    const stemProc = ps.stemmeprocent != null
-      ? new Intl.NumberFormat("da-DK", { minimumFractionDigits:1, maximumFractionDigits:1 }).format(ps.stemmeprocent) + " %"
-      : "–";
-    trs.push(
-      `<tr class="border-b last:border-0">
-        <td class="py-2 pr-3 font-medium">${ps.valgsted_navn}</td>
-        <td class="py-2 pr-3">${ps.kreds}</td>
-        <td class="py-2 pr-3 text-right tabular-nums">${fmt(ps.ja)}</td>
-        <td class="py-2 pr-3 text-right tabular-nums">${fmt(ps.nej)}</td>
-        <td class="py-2 pr-3 text-right tabular-nums">${fmt(total)}</td>
-        <td class="py-2 pr-3 text-right tabular-nums">${jaShare != null ? fmtPct(jaShare) : "–"}</td>
-        <td class="py-2 pr-3 text-right tabular-nums">${stemProc}</td>
-      </tr>`
-    );
-    prevKreds = ps.kreds;
-  }
-  tbody.innerHTML = trs.join("");
-
-  // Fod: total for området
-  const agg = aggregateYesNo(rows);
-  const jaShareTotal = agg.total > 0 ? agg.ja / agg.total : null;
-
-  tfoot.innerHTML = `<tr class="border-t">
-    <th class="py-2 pr-3 text-left">Samlet</th>
-    <th class="py-2 pr-3 text-left text-gray-500">(${fmt(psList.length)} valgsteder)</th>
-    <th class="py-2 pr-3 text-right tabular-nums">${fmt(agg.ja)}</th>
-    <th class="py-2 pr-3 text-right tabular-nums">${fmt(agg.nej)}</th>
-    <th class="py-2 pr-3 text-right tabular-nums">${fmt(agg.total)}</th>
-    <th class="py-2 pr-3 text-right tabular-nums">
-      ${jaShareTotal != null ? fmtPct(jaShareTotal) : "–"}
-    </th>
-    <th class="py-2 pr-3 text-right tabular-nums text-gray-400">–</th>
-  </tr>`;
-}
-
 /* Render “Hvor er jeg?” bar */
 function renderContextBar(){
   const bar = el("contextBar");
@@ -578,11 +569,11 @@ function renderContextBar(){
 
     const isStorkredsAll = !state.kreds || state.kreds === KREDS_ALL_VALUE;
     if(isStorkredsAll){
-      parts.push(`<span class="crumb-strong">${state.storkreds}</span>`);
+      parts.push(`<span class="crumb-strong">${escapeHtml(state.storkreds)}</span>`);
     }else{
-      parts.push(`<span class="crumb" data-nav="storkreds">${state.storkreds}</span>`);
+      parts.push(`<span class="crumb" data-nav="storkreds">${escapeHtml(state.storkreds)}</span>`);
       parts.push(`<span class="sep">/</span>`);
-      parts.push(`<span class="crumb-strong">${state.kreds}</span>`);
+      parts.push(`<span class="crumb-strong">${escapeHtml(state.kreds)}</span>`);
     }
   }
 
@@ -613,6 +604,158 @@ function renderContextBar(){
   });
 }
 
+/* Hierarki: Storkreds -> Kredse -> Valgsteder */
+function renderHierarchy(){
+  const container = el("hierarchyContainer");
+  const scopeLabel = getScopeLabel();
+  el("hierarchyScopeLabel").textContent = scopeLabel;
+
+  const storkredseToShow = !state.storkreds ? STORKREDSE : [state.storkreds];
+  let html = "";
+
+  for(const sk of storkredseToShow){
+    const rowsSk = state.csvCache.get(sk) || [];
+    if(!rowsSk.length) continue;
+
+    const aggSk = aggregateYesNo(rowsSk);
+    const jaPctSk = aggSk.jaPct != null ? fmtPct(aggSk.jaPct) : "–";
+    const nejPctSk = aggSk.nejPct != null ? fmtPct(aggSk.nejPct) : "–";
+    const isOpenSk = state.openStorkredse.has(sk);
+
+    html += `
+      <div class="border rounded-xl bg-white">
+        <button type="button"
+                class="h-header-btn"
+                data-role="toggle-storkreds"
+                data-sk="${escapeHtml(sk)}">
+          <div class="h-row">
+            <div class="flex items-center gap-2">
+              <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
+                <span>&rsaquo;</span>
+              </span>
+              <span class="font-medium">${escapeHtml(sk)}</span>
+            </div>
+            <div class="text-right text-xs md:text-sm text-gray-700 tabular-nums">
+              <div>Ja %: <span class="font-semibold">${jaPctSk}</span> · Nej %: <span class="font-semibold">${nejPctSk}</span></div>
+              <div class="text-[0.7rem] md:text-xs text-gray-500">
+                Ja (antal): ${fmt(aggSk.ja)} · Nej (antal): ${fmt(aggSk.nej)}
+              </div>
+            </div>
+          </div>
+        </button>
+        ${isOpenSk ? renderKredsList(sk, rowsSk) : ""}
+      </div>
+    `;
+  }
+
+  if(!html){
+    html = `<div class="text-sm text-gray-500">Ingen data indlæst endnu.</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Bind events
+  container.querySelectorAll('[data-role="toggle-storkreds"]').forEach(btn=>{
+    const sk = btn.getAttribute('data-sk');
+    btn.addEventListener('click', ()=>{
+      if(state.openStorkredse.has(sk)) state.openStorkredse.delete(sk);
+      else state.openStorkredse.add(sk);
+      renderHierarchy();
+    });
+  });
+
+  container.querySelectorAll('[data-role="toggle-kreds"]').forEach(btn=>{
+    const sk = btn.getAttribute('data-sk');
+    const kreds = btn.getAttribute('data-kreds');
+    const key = `${sk}||${kreds}`;
+    btn.addEventListener('click', ()=>{
+      if(state.openKredse.has(key)) state.openKredse.delete(key);
+      else state.openKredse.add(key);
+      renderHierarchy();
+    });
+  });
+}
+
+/* Under-komponent: kredsliste */
+function renderKredsList(storkredsName, rowsSk){
+  const kredsAgg = aggregateByKreds(rowsSk);
+  if(!kredsAgg.length){
+    return `<div class="kreds-block"><div class="kreds-inner text-xs text-gray-500">Ingen kredse fundet.</div></div>`;
+  }
+  let html = `<div class="kreds-block"><div class="kreds-inner space-y-1">`;
+  for(const k of kredsAgg){
+    const key = `${storkredsName}||${k.kreds}`;
+    const isOpen = state.openKredse.has(key);
+    const jaPct = k.jaPct != null ? fmtPct(k.jaPct) : "–";
+    const nejPct = k.nejPct != null ? fmtPct(k.nejPct) : "–";
+
+    html += `
+      <div class="border border-gray-200 rounded-lg bg-white/60">
+        <button type="button"
+                class="h-header-btn"
+                data-role="toggle-kreds"
+                data-sk="${escapeHtml(storkredsName)}"
+                data-kreds="${escapeHtml(k.kreds)}">
+          <div class="h-row">
+            <div class="flex items-center gap-2">
+              <span class="chevron ${isOpen ? 'chevron-open' : ''}">
+                <span>&rsaquo;</span>
+              </span>
+              <span class="text-sm font-medium">${escapeHtml(k.kreds)}</span>
+            </div>
+            <div class="text-right text-xs md:text-sm text-gray-700 tabular-nums">
+              <div>Ja %: <span class="font-semibold">${jaPct}</span> · Nej %: <span class="font-semibold">${nejPct}</span></div>
+            </div>
+          </div>
+        </button>
+        ${isOpen ? renderValgstederForKreds(rowsSk, k.kreds) : ""}
+      </div>
+    `;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/* Under-komponent: valgsteder for en kreds */
+function renderValgstederForKreds(rowsSk, kredsName){
+  const rowsKreds = rowsSk.filter(r => r.kreds === kredsName);
+  const valgsteder = aggregateByPollingStation(rowsKreds);
+  if(!valgsteder.length){
+    return `<div class="px-3 pb-3 text-xs text-gray-500">Ingen valgsteder fundet.</div>`;
+  }
+
+  let html = `<div class="px-3 pb-3 overflow-auto">
+    <table class="valgsted-table">
+      <thead>
+        <tr class="text-left">
+          <th>Valgsted</th>
+          <th class="text-right">Ja %</th>
+          <th class="text-right">Nej %</th>
+          <th class="text-right">Ja (antal)</th>
+          <th class="text-right">Nej (antal)</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for(const ps of valgsteder){
+    const jaPct = ps.jaPct != null ? fmtPct(ps.jaPct) : "–";
+    const nejPct = ps.nejPct != null ? fmtPct(ps.nejPct) : "–";
+    html += `
+      <tr>
+        <td>${escapeHtml(ps.valgsted_navn)}</td>
+        <td class="text-right tabular-nums">${jaPct}</td>
+        <td class="text-right tabular-nums">${nejPct}</td>
+        <td class="text-right tabular-nums">${fmt(ps.ja)}</td>
+        <td class="text-right tabular-nums">${fmt(ps.nej)}</td>
+      </tr>
+    `;
+  }
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
 /* Dropdowns */
 function initStorkredsDropdown(){
   const ssel = el("storkredsSelect");
@@ -626,6 +769,10 @@ function initStorkredsDropdown(){
     const ksel = el("kredsSelect");
     state.kreds = "";
     const u = new URL(location.href);
+
+    // reset hierarki-åbning
+    state.openStorkredse.clear();
+    state.openKredse.clear();
 
     if(v === DK_VALUE || !v){
       state.storkreds = "";
@@ -643,6 +790,7 @@ function initStorkredsDropdown(){
       history.replaceState({}, "", u);
 
       populateKredse(v);
+      state.openStorkredse.add(v);
       await loadStorkredsScope(v);
     }
   };
@@ -664,6 +812,10 @@ function populateKredse(storkreds){
       const u = new URL(location.href);
       u.searchParams.set("storkreds", storkreds);
 
+      state.openStorkredse.clear();
+      state.openKredse.clear();
+      state.openStorkredse.add(storkreds);
+
       if(v === KREDS_ALL_VALUE){
         state.kreds = KREDS_ALL_VALUE;
         u.searchParams.set("kreds", KREDS_ALL_VALUE);
@@ -673,6 +825,7 @@ function populateKredse(storkreds){
         state.kreds = v;
         u.searchParams.set("kreds", v);
         history.replaceState({}, "", u);
+        state.openKredse.add(`${storkreds}||${v}`);
         await loadKredsScope(storkreds, v);
       }
     };
@@ -694,7 +847,7 @@ async function loadDKScope(){
     await Promise.all(promises);
     renderContextBar();
     renderOverview();
-    renderPollingStationTable();
+    renderHierarchy();
   }catch(e){
     el("error").textContent = "Kunne ikke indlæse alle storkredse for Danmark.";
   }finally{
@@ -709,7 +862,7 @@ async function loadStorkredsScope(storkreds){
     await ensureStorkredsLoaded(storkreds);
     renderContextBar();
     renderOverview();
-    renderPollingStationTable();
+    renderHierarchy();
   }catch(e){
     console.error(e);
     el("error").textContent = `Kunne ikke finde data for ${storkreds}.`;
@@ -725,7 +878,7 @@ async function loadKredsScope(storkreds, kreds){
     await ensureStorkredsLoaded(storkreds);
     renderContextBar();
     renderOverview();
-    renderPollingStationTable();
+    renderHierarchy();
   }catch(e){
     console.error(e);
     el("error").textContent = `Kunne ikke finde data for ${storkreds} / ${kreds}.`;
@@ -748,6 +901,8 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     state.storkreds = s;
     populateKredse(s);
 
+    state.openStorkredse.add(s);
+
     if(k === KREDS_ALL_VALUE){
       el("kredsSelect").value = KREDS_ALL_VALUE;
       state.kreds = KREDS_ALL_VALUE;
@@ -755,6 +910,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
     }else if(k && (KREDS_BY_STORKREDS[s] || []).includes(k)){
       el("kredsSelect").value = k;
       state.kreds = k;
+      state.openKredse.add(`${s}||${k}`);
       await loadKredsScope(s, k);
     }else{
       await loadStorkredsScope(s);
