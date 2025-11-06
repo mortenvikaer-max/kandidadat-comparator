@@ -106,7 +106,6 @@
 
   <div class="mx-auto max-w-6xl px-4 pb-4">
     <div class="text-white/90 text-base md:text-lg">
-      Vælg en kommune og få overblik over partier og kandidater.
     </div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
@@ -284,7 +283,7 @@
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
   const fmtPct = v => new Intl.NumberFormat("da-DK", {
-    style:"percent", minimumFractionDigits:1, maximumFractionDigits:1
+    style:"percent", minimumFractionDigits:2, maximumFractionDigits:2
   }).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
