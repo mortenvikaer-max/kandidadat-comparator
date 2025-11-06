@@ -293,7 +293,23 @@ const DK_COMBINED_CACHE_KEY = "__DK_ALL__";
 
 /* ---------- PARTIER / FARVER / ALIAS ---------- */
 const norm = s => (s||"").toLowerCase().replace(/[–—-]/g," ").replace(/[().]/g," ").replace(/\s+/g," ").trim();
-const PARTY_COLORS = {"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","K":"#ff9800","Æ":"#666666","M":"#6f42c1"};
+const PARTY_COLORS = {
+  "A":"#e03a3e",
+  "B":"#712082",
+  "C":"#2e7d32",
+  "D":"#0f766e",
+  "F":"#e5003d",
+  "I":"#00a0e3",
+  "O":"#0044aa",
+  "V":"#1b5eaa",
+  "Ø":"#c8102e",
+  "Å":"#3aaa35",
+  "Q":"#ff4fa3",
+  "K":"#ff9800",
+  "Æ":"#666666",
+  "M":"#6f42c1",
+  "Y":"#009688"
+};
 const PARTY_LETTERS_BY_NAME = {
   "socialdemokratiet":"A","radikale venstre":"B","det radikale venstre":"B",
   "konservative folkeparti":"C","det konservative folkeparti":"C",
@@ -302,7 +318,8 @@ const PARTY_LETTERS_BY_NAME = {
   "dansk folkeparti":"O",
   "enhedslisten":"Ø","enhedslisten - de rød-grønne":"Ø","enhedslisten de rød grønne":"Ø",
   "kristendemokraterne":"K","kd - kristendemokraterne":"K","kd kristendemokraterne":"K",
-  "alternativet":"Å","moderaterne":"M","danmarksdemokraterne":"Æ","frie grønne":"Q","nye borgerlige":"D"
+  "alternativet":"Å","moderaterne":"M","danmarksdemokraterne":"Æ","frie grønne":"Q","nye borgerlige":"D",
+  "ny alliance":"Y"
 };
 const PARTY_LETTERS_BY_NAME_NORM = Object.fromEntries(Object.entries(PARTY_LETTERS_BY_NAME).map(([k,v])=>[norm(k),v]));
 const DEFAULT_BADGE_BG="#e5e7eb", DEFAULT_BADGE_FG="#111827";
