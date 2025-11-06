@@ -21,7 +21,12 @@
     .vb-row:hover{ box-shadow:0 4px 14px rgba(0,0,0,.06); }
     .vb-chevron{ transition: transform .2s ease; }
     .vb-open .vb-chevron{ transform: rotate(180deg); }
-    .vb-body{ overflow:hidden; transition:grid-template-rows .25s ease, padding .2s ease; display:grid; grid-template-rows:0fr; }
+    .vb-body{
+      overflow:hidden;
+      transition:grid-template-rows .25s ease, padding .2s ease;
+      display:grid;
+      grid-template-rows:0fr;
+    }
     .vb-open .vb-body{ grid-template-rows:1fr; }
     .vb-body > div{ min-height:0; }
     .vb-yearbtn{
@@ -60,36 +65,36 @@
   </main>
 
   <footer class="mt-10 border-t bg-gray-100">
-  <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
-              flex flex-col md:flex-row items-center justify-between
-              gap-3 md:gap-6 text-sm md:text-base text-gray-700">
-    
-    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
-      hej@valgbar.dk
-    </a>
+    <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
+                flex flex-col md:flex-row items-center justify-between
+                gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+      
+      <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
+        hej@valgbar.dk
+      </a>
 
-    <p class="text-center">
-      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
-    </p>
+      <p class="text-center">
+        Data stammer fra KMDValg, Danmarks Statistik og valg.dk
+      </p>
 
-    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
-      Om Valgbar
-    </a>
-  </div>
-</footer>
+      <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
+        Om Valgbar
+      </a>
+    </div>
+  </footer>
 
   <script>
     /* ====== KONFIG ====== */
     const YEARS = {
       // FT: inkluderer 2005, 2007, 2011, 2015, 2019, 2022
       ft: [2022, 2019, 2015, 2011, 2007, 2005],
-      // KV: tilføjet 2009, 2005, 2001
+      // KV: inkluderer 2021, 2017, 2013, 2009, 2005, 2001
       kv: [2021, 2017, 2013, 2009, 2005, 2001],
       // RV: 2021, 2017, 2013
       rv: [2021, 2017, 2013],
-      // EP: tilføjet 2009, 2004
+      // EP: inkluderer 2004–2024
       ep: [2024, 2019, 2014, 2009, 2004],
-      // FA: Folkeafstemning – ny sektion
+      // FA: Folkeafstemning
       fa: [2022, 2015, 2014]
     };
 
@@ -123,7 +128,7 @@
         2009: 'ep/2009/',
         2004: 'ep/2004/'
       }},
-      // Ny: Folkeafstemning
+      // Folkeafstemning
       fa: { perYear: {
         2022: 'fa/2022/',
         2015: 'fa/2015/',
