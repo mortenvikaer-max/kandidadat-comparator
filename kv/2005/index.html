@@ -292,53 +292,112 @@
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
   // Normaliser partinavne, så varianter samles under det rigtige navn
-  function normalizePartyName(p){
-    const t = canon(p);
-    const lower = t.toLowerCase();
+  // Normaliser partinavne, så varianter samles under det rigtige navn
+function normalizePartyName(p){
+  const t = canon(p);
+  const lower = t.toLowerCase();
 
-    // Venstre, Danmarks Liberale Parti
-    if(
-      lower === "venstre, danmarks liberale parti" ||
-      lower === "venstre - danmarks liberale parti" ||
-      lower === "langelands venstre, danmarks liber"
-    ){
-      return "Venstre, Danmarks Liberale Parti";
-    }
+  // ===== Socialdemokratiet =====
+  const socialdemVariants = [
+    "socialdemokratiet",
+    "socialdemokratiet middelfart",
+    "socialdemokratiet aabybro",
+    "socialdemokratiet pandrup",
+    "socialdemokratiet brørup",
+    "socialdemokratiet fjerritslev",
+    "socialdemokratiet ejby",
+    "socialdemokratiet rødding",
+    "socialdemokratiet brovst",
+    "socialdemokratiet holsted",
+    "socialdemokratiet nørre aaby"
+  ];
+  if (socialdemVariants.includes(lower)) {
+    return "Socialdemokratiet";
+  }
 
-    // SF - Socialistisk Folkeparti
-    if(
-      lower === "sf - socialistisk folkeparti" ||
-      lower === "sf - socialistiske folkeparti" ||
-      lower === "sf-socialistisk folkeparti" ||
-      lower === "sf - socialitisk folkeparti" ||
-      lower === "sf- socialistisk folkeparti"
-    ){
-      return "SF - Socialistisk Folkeparti";
-    }
+  // ===== Venstre, Danmarks Liberale Parti =====
+  const venstreVariants = [
+    "venstre, danmarks liberale parti",
+    "venstre - danmarks liberale parti",
+    "langelands venstre, danmarks liber",
+    "venstre danmarks liberale parti",
+    "venstre,danmarks liberale parti",
+    "sundsøre venstre",
+    "venstre, videbæk",
+    "venstre brovst",
+    "venstre i rødding kommune",
+    "venstre, holmsland",
+    "venstre, ringkøbing",
+    "venstre, skjern",
+    "venstre i brørup kommune",
+    "venstre, egvad",
+    "venstre i vejen kommune",
+    "skive venstre",
+    "venstre aabybro",
+    "venstre pandrup",
+    "spøttrup venstre",
+    "venstre fjerritslev",
+    "venstre i holsted kommune",
+    "sallingsund venstre",
+    "venstres ungdom, danm. liberale p"
+  ];
+  if (venstreVariants.includes(lower)) {
+    return "Venstre, Danmarks Liberale Parti";
+  }
 
-    // Det Konservative Folkeparti
-    if(
-      lower === "det konservative folkeparti" ||
-      lower === "det konservative folkeparti."
-    ){
-      return "Det Konservative Folkeparti";
-    }
+  // ===== SF - Socialistisk Folkeparti =====
+  if(
+    lower === "sf - socialistisk folkeparti" ||
+    lower === "sf - socialistiske folkeparti" ||
+    lower === "sf-socialistisk folkeparti" ||
+    lower === "sf - socialitisk folkeparti" ||
+    lower === "sf- socialistisk folkeparti"
+  ){
+    return "SF - Socialistisk Folkeparti";
+  }
 
-    // Det Radikale Venstre
-    if(
-      lower === "det radikale venstre - gribskov ra"
-    ){
-      return "Det Radikale Venstre";
-    }
+  // ===== Det Radikale Venstre =====
+  if(
+    lower === "det radikale venstre" ||
+    lower === "det radikale venstre - gribskov ra"
+  ){
+    return "Det Radikale Venstre";
+  }
 
-    // Enhedslisten - De Rød-Grønne
-    if(
-      lower === "enhedslisten, de rød-grønne"
-    ){
-      return "Enhedslisten - De Rød-Grønne";
-    }
+  // ===== Enhedslisten - De Rød-Grønne =====
+  const enhedslistenVariants = [
+    "enhedslisten - de rød-grønne",
+    "enhedslisten, de rød-grønne",
+    "enhedslisten-de rød-grønne",
+    "enhedslisten - de rød grønne",
+    "enhedslisten - de rød/grønne",
+    "enhedslisten - de rød - grønne",
+    "enhedslisten de rød-grønne"
+  ];
+  if (enhedslistenVariants.includes(lower)) {
+    return "Enhedslisten - De Rød-Grønne";
+  }
 
-    return t;
+  // ===== Det Konservative Folkeparti =====
+  const konservativeVariants = [
+    "det konservative folkeparti",
+    "det konservative folkeparti.",
+    "det konservative folkeparti i thy",
+    "det konservative folkeparti i this",
+    "det konservative folkeparti h.næs",
+    "det konservative folkeparti - jamm",
+    "det konservative folkeparti, vord.",
+    "det konservative folkeparti hader",
+    "det konservative folkeparti vojen",
+    "det konservative folkeparti gram"
+  ];
+  if (konservativeVariants.includes(lower)) {
+    return "Det Konservative Folkeparti";
+  }
+
+  return t;
+}
+
   }
 
   const totalValidVotes = (rows) => {
