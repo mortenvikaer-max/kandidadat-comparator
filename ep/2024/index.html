@@ -11,11 +11,6 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
-html, body{
-  max-width:100%;
-  overflow-x:hidden;
-}
-
 :root{ --vb-navy:#234a5a; --vb-navy-2:#1b3d4d; }
 .vb-card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
 .vb-btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
@@ -160,7 +155,8 @@ html, body{
 
   <!-- TOP 10 / ALLE / PARTITOTAL -->
   <section id="overviewTop" class="vb-card p-4">
-    <div class="flex items-center justify-between mb-2">
+    <!-- Mobilvenlig header: stack på små skærme -->
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-2">
       <div>
         <h2 id="topTitle" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
         <!-- Info-boks om procent -->
@@ -168,8 +164,8 @@ html, body{
              class="mt-1 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="text-right">
+      <div class="flex flex-wrap items-center gap-2 md:gap-3 md:justify-end">
+        <div class="text-right md:order-1">
           <div id="topScope" class="text-sm text-gray-500"></div>
         </div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
@@ -349,7 +345,7 @@ const state = {
 };
 const el = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(v);
 const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => {
