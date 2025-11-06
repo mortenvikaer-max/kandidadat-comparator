@@ -39,7 +39,7 @@
 
 .rank-pill{ width:28px; height:28px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center;
   font-weight:700; border:1px solid #e5e7eb; background:#f9fafb; }
-.top10-item{ display:flex; align-items:center; gap:.75rem; padding:.6rem .7rem; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; }
+.top10-item{ display:flex; align-items:flex-start; gap:.75rem; padding:.6rem .7rem; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; }
 .top10-item:hover{ background:#f9fafb; }
 .top10-grid{ display:grid; grid-template-columns:1fr; gap:.75rem; }
 @media (min-width:768px){ .top10-grid{ grid-template-columns:1fr 1fr; } }
@@ -155,7 +155,7 @@
 
   <!-- TOP 10 / ALLE / PARTITOTAL -->
   <section id="overviewTop" class="vb-card p-4">
-    <!-- Mobilvenlig header: stack på små skærme -->
+    <!-- Mere mobilvenlig header -->
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-2">
       <div>
         <h2 id="topTitle" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
@@ -193,7 +193,7 @@
 
   <!-- PARTIER OG KANDIDATER -->
   <section>
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-3">
       <h2 class="text-xl font-semibold">Partier og kandidater</h2>
       <div id="areatitle" class="text-gray-500"></div>
     </div>
@@ -214,9 +214,9 @@
       </aside>
 
       <section class="md:col-span-2 vb-card p-4 space-y-3" id="partyDetail">
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div id="partyDetailHeader" class="text-gray-500 text-sm">Vælg en storkreds for at se partier.</div>
-          <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
+          <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2 self-start md:self-auto">
             <button id="btnSortAlpha" class="vb-tabbox small active" type="button" title="Alfabetisk">A–Å</button>
             <button id="btnSortVotes" class="vb-tabbox small" type="button" title="Flest stemmer">Flest stemmer</button>
           </div>
@@ -241,7 +241,7 @@
   <!-- TABEL -->
   <section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
     <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
-    <!-- Lokalt horisontalt scroll på mobil -->
+    <!-- Lokalt horisontalt scroll -->
     <div class="overflow-x-auto -mx-4 md:mx-0">
       <table class="table-sticky w-full text-sm min-w-[640px] md:min-w-[880px]" id="psTable">
         <thead id="psThead"></thead>
@@ -890,11 +890,9 @@ function renderOverview(){
   const rowsRaw = getActiveRows();
   const isDK = !state.storkreds;
 
-  // Sti-tekst: kun "Danmark" på landsplan – ingen storkreds/kreds-sti.
   const scopeText = isDK ? "Danmark" : "";
   el("topScope").textContent = rowsRaw.length ? scopeText : "";
 
-  // Info-boks for procenter
   const infoBox = el("percentInfoOverview");
   if(infoBox){
     if(state.overviewMode==="party"){
@@ -924,16 +922,20 @@ function renderOverview(){
       const bd = badge(p.letter);
       const share = totalValid>0 ? p.total/totalValid : null;
       const shareLabel = share!==null ? fmtPct(share) : null;
-      const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
-      const meta = shareLabel ? `${base} · ${shareLabel}` : base;
-      return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
-        <span class="rank-pill">${idx}</span>
-        <div class="min-w-0 flex-1">
-          <div class="font-medium truncate">${escapeHtml(p.parti)}</div>
-          <div class="text-xs text-gray-500 truncate">${meta}</div>
-        </div>
-        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
-      </li>`;
+      const votes = fmt(p.total);
+      const subtitle = shareLabel
+        ? `${votes} stemmer i alt (personlige + liste) · ${shareLabel}`
+        : `${votes} stemmer i alt (personlige + liste)`;
+
+      return `
+        <li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
+          <span class="rank-pill">${idx}</span>
+          <div class="min-w-0 flex-1">
+            <div class="font-medium">${escapeHtml(p.parti)}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${subtitle}</div>
+          </div>
+          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+        </li>`;
     }
 
     const half = Math.ceil(list.length/2);
@@ -946,7 +948,6 @@ function renderOverview(){
     el("topColRight").innerHTML =
       right.map((p,i)=>partyItemHTML(p,i+1+half)).join("");
 
-    // Klik på parti → vælg i combobox (kun når vi er i en storkredsvisning)
     if(state.storkreds){
       ['topColLeft','topColRight'].forEach(rootId=>{
         document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
@@ -994,20 +995,30 @@ function renderOverview(){
   function itemHTML(k, idx){
     const letter = partyLetterFrom(k.parti, rowsRaw);
     const bd = badge(letter);
-    const share = totalValid>0 ? (k.total||0)/totalValid : null;
-    const shareLabel = share!==null ? fmtPct(share) : null;
-    const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
-    const meta = shareLabel ? `${base} · ${shareLabel}` : base;
-    const title = isDK ? 'Klik for at se fordeling' : 'Klik for at tilføje til sammenligning';
-    const navn = `${escapeHtml(k.kandidat_navn)}`;
-    return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="${title}">
-      <span class="rank-pill">${idx}</span>
-      <div class="min-w-0 flex-1">
-        <div class="font-medium truncate">${navn}</div>
-        <div class="text-xs text-gray-500 truncate">${meta}</div>
-      </div>
-      <span class="vb-badge" style="${bd.style}">${bd.text}</span>
-    </li>`;
+    const share = totalValid > 0 ? (k.total || 0) / totalValid : null;
+    const shareLabel = share !== null ? fmtPct(share) : null;
+
+    const navn = escapeHtml(k.kandidat_navn);
+    const parti = escapeHtml(k.parti);
+    const votes = fmt(k.total);
+    const subtitle = shareLabel
+      ? `${votes} personlige stemmer · ${shareLabel}`
+      : `${votes} personlige stemmer`;
+
+    const title = isDK
+      ? 'Klik for at se fordeling'
+      : 'Klik for at tilføje til sammenligning';
+
+    return `
+      <li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="${title}">
+        <span class="rank-pill">${idx}</span>
+        <div class="min-w-0 flex-1">
+          <div class="font-medium">${navn}</div>
+          <div class="text-xs text-gray-500">${parti}</div>
+          <div class="text-xs text-gray-500 mt-0.5">${subtitle}</div>
+        </div>
+        <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+      </li>`;
   }
 
   const half=Math.ceil(list.length/2), left=list.slice(0,half), right=list.slice(half);
@@ -1062,7 +1073,6 @@ function openCandidateModal(candidateId){
   const totalBox = document.getElementById('candTotalVal');
 
   if(!sampleRow){ return; }
-  const rowsForLetter = state.rows.length ? state.rows : (state.csvCache.get(sampleRow.storkreds)||[]);
   const nameOnly = sampleRow.kandidat_navn;
 
   title.textContent = nameOnly;
@@ -1271,7 +1281,7 @@ function renderPartyDetail(parti){
 
   function addCandidate(k){
     if(!state.storkreds){
-      return; // DK-niveau: modal-flow via toplisten
+      return;
     }
     state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
     syncSelectedToUrl();
