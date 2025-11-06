@@ -108,7 +108,7 @@
   display:flex;
   flex-direction:column;
   align-items:stretch;
-  gap:.5rem;
+  gap:.55rem;
   padding:.85rem 1rem;
   cursor:pointer;
 }
@@ -131,13 +131,12 @@
 }
 .storkreds-metrics{
   text-align:left;
-  font-size:.85rem;
 }
 .storkreds-metrics-main{
   font-size:.95rem;
 }
 .storkreds-metrics-sub{
-  font-size:.75rem;
+  font-size:.78rem;
   color:#6b7280;
 }
 .chevron{
@@ -682,12 +681,9 @@ function renderHierarchy(){
             </div>
             <div class="storkreds-metrics tabular-nums">
               <div class="storkreds-metrics-main">
-                <span class="font-semibold">Ja</span> ${jaPctSk}
-                <span class="mx-1 text-gray-400">·</span>
-                <span class="font-semibold">Nej</span> ${nejPctSk}
-              </div>
-              <div class="storkreds-metrics-sub">
-                Ja (antal): ${fmt(aggSk.ja)} · Nej (antal): ${fmt(aggSk.nej)}
+                Ja: ${jaPctSk} (${fmt(aggSk.ja)} stemmer)
+                <span class="mx-1 text-gray-400">–</span>
+                Nej: ${nejPctSk} (${fmt(aggSk.nej)} stemmer)
               </div>
             </div>
           </div>
