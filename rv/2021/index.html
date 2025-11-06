@@ -79,7 +79,6 @@
   </div>
 
   <div class="mx-auto max-w-6xl px-4 pb-1">
-    <div class="text-white/90 text-base md:text-lg">Vælg en region og/eller kommune – og få overblik over partier og kandidater.</div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 
@@ -99,7 +98,6 @@
                 class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
           <option value="../2021/" selected>Regionsrådsvalg 2021</option>
           <option value="../2017/">Regionsrådsvalg 2017</option>
-          <option value="../2013/">Regionsrådsvalg 2013</option>
         </select>
       </div>
     </div>
@@ -140,12 +138,16 @@
   <!-- TOP: Kandidater / Partitotal -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
-      <div class="flex items-center gap-3">
-        <div class="text-right">
-          <div id="top10Scope" class="text-sm text-gray-500"></div>
-          <div id="modeInfo" class="text-xs text-gray-500 mt-0.5 hidden">Viser <strong>partitotal</strong>: personlige stemmer + listestemmer.</div>
+      <div>
+        <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+        <div id="top10Scope" class="text-sm text-gray-500"></div>
+        <!-- Info-boks om procenter -->
+        <div id="percentInfoOverview"
+             class="mt-1 text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg px-3 py-1 hidden">
+          <!-- Tekst sættes dynamisk i JavaScript -->
         </div>
+      </div>
+      <div class="flex items-center gap-3">
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
           <button id="btnModeCand" class="vb-tabbox small active" type="button">Kandidater</button>
           <button id="btnModeParty" class="vb-tabbox small" type="button">Partitotal</button>
@@ -225,6 +227,25 @@
   </section>
 </main>
 
+<footer class="mt-10 border-t bg-gray-100">
+  <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
+              flex flex-col md:flex-row items-center justify-between
+              gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+
+    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
+      hej@valgbar.dk
+    </a>
+
+    <p class="text-center">
+      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
+    </p>
+
+    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
+      Om Valgbar
+    </a>
+  </div>
+</footer>
+
 <script>
   const BASE_PATH='../../data/rv/2021/';
   const ALL_IN_REGION="__ALL_REGION__";
@@ -264,18 +285,27 @@
         || nameKey.includes("kaerlighedspartiet befri christiani"); /* historik */
   };
 
-  /* ===== resten er identisk funktionalitet som tidligere sider ===== */
+  /* ===== generelle helpers og state ===== */
 
   const state={ rows:[], region:"", kommune:"", activeParty:"", selected:new Map(),
     candidateSortMode:"alpha", topListMode:"top10", overviewMode:"cand", csvCache:new Map(), isLoading:false, pendingCandidateIds:[] };
 
   const el=id=>document.getElementById(id);
   const fmt=n=>new Intl.NumberFormat("da-DK").format(n);
+  const fmtPct=v=>new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
   const canon=s=>(s||"").toString().trim();
   const escapeHtml=s=>(s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fold=s=>(s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName=name=>(name||"").replace(/,(\S)/g,', $1');
   const isListestemmer=name=>{ const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; };
+
+  function totalValidVotes(rows){
+    let sum = 0;
+    for(const r of rows){
+      sum += r.stemmer || 0;
+    }
+    return sum;
+  }
 
   function badge(letter){ const bg=letter&&PARTY_COLORS[letter]?PARTY_COLORS[letter]:DEFAULT_BADGE_BG; const fg=letter&&PARTY_COLORS[letter]?"#fff":DEFAULT_BADGE_FG; return {style:`background-color:${bg};color:${fg};border-color:${bg}`,text:(letter||" ")}; }
   function detectPartyLetter(rowsForParti){
@@ -338,7 +368,7 @@
 
   window.addEventListener("DOMContentLoaded", async ()=>{
 
-    /* Årsvælger – skift mellem 2021 / 2017 / 2013 */
+    /* Årsvælger – skift mellem 2021 / 2017 */
     const yearSel = el("rvYearSelect");
     if (yearSel) {
       yearSel.addEventListener("change", () => {
@@ -370,7 +400,7 @@
 
   function updateCandSortToggleUI(){ const a=el("btnSortAlpha"), b=el("btnSortVotes"); if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); } else { b.classList.add("active"); a.classList.remove("active"); } }
   function updateTopToggleUI(){ const a=el("btnTop10"), b=el("btnAll"); const inParty=state.overviewMode==="party"; a.classList.toggle("active", state.topListMode==="top10"); b.classList.toggle("active", state.topListMode==="all"); b.textContent=inParty?"Alle partier":"Top 50"; }
-  function updateModeToggleUI(){ const a=el("btnModeCand"), c=el("btnModeParty"), info=el("modeInfo"); const party=state.overviewMode==="party"; a.classList.toggle("active", !party); c.classList.toggle("active", party); info?.classList.toggle("hidden", !party); }
+  function updateModeToggleUI(){ const a=el("btnModeCand"), c=el("btnModeParty"); const party=state.overviewMode==="party"; a.classList.toggle("active", !party); c.classList.toggle("active", party); }
 
   function showLoading(){ state.isLoading=true; el('loader')?.classList.remove('hidden'); el('overviewTop')?.setAttribute('aria-busy','true'); el('regionSelect')?.setAttribute('disabled',''); el('kommuneSelect')?.setAttribute('disabled',''); }
   function hideLoading(){ state.isLoading=false; el('loader')?.classList.add('hidden'); el('overviewTop')?.removeAttribute('aria-busy'); if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled',''); el('regionSelect')?.removeAttribute('disabled'); }
@@ -503,14 +533,30 @@
     const scopeText=state.kommune===ALL_IN_REGION?`${state.region} – alle kommuner`:(state.kommune?state.kommune:(state.region?`${state.region}`:'Danmark'));
     el("top10Scope").textContent=rows.length?scopeText:'';
 
+    const isDK = !state.region;
+    const infoBox = el("percentInfoOverview");
+    if (infoBox) {
+      if (state.overviewMode === "party" || (state.overviewMode === "cand" && !isDK)) {
+        infoBox.textContent = "Procenttallet viser partiets/kandidatens samlede andel af alle gyldige stemmer i det valgte område.";
+        infoBox.classList.remove("hidden");
+      } else {
+        infoBox.classList.add("hidden");
+      }
+    }
+
     if(state.overviewMode==="party"){
       const ranked=totalsByPartyAllVotes(rows);
       const list=(state.topListMode==="top10")?ranked.slice(0,10):ranked;
       el("top10Title").textContent=(state.topListMode==="top10")?"Top 10 partier (personlige + listestemmer)":"Alle partier (personlige + listestemmer)";
-      el("modeInfo")?.classList.remove('hidden');
+      const totalValid = totalValidVotes(rows);
 
       function itemHTML(p,idx){
-        const bd=badge(p.letter); const meta=`${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const bd=badge(p.letter);
+        const share = totalValid > 0 ? p.total / totalValid : null;
+        const shareLabel = share !== null ? fmtPct(share) : null;
+        const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
+        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1"><div class="font-medium truncate">${escapeHtml(p.parti)}</div><div class="text-xs text-gray-500 truncate">${meta}</div></div>
@@ -527,12 +573,18 @@
         });
       });
     }else{
-      el("modeInfo")?.classList.add('hidden');
       const ranked=totalsByCandidate(rows);
       const list=(state.topListMode==="top10")?ranked.slice(0,10):ranked.slice(0,50);
       el("top10Title").textContent=(state.topListMode==="top10")?"Top 10 kandidater (personlige stemmer)":"Top 50 kandidater (personlige stemmer)";
+      const totalValid = !isDK ? totalValidVotes(rows) : 0;
+
       function itemHTML(k,idx){
-        const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti)); const bd=badge(letter); const meta=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
+        const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti)); const bd=badge(letter);
+        const share = (!isDK && totalValid > 0) ? (k.total || 0) / totalValid : null;
+        const shareLabel = share !== null ? fmtPct(share) : null;
+        const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
+        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+
         return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span><div class="min-w-0 flex-1"><div class="font-medium truncate">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div><div class="text-xs text-gray-500 truncate">${meta}</div></div>
           <span class="vb-badge" style="${bd.style}">${bd.text}</span></li>`;
@@ -592,9 +644,26 @@
     const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
     left.innerHTML=""; right.innerHTML=""; if(!parti){ header.textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; return; }
     header.textContent=parti;
-    const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[]; const sorted=kandidaterAll.slice().sort(state.candidateSortMode==='alpha'?sortKandidaterAlpha:sortKandidaterVotes);
+    const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
+    const sorted=kandidaterAll.slice().sort(state.candidateSortMode==='alpha'?sortKandidaterAlpha:sortKandidaterVotes);
     const mid=Math.ceil(sorted.length/2), leftArr=sorted.slice(0,mid), rightArr=sorted.slice(mid);
-    function card(k){ const subtitle=`${fmt(k.total)} stemmer i alt`, meta=`${escapeHtml(k.parti)} · ${subtitle}`; const div=document.createElement('div'); div.className='rounded-xl border px-3 py-2';
+
+    const isDK = !state.region;
+    const totalValid = !isDK ? totalValidVotes(state.rows || []) : 0;
+
+    function card(k){
+      const listestemmer = isListestemmer(k.kandidat_navn);
+      const share = (!isDK && !listestemmer && totalValid > 0) ? (k.total || 0) / totalValid : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+
+      const subtitleBase = listestemmer
+        ? `${fmt(k.total)} listestemmer`
+        : `${fmt(k.total)} personlige stemmer`;
+
+      const subtitle = shareLabel ? `${subtitleBase} · ${shareLabel}` : subtitleBase;
+      const meta=`${escapeHtml(k.parti)} · ${subtitle}`;
+
+      const div=document.createElement('div'); div.className='rounded-xl border px-3 py-2';
       div.innerHTML=`<div class="flex items-center justify-between"><div><div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div><div class="text-xs text-gray-500">${meta}</div></div><div class="flex gap-2"><button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button></div></div>`;
       div.querySelector('button[data-add]').onclick=()=>{ state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti}); renderAll(); persistUrl(false); }; return div; }
     leftArr.forEach(k=>left.appendChild(card(k))); rightArr.forEach(k=>right.appendChild(card(k)));
@@ -605,13 +674,27 @@
   function renderAll(){ renderSelected(); renderScopeTable(); const hasSel=getSelected().length>0; el("compareSection").classList.toggle("hidden",!hasSel); el("tabsCard").classList.toggle("hidden",!hasSel); }
   function computeTotalsByCandidate(){ const m=new Map(); for(const r of state.rows) m.set(r.kandidat_id,(m.get(r.kandidat_id)||0)+r.stemmer); return m; }
   const stemmerLabel=n=>n===1?'stemme':'stemmer';
-  function renderSelected(){ const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
+  function renderSelected(){
+    const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
+    const isDK = !state.region;
+    const totalValid = !isDK ? totalValidVotes(state.rows || []) : 0;
+
     function letterForParti(parti){ const rowsFor=(state.rows||[]).filter(r=>r.parti===parti); return detectPartyLetter(rowsFor)||null; }
-    root.innerHTML= sel.map(k=>{ const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.kandidat_id)||0;
-      const totalTekst=`${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+    root.innerHTML= sel.map(k=>{
+      const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.kandidat_id)||0;
+      const listestemmer = isListestemmer(k.kandidat_navn);
+      const share = (!isDK && !listestemmer && totalValid > 0) ? total / totalValid : null;
+      const shareLabel = share !== null ? fmtPct(share) : null;
+
+      const totalTekstBase = listestemmer
+        ? `${fmt(total)} listestemmer i alt`
+        : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+
+      const shareHtml = shareLabel ? `<div class="text-xs text-gray-500">${shareLabel}</div>` : "";
+
       return `<div class="rounded-xl border p-3 flex items-center justify-between"><div class="flex items-center gap-3">
         <span class="vb-badge" style="${bd.style}">${bd.text}</span><div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))} <span class="text-gray-500">(${escapeHtml(k.parti)})</span></div></div>
-        <div class="flex items-center gap-3"><div class="tabular-nums font-medium">${totalTekst}</div><button class="vb-btn" onclick="removeCandidate('${k.kandidat_id}')">Fjern</button></div></div>`; }).join("")||`<div class="text-sm text-gray-500">Ingen kandidater valgt endnu.</div>`;
+        <div class="flex items-center gap-3"><div class="tabular-nums text-sm"><div class="font-medium">${totalTekstBase}</div>${shareHtml}</div><button class="vb-btn" onclick="removeCandidate('${k.kandidat_id}')">Fjern</button></div></div>`; }).join("")||`<div class="text-sm text-gray-500">Ingen kandidater valgt endnu.</div>`;
     el("btnClearAll").disabled = sel.length===0;
   }
   window.removeCandidate=id=>{ state.selected.delete(id); renderAll(); persistUrl(false); };
@@ -690,8 +773,18 @@
       });
 
       const totalsAll=computeTotalsByCandidate();
+      const totalValid = totalValidVotes(state.rows || []);
+
       tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">Regionstotal</th>
-        ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totalsAll.get(s.kandidat_id)||0)}</td>`).join("")}
+        ${sel.map(s=>{
+          const total = totalsAll.get(s.kandidat_id)||0;
+          const share = totalValid > 0 ? total / totalValid : null;
+          const shareLabel = share !== null ? fmtPct(share) : null;
+          return `<td class="py-2 pr-3 tabular-nums font-medium">
+            ${fmt(total)}
+            ${shareLabel ? `<div class="text-xs text-gray-500">${shareLabel}</div>` : ""}
+          </td>`;
+        }).join("")}
       </tr>`;
 
     }else{
@@ -710,8 +803,18 @@
       </tr>`).join("");
 
       const totals=computeTotalsByCandidate();
+      const totalValid = totalValidVotes(state.rows || []);
+
       tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">Kommunetotal</th>
-        ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.kandidat_id)||0)}</td>`).join("")}
+        ${sel.map(s=>{
+          const total = totals.get(s.kandidat_id)||0;
+          const share = totalValid > 0 ? total / totalValid : null;
+          const shareLabel = share !== null ? fmtPct(share) : null;
+          return `<td class="py-2 pr-3 tabular-nums font-medium">
+            ${fmt(total)}
+            ${shareLabel ? `<div class="text-xs text-gray-500">${shareLabel}</div>` : ""}
+          </td>`;
+        }).join("")}
       </tr>`;
     }
   }
