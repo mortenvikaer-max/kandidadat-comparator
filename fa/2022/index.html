@@ -106,10 +106,9 @@
 }
 .storkreds-header{
   display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  justify-content:space-between;
-  gap:.75rem;
+  flex-direction:column;
+  align-items:stretch;
+  gap:.5rem;
   padding:.85rem 1rem;
   cursor:pointer;
 }
@@ -125,12 +124,21 @@
   font-weight:600;
   font-size:1rem;
 }
+.storkreds-header-main{
+  display:flex;
+  flex-direction:column;
+  gap:.25rem;
+}
 .storkreds-metrics{
-  text-align:right;
+  text-align:left;
   font-size:.85rem;
 }
 .storkreds-metrics-main{
-  font-size:.9rem;
+  font-size:.95rem;
+}
+.storkreds-metrics-sub{
+  font-size:.75rem;
+  color:#6b7280;
 }
 .chevron{
   display:inline-flex;
@@ -142,6 +150,7 @@
   border:1px solid #e5e7eb;
   background:#f3f4f6;
   font-size:12px;
+  flex-shrink:0;
 }
 .chevron span{
   display:inline-block;
@@ -664,19 +673,22 @@ function renderHierarchy(){
     html += `
       <div class="storkreds-card">
         <div class="storkreds-header" data-role="toggle-storkreds" data-sk="${escapeHtml(sk)}">
-          <div class="storkreds-title">
-            <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
-              <span>&rsaquo;</span>
-            </span>
-            <span class="storkreds-name">${escapeHtml(sk)}</span>
-          </div>
-          <div class="storkreds-metrics tabular-nums">
-            <div class="storkreds-metrics-main">
-              Ja %: <span class="font-semibold">${jaPctSk}</span> ·
-              Nej %: <span class="font-semibold">${nejPctSk}</span>
+          <div class="storkreds-header-main">
+            <div class="storkreds-title">
+              <span class="chevron ${isOpenSk ? 'chevron-open' : ''}">
+                <span>&rsaquo;</span>
+              </span>
+              <span class="storkreds-name">${escapeHtml(sk)}</span>
             </div>
-            <div class="text-[0.7rem] md:text-xs text-gray-500">
-              Ja (antal): ${fmt(aggSk.ja)} · Nej (antal): ${fmt(aggSk.nej)}
+            <div class="storkreds-metrics tabular-nums">
+              <div class="storkreds-metrics-main">
+                <span class="font-semibold">Ja</span> ${jaPctSk}
+                <span class="mx-1 text-gray-400">·</span>
+                <span class="font-semibold">Nej</span> ${nejPctSk}
+              </div>
+              <div class="storkreds-metrics-sub">
+                Ja (antal): ${fmt(aggSk.ja)} · Nej (antal): ${fmt(aggSk.nej)}
+              </div>
             </div>
           </div>
         </div>
