@@ -437,6 +437,11 @@
       return "SF - Socialistisk Folkeparti";
     }
 
+    // *** NYT: ren "Socialistisk Folkeparti" skal også mappes til SF ***
+    if (lower === "socialistisk folkeparti") {
+      return "SF - Socialistisk Folkeparti";
+    }
+
     // ===== Det Radikale Venstre =====
     if(
       lower === "det radikale venstre" ||
