@@ -255,18 +255,104 @@
   /* ===== DATA-STI (KV2005) ===== */
   const BASE_PATH = '/data/kv/2005/';
 
-  /* Kommuner (98 kommuner som i 2009 – tilpas hvis dine 2005-data har en anden liste) */
+  /* Kommuner (96 sammenlægningskommuner / kommuner, som i din liste) */
   const KOMMUNER = [
-    "Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø",
-    "Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj",
-    "København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk",
-    "Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse",
-    "Solrød","Sorø","Stevns","Vordingborg",
-    "Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev","Kerteminde","Kolding","Langeland","Middelfart",
-    "Nordfyns","Nyborg","Odense","Svendborg","Tønder","Varde","Vejen","Vejle","Ærø","Aabenraa","Sønderborg",
-    "Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig","Norddjurs","Odder","Randers","Ringkøbing-Skjern",
-    "Samsø","Silkeborg","Skanderborg","Skive","Struer","Syddjurs","Viborg","Aarhus",
-    "Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"
+    "Albertslund Kommune",
+    "Allerød Kommune",
+    "Assens Sammenlægningsudvalg Kommune",
+    "Ballerup Kommune",
+    "Billund Sammenlægningsudvalg Kommune",
+    "Bogense Sammenlægningsudvalg Kommune",
+    "Bornholms Regionskommune",
+    "Brøndby Kommune",
+    "Brønderslev-Dronninglund Sam. Kommune",
+    "Dragør Kommune",
+    "Egedal Sammenlægningsudvalg Kommune",
+    "Esbjerg Sammenlægningsudvalg Kommune",
+    "Favrskov Sammenlægningsudvalg Kommune",
+    "Faxe Sammenlægningsudvalg Kommune",
+    "Fredensborg Sam.læg.udvalg Kommune",
+    "Fredericia Kommune",
+    "Frederiksberg Kommune",
+    "Frederikshavn Sam.læg.udvalg Kommune",
+    "Frederikssund Sam.læg.udvalg Kommune",
+    "Frederiksværk-Hundested Sam. Kommune",
+    "Furesø Sammenlægningsudvalg Kommune",
+    "Faaborg-Midtfyn Sam.læg.udvalg Kommune",
+    "Gentofte Kommune",
+    "Gladsaxe Kommune",
+    "Glostrup Kommune",
+    "Greve Kommune",
+    "Gribskov Sammenlægningsudvalg Kommune",
+    "Guldborgsund Sam.læg.udvalg Kommune",
+    "Haderslev Sammenlægningsudvalg Kommune",
+    "Hedensted Sammenlægningsudvalg Kommune",
+    "Helsingør Kommune",
+    "Herlev Kommune",
+    "Herning Sammenlægningsudvalg Kommune",
+    "Hillerød Sammenlægningsudvalg Kommune",
+    "Hjørring Sammenlægningsudvalg Kommune",
+    "Holbæk Sammenlægningsudvalg Kommune",
+    "Holstebro Sammenlægningsudvalg Kommune",
+    "Horsens Sammenlægningsudvalg Kommune",
+    "Hvidovre Kommune",
+    "Høje-Taastrup Kommune",
+    "Hørsholm Kommune",
+    "Ikast-Brande Sam.læg.udvalg Kommune",
+    "Ishøj Kommune",
+    "Jammerbugt Sammenlægningsudv. Kommune",
+    "Kalundborg Sam.læg.udvalg Kommune",
+    "Kerteminde Sammenlægningsudv. Kommune",
+    "Kolding Sammenlægningsudvalg Kommune",
+    "Københavns Kommune",
+    "Køge Sammenlægningsudvalg Kommune",
+    "Langeland Sammenlægningsudvalg Kommune",
+    "Lejre Sammenlægningsudvalg Kommune",
+    "Lemvig Sammenlægningsudvalg Kommune",
+    "Lolland Sammenlægningsudvalg Kommune",
+    "Lyngby-Taarbæk Kommune",
+    "Mariagerfjord Sam.læg.udvalg Kommune",
+    "Middelfart Sam.læg.udvalg Kommune",
+    "Morsø Kommune",
+    "Norddjurs Sammenlægningsudvalg Kommune",
+    "Nyborg Sammenlægningsudvalg Kommune",
+    "Næstved Sammenlægningsudvalg Kommune",
+    "Odder Kommune",
+    "Odense Kommune",
+    "Odsherred Sammenlægningsudvalg Kommune",
+    "Randers Sammenlægningsudvalg Kommune",
+    "Rebild Sammenlægningsudvalg Kommune",
+    "Ringkøbing-Skjern Sam.læg.udv Kommune",
+    "Ringsted Kommune",
+    "Roskilde Sammenlægningsudvalg Kommune",
+    "Rudersdal Sammenlægningsudvalg Kommune",
+    "Rødovre Kommune",
+    "Samsø Kommune",
+    "Silkeborg Sammenlægningsudvalg Kommune",
+    "Skanderborg Sammenlægningsudv. Kommune",
+    "Skive Sammenlægningsudvalg Kommune",
+    "Slagelse Sammenlægningsudvalg Kommune",
+    "Solrød Kommune",
+    "Sorø Sammenlægningsudvalg Kommune",
+    "Stevns Sammenlægningsudvalg Kommune",
+    "Struer Sammenlægningsudvalg Kommune",
+    "Svendborg Sammenlægningsudvalg Kommune",
+    "Syddjurs Sammenlægningsudvalg Kommune",
+    "Sønderborg Sammenlægningsudv. Kommune",
+    "Thisted Sammenlægningsudvalg Kommune",
+    "Tønder Sammenlægningsudvalg Kommune",
+    "Tårnby Kommune",
+    "Vallensbæk Kommune",
+    "Varde Sammenlægningsudvalg Kommune",
+    "Vejen Sammenlægningsudvalg Kommune",
+    "Vejle Sammenlægningsudvalg Kommune",
+    "Vesthimmerland Sam.læg.udvalg Kommune",
+    "Viborg Sammenlægningsudvalg Kommune",
+    "Vordingborg Sam.læg.sudvalg Kommune",
+    "Ærø Sammenlægningsudvalg Kommune",
+    "Aabenraa Sammenlægningsudvalg Kommune",
+    "Aalborg Sammenlægningsudvalg Kommune",
+    "Århus Kommune"
   ];
 
   /* Partinavne, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
@@ -292,112 +378,110 @@
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
   // Normaliser partinavne, så varianter samles under det rigtige navn
-  // Normaliser partinavne, så varianter samles under det rigtige navn
-function normalizePartyName(p){
-  const t = canon(p);
-  const lower = t.toLowerCase();
+  function normalizePartyName(p){
+    const t = canon(p);
+    const lower = t.toLowerCase();
 
-  // ===== Socialdemokratiet =====
-  const socialdemVariants = [
-    "socialdemokratiet",
-    "socialdemokratiet middelfart",
-    "socialdemokratiet aabybro",
-    "socialdemokratiet pandrup",
-    "socialdemokratiet brørup",
-    "socialdemokratiet fjerritslev",
-    "socialdemokratiet ejby",
-    "socialdemokratiet rødding",
-    "socialdemokratiet brovst",
-    "socialdemokratiet holsted",
-    "socialdemokratiet nørre aaby"
-    "socialdemokratiet vejen"
-  ];
-  if (socialdemVariants.includes(lower)) {
-    return "Socialdemokratiet";
+    // ===== Socialdemokratiet =====
+    const socialdemVariants = [
+      "socialdemokratiet",
+      "socialdemokratiet middelfart",
+      "socialdemokratiet aabybro",
+      "socialdemokratiet pandrup",
+      "socialdemokratiet brørup",
+      "socialdemokratiet fjerritslev",
+      "socialdemokratiet ejby",
+      "socialdemokratiet rødding",
+      "socialdemokratiet brovst",
+      "socialdemokratiet holsted",
+      "socialdemokratiet nørre aaby"
+    ];
+    if (socialdemVariants.includes(lower)) {
+      return "Socialdemokratiet";
+    }
+
+    // ===== Venstre, Danmarks Liberale Parti =====
+    const venstreVariants = [
+      "venstre, danmarks liberale parti",
+      "venstre - danmarks liberale parti",
+      "langelands venstre, danmarks liber",
+      "venstre danmarks liberale parti",
+      "venstre,danmarks liberale parti",
+      "sundsøre venstre",
+      "venstre, videbæk",
+      "venstre brovst",
+      "venstre i rødding kommune",
+      "venstre, holmsland",
+      "venstre, ringkøbing",
+      "venstre, skjern",
+      "venstre i brørup kommune",
+      "venstre, egvad",
+      "venstre i vejen kommune",
+      "skive venstre",
+      "venstre aabybro",
+      "venstre pandrup",
+      "spøttrup venstre",
+      "venstre fjerritslev",
+      "venstre i holsted kommune",
+      "sallingsund venstre",
+      "venstres ungdom, danm. liberale p"
+    ];
+    if (venstreVariants.includes(lower)) {
+      return "Venstre, Danmarks Liberale Parti";
+    }
+
+    // ===== SF - Socialistisk Folkeparti =====
+    if(
+      lower === "sf - socialistisk folkeparti" ||
+      lower === "sf - socialistiske folkeparti" ||
+      lower === "sf-socialistisk folkeparti" ||
+      lower === "sf - socialitisk folkeparti" ||
+      lower === "sf- socialistisk folkeparti"
+    ){
+      return "SF - Socialistisk Folkeparti";
+    }
+
+    // ===== Det Radikale Venstre =====
+    if(
+      lower === "det radikale venstre" ||
+      lower === "det radikale venstre - gribskov ra"
+    ){
+      return "Det Radikale Venstre";
+    }
+
+    // ===== Enhedslisten - De Rød-Grønne =====
+    const enhedslistenVariants = [
+      "enhedslisten - de rød-grønne",
+      "enhedslisten, de rød-grønne",
+      "enhedslisten-de rød-grønne",
+      "enhedslisten - de rød grønne",
+      "enhedslisten - de rød/grønne",
+      "enhedslisten - de rød - grønne",
+      "enhedslisten de rød-grønne"
+    ];
+    if (enhedslistenVariants.includes(lower)) {
+      return "Enhedslisten - De Rød-Grønne";
+    }
+
+    // ===== Det Konservative Folkeparti =====
+    const konservativeVariants = [
+      "det konservative folkeparti",
+      "det konservative folkeparti.",
+      "det konservative folkeparti i thy",
+      "det konservative folkeparti i this",
+      "det konservative folkeparti h.næs",
+      "det konservative folkeparti - jamm",
+      "det konservative folkeparti, vord.",
+      "det konservative folkeparti hader",
+      "det konservative folkeparti vojen",
+      "det konservative folkeparti gram"
+    ];
+    if (konservativeVariants.includes(lower)) {
+      return "Det Konservative Folkeparti";
+    }
+
+    return t;
   }
-
-  // ===== Venstre, Danmarks Liberale Parti =====
-  const venstreVariants = [
-    "venstre, danmarks liberale parti",
-    "venstre - danmarks liberale parti",
-    "langelands venstre, danmarks liber",
-    "venstre danmarks liberale parti",
-    "venstre,danmarks liberale parti",
-    "sundsøre venstre",
-    "venstre, videbæk",
-    "venstre brovst",
-    "venstre i rødding kommune",
-    "venstre, holmsland",
-    "venstre, ringkøbing",
-    "venstre, skjern",
-    "venstre i brørup kommune",
-    "venstre, egvad",
-    "venstre i vejen kommune",
-    "skive venstre",
-    "venstre aabybro",
-    "venstre pandrup",
-    "spøttrup venstre",
-    "venstre fjerritslev",
-    "venstre i holsted kommune",
-    "sallingsund venstre",
-    "venstres ungdom, danm. liberale p"
-  ];
-  if (venstreVariants.includes(lower)) {
-    return "Venstre, Danmarks Liberale Parti";
-  }
-
-  // ===== SF - Socialistisk Folkeparti =====
-  if(
-    lower === "sf - socialistisk folkeparti" ||
-    lower === "sf - socialistiske folkeparti" ||
-    lower === "sf-socialistisk folkeparti" ||
-    lower === "sf - socialitisk folkeparti" ||
-    lower === "sf- socialistisk folkeparti"
-  ){
-    return "SF - Socialistisk Folkeparti";
-  }
-
-  // ===== Det Radikale Venstre =====
-  if(
-    lower === "det radikale venstre" ||
-    lower === "det radikale venstre - gribskov ra"
-  ){
-    return "Det Radikale Venstre";
-  }
-
-  // ===== Enhedslisten - De Rød-Grønne =====
-  const enhedslistenVariants = [
-    "enhedslisten - de rød-grønne",
-    "enhedslisten, de rød-grønne",
-    "enhedslisten-de rød-grønne",
-    "enhedslisten - de rød grønne",
-    "enhedslisten - de rød/grønne",
-    "enhedslisten - de rød - grønne",
-    "enhedslisten de rød-grønne"
-  ];
-  if (enhedslistenVariants.includes(lower)) {
-    return "Enhedslisten - De Rød-Grønne";
-  }
-
-  // ===== Det Konservative Folkeparti =====
-  const konservativeVariants = [
-    "det konservative folkeparti",
-    "det konservative folkeparti.",
-    "det konservative folkeparti i thy",
-    "det konservative folkeparti i this",
-    "det konservative folkeparti h.næs",
-    "det konservative folkeparti - jamm",
-    "det konservative folkeparti, vord.",
-    "det konservative folkeparti hader",
-    "det konservative folkeparti vojen",
-    "det konservative folkeparti gram"
-  ];
-  if (konservativeVariants.includes(lower)) {
-    return "Det Konservative Folkeparti";
-  }
-
-  return t;
-}
 
   const totalValidVotes = (rows) => {
     let sum = 0;
@@ -714,7 +798,9 @@ function normalizePartyName(p){
   /* ===== Dropdowns ===== */
   function initKommuneDropdown(){
     const ksel=el("kommuneSelect");
-    ksel.innerHTML=`<option value="">Hele Danmark</option>`+KOMMUNER.map(k=>`<option value="${k}">${k}</option>`).join("");
+    const sorted = KOMMUNER.slice().sort((a,b)=>a.localeCompare(b,"da"));
+    ksel.innerHTML=`<option value="">Hele Danmark</option>`+
+      sorted.map(k=>`<option value="${k}">${k}</option>`).join("");
     ksel.disabled=false;
     ksel.onchange=()=>{
       const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
@@ -772,11 +858,40 @@ function normalizePartyName(p){
     return res.data.map(mapRowCommon);
   }
 
+  // Brug kommunevisnings-navn til at finde korrekt filnavn
+  function kommuneFileKey(k){
+    let name = (k || "").trim();
+
+    // Fjern forskellige "sammenlægnings"- og sam.-varianter
+    name = name.replace(/ Sammenlægningsudvalg Kommune$/,"");
+    name = name.replace(/ Sam\.l[æa]g\.udvalg Kommune$/,"");
+    name = name.replace(/ Sam\.l[æa]g\.udv\.? Kommune$/,"");
+    name = name.replace(/ Sammenlægningsudv\. Kommune$/,"");
+    name = name.replace(/ Sam\. Kommune$/,"");
+    name = name.replace(/ Sam\.l[æa]g\.sudvalg Kommune$/,"");
+    name = name.replace(/ Sam\.l[æa]g\.sudv\.? Kommune$/,"");
+
+    // Regionskommune og almindelig Kommune
+    name = name.replace(/ Regionskommune$/,"");
+    name = name.replace(/ Kommune$/,"");
+
+    name = name.trim();
+
+    // Special-cases hvor filnavn sandsynligvis følger reformnavnet
+    if(name === "Bornholms") name = "Bornholm";
+    if(name === "Vesthimmerland") name = "Vesthimmerlands";
+    if(name === "Københavns") name = "København";
+    if(name === "Århus") name = "Aarhus";
+
+    return name;
+  }
+
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
 
-    const safe    = encodeURIComponent(k);
-    const url     = `${BASE_PATH}${safe}.csv`;
+    const key = kommuneFileKey(k);
+    const safe = encodeURIComponent(key);
+    const url  = `${BASE_PATH}${safe}.csv`;
 
     const text = await fetchText(url);
     if (/<html[^>]*>/i.test(text)) throw new Error('Not CSV');
@@ -819,7 +934,7 @@ function normalizePartyName(p){
       showLoading(); el("error").textContent=""; el("kommunetitel").textContent=k?`(${k})`:"";
       const rows=await loadRowsForKommune(k); state.rows=rows; afterDataLoaded();
     } catch(e){
-      el("error").textContent=`Kunne ikke finde data for ${k}. Tjek at filen findes på ${BASE_PATH}${k}.csv`;
+      el("error").textContent=`Kunne ikke finde data for ${k}. Tjek at filen findes på ${BASE_PATH}${kommuneFileKey(k)}.csv`;
     } finally { hideLoading(); }
   }
 
