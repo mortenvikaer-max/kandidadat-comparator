@@ -226,11 +226,30 @@
   </div>
 
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
-    <ol class="flex items-center gap-2 text-lg font-semibold">
-      <li><a href="../../" class="underline text-white">Forside</a></li>
-      <li class="opacity-70 text-white">/</li>
-      <li><span aria-current="page" class="text-white">Folkeafstemningen om forsvarsforbeholdet, 2022</span></li>
-    </ol>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <ol class="flex items-center gap-2 text-lg font-semibold">
+        <li><a href="../../" class="underline text-white">Forside</a></li>
+        <li class="opacity-70 text-white">/</li>
+        <li>
+          <span aria-current="page" class="text-white">
+            Folkeafstemningen om forsvarsforbeholdet, 2022
+          </span>
+        </li>
+      </ol>
+
+      <!-- Årsvælger -->
+      <div class="flex items-center gap-3 text-lg font-semibold">
+        <label for="faYearSelect" class="text-white whitespace-nowrap">
+          Skift år:
+        </label>
+        <select id="faYearSelect"
+                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+          <option value="../2014/">Folkeafstemning 2014</option>
+          <option value="../2015/">Folkeafstemning 2015</option>
+          <option value="../2022/" selected>Folkeafstemning 2022</option>
+        </select>
+      </div>
+    </div>
   </nav>
 </header>
 
@@ -369,7 +388,7 @@
 /* ====== DATA-STI (Folkeafstemning 2022) ====== */
 const BASE_PATH = '/data/fa/2022/';
 const KREDS_ALL_VALUE = "__ALL__";
-const DK_VALUE = "__DK__";
+const DK_VALUE = "__DK__';
 
 /* Storkredse */
 const STORKREDSE = [
@@ -951,8 +970,19 @@ async function loadKredsScope(storkreds, kreds){
   }
 }
 
+/* Årsvælger */
+function initYearSelect(){
+  const sel = document.getElementById("faYearSelect");
+  if(!sel) return;
+  sel.addEventListener("change", () => {
+    const url = sel.value;
+    if(url) window.location.href = url;
+  });
+}
+
 /* Init */
 window.addEventListener("DOMContentLoaded", async ()=>{
+  initYearSelect();
   initStorkredsDropdown();
 
   const p = new URLSearchParams(location.search);
