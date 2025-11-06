@@ -102,9 +102,10 @@
     const DISABLED = {
       kv: [2001],   // Kommunalvalg 2001
       rv: [2013]    // Regionsrådsvalg 2013
+      // FA: ingen deaktiverede år – alle aktive
     };
 
-    // Brug relative stier så de virker i undermapper
+    // Brug stier som matcher din struktur
     const DEST = {
       kv: { perYear: {
         2021: 'kv/2021/',
@@ -134,11 +135,11 @@
         2009: 'ep/2009/',
         2004: 'ep/2004/'
       }},
-      // Folkeafstemning
+      // Folkeafstemning – nu aktiveret med dine stier
       fa: { perYear: {
-        2022: 'fa/2022/',
-        2015: 'fa/2015/',
-        2014: 'fa/2014/'
+        2022: '/fa/2022/',
+        2015: '/fa/2015/',
+        2014: '/fa/2014/'
       }}
     };
 
