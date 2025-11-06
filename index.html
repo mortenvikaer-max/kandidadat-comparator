@@ -86,26 +86,24 @@
   <script>
     /* ====== KONFIG ====== */
     const YEARS = {
-      // FT: inkluderer 2005, 2007, 2011, 2015, 2019, 2022
-      ft: [2022, 2019, 2015, 2011, 2007, 2005],
+      // FT: 2007, 2011, 2015, 2019, 2022 (2005 fjernet)
+      ft: [2022, 2019, 2015, 2011, 2007],
       // KV: inkluderer 2021, 2017, 2013, 2009, 2005, 2001
       kv: [2021, 2017, 2013, 2009, 2005, 2001],
-      // RV: 2021, 2017, 2013
-      rv: [2021, 2017, 2013],
-      // EP: inkluderer 2004–2024
-      ep: [2024, 2019, 2014, 2009, 2004],
+      // RV: 2021, 2017 (2013 fjernet)
+      rv: [2021, 2017],
+      // EP: 2009, 2014, 2019, 2024 (2004 fjernet)
+      ep: [2024, 2019, 2014, 2009],
       // FA: Folkeafstemning
       fa: [2022, 2015, 2014]
     };
 
     // År der skal være deaktiveret (ingen navigation)
     const DISABLED = {
-      kv: [2001],   // Kommunalvalg 2001
-      rv: [2013]    // Regionsrådsvalg 2013
-      // FA: ingen deaktiverede år – alle aktive
+      kv: [2001]   // Kommunalvalg 2001
     };
 
-    // Brug stier som matcher din struktur
+    // Brug relative stier så de virker i undermapper
     const DEST = {
       kv: { perYear: {
         2021: 'kv/2021/',
@@ -135,11 +133,11 @@
         2009: 'ep/2009/',
         2004: 'ep/2004/'
       }},
-      // Folkeafstemning – nu aktiveret med dine stier
+      // Folkeafstemning – aktiveret med dine stier
       fa: { perYear: {
-        2022: '/fa/2022/',
-        2015: '/fa/2015/',
-        2014: '/fa/2014/'
+        2022: 'fa/2022/',
+        2015: 'fa/2015/',
+        2014: 'fa/2014/'
       }}
     };
 
