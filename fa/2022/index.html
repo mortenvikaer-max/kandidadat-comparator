@@ -193,7 +193,7 @@
   font-weight:500;
 }
 
-/* Valgsted-rækker */
+/* Valgsted-rækker – samme kolonner, bare mindre tekst og indryk */
 .kreds-table tbody tr.valgsted-row{
   cursor:default;
   background:#ffffff;
@@ -227,6 +227,7 @@
 
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-4">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <!-- Brødkrumme -->
       <ol class="flex items-center gap-2 text-lg font-semibold">
         <li><a href="../../" class="underline text-white">Forside</a></li>
         <li class="opacity-70 text-white">/</li>
@@ -385,6 +386,7 @@
 </footer>
 
 <script>
+/* ====== DATA-STI (Folkeafstemning 2022) ====== */
 const BASE_PATH = '/data/fa/2022/';
 const KREDS_ALL_VALUE = "__ALL__";
 const DK_VALUE = "__DK__";
@@ -427,6 +429,7 @@ const escapeHtml = s => (s||"").replace(/[&<>"]/g, c => (
 
 const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
 
+/* Konverterer decimal-komma til tal */
 function toNumberComma(str){
   if(str == null) return null;
   const t = str.toString().trim().replace('.','').replace(',','.');
@@ -434,18 +437,21 @@ function toNumberComma(str){
   return isNaN(v) ? null : v;
 }
 
+/* Storkreds -> filnavnsslug (Københavns Omegns Storkreds -> Københavns_Omegns_Storkreds) */
 function storkredsSlug(name){
   return (name || "").toString().replace(/\s+/g,"_");
 }
 
+/* Global state */
 const state = {
   storkreds: "",
   kreds: "",
-  csvCache: new Map(),
-  openStorkredse: new Set(),
-  openKredse: new Set()
+  csvCache: new Map(),         // key: storkreds-navn, value: rows[]
+  openStorkredse: new Set(),   // storkreds-navne
+  openKredse: new Set()        // key: "storkreds||kreds"
 };
 
+/* Loader-hjælpere */
 function showLoading(msg = "Indlæser…"){
   const sec = el("loaderSection");
   if(sec) sec.classList.remove("hidden");
@@ -461,6 +467,7 @@ function hideLoading(){
   if(state.storkreds) el("kredsSelect")?.removeAttribute("disabled");
 }
 
+/* CSV-indlæsning pr. storkreds */
 async function ensureStorkredsLoaded(storkredsName){
   if(state.csvCache.has(storkredsName)) return;
   const slug = storkredsSlug(storkredsName);
@@ -474,6 +481,7 @@ async function ensureStorkredsLoaded(storkredsName){
   state.csvCache.set(storkredsName, rows);
 }
 
+/* Parse CSV -> rows */
 function parseCsv(text, storkredsNavn){
   const parsed = Papa.parse(text, {
     header:true,
@@ -496,6 +504,7 @@ function parseCsv(text, storkredsNavn){
   }).filter(r => r.svar === "Ja" || r.svar === "Nej");
 }
 
+/* Hent aktive rows for nuværende scope (DK / storkreds / kreds) */
 function getCurrentRows(){
   if(!state.storkreds){
     let all = [];
@@ -509,6 +518,7 @@ function getCurrentRows(){
   return rowsSk.filter(r => r.kreds === state.kreds);
 }
 
+/* Aggreger Ja/Nej for et sæt rows */
 function aggregateYesNo(rows){
   let ja = 0, nej = 0;
   for(const r of rows){
@@ -521,6 +531,7 @@ function aggregateYesNo(rows){
   return { ja, nej, total, jaPct, nejPct };
 }
 
+/* Aggreger pr. kreds inden for en storkreds */
 function aggregateByKreds(rows){
   const m = new Map();
   for(const r of rows){
@@ -537,6 +548,7 @@ function aggregateByKreds(rows){
   return out;
 }
 
+/* Aggreger pr. valgsted inden for en kreds */
 function aggregateByPollingStation(rows){
   const m = new Map();
   for(const r of rows){
@@ -558,12 +570,14 @@ function aggregateByPollingStation(rows){
   return list;
 }
 
+/* Tekst for scope (DK / storkreds / kreds) */
 function getScopeLabel(){
   if(!state.storkreds) return "Danmark";
   if(!state.kreds || state.kreds === KREDS_ALL_VALUE) return state.storkreds;
   return `${state.kreds} (${state.storkreds})`;
 }
 
+/* Render overbliksboksen */
 function renderOverview(){
   const rows = getCurrentRows();
   const agg = aggregateYesNo(rows);
@@ -596,6 +610,7 @@ function renderOverview(){
   el("nejBar").style.width = `${wNej}%`;
 }
 
+/* Render “Hvor er jeg?” bar */
 function renderContextBar(){
   const bar = el("contextBar");
   const parts = [];
@@ -643,6 +658,7 @@ function renderContextBar(){
   });
 }
 
+/* Hierarki: Storkreds → Kredse → Valgsteder */
 function renderHierarchy(){
   const container = el("hierarchyContainer");
   const scopeLabel = getScopeLabel();
@@ -661,7 +677,7 @@ function renderHierarchy(){
     const jaPctSk = aggSk.jaPct != null ? fmtPct(aggSk.jaPct) : "–";
     const nejPctSk = aggSk.nejPct != null ? fmtPct(aggSk.nejPct) : "–";
     const jaWidth = aggSk.jaPct != null ? (aggSk.jaPct*100).toFixed(1) : "0";
-    the nejWidth = aggSk.nejPct != null ? (aggSk.nejPct*100).toFixed(1) : "0";
+    const nejWidth = aggSk.nejPct != null ? (aggSk.nejPct*100).toFixed(1) : "0";
 
     html += `
       <div class="storkreds-card">
@@ -674,6 +690,7 @@ function renderHierarchy(){
           </div>
 
           <div class="storkreds-header-grid mt-3">
+            <!-- Ja-boks -->
             <div class="answer-card answer-card-sm">
               <div class="flex items-center justify-between gap-2">
                 <div class="answer-label text-sm">
@@ -692,6 +709,7 @@ function renderHierarchy(){
               </div>
             </div>
 
+            <!-- Nej-boks -->
             <div class="answer-card answer-card-sm">
               <div class="flex items-center justify-between gap-2">
                 <div class="answer-label text-sm">
@@ -722,6 +740,7 @@ function renderHierarchy(){
 
   container.innerHTML = html;
 
+  // Bind events
   container.querySelectorAll('[data-role="toggle-storkreds"]').forEach(btn=>{
     const sk = btn.getAttribute('data-sk');
     btn.addEventListener('click', ()=>{
@@ -743,6 +762,7 @@ function renderHierarchy(){
   });
 }
 
+/* Kreds- OG valgsted-rækker i én tabel – med fast kolonnebredde via colgroup */
 function renderKredsTable(storkredsName, rowsSk){
   const kredsAgg = aggregateByKreds(rowsSk);
   if(!kredsAgg.length){
@@ -821,6 +841,7 @@ function renderKredsTable(storkredsName, rowsSk){
   return html;
 }
 
+/* Dropdowns */
 function initStorkredsDropdown(){
   const ssel = el("storkredsSelect");
   ssel.innerHTML =
@@ -898,6 +919,7 @@ function populateKredse(storkreds){
   }
 }
 
+/* Scope-loadere */
 async function loadDKScope(){
   showLoading("Indlæser Danmark…");
   el("error").textContent = "";
