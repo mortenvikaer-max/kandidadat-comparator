@@ -113,10 +113,10 @@
 
   <!-- LANDING (søg + dropdowns) -->
   <section id="landing" class="vb-card p-4 space-y-4">
-    <!-- 2 kolonner på md+ -->
+    <!-- Række 1: søgefelter -->
     <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
 
-      <!-- Række 1: Søg kandidat -->
+      <!-- Søg kandidat -->
       <div class="relative">
         <label class="text-sm text-gray-600">Søg kandidat</label>
         <input id="candidateSearch" type="text"
@@ -127,29 +127,33 @@
              aria-labelledby="candidateSearch" style="max-width:36rem"></div>
       </div>
 
-      <!-- Række 1: Søg kommune -->
+      <!-- Søg kommune -->
       <div>
         <label class="text-sm text-gray-600">Søg kommune</label>
         <input id="kommuneSearch" type="text"
                class="w-full mt-1 rounded-xl border p-2"
                placeholder="Start med at skrive fx Aarhus, Odense, København…" />
       </div>
+    </div>
 
-      <!-- Række 2: Region -->
+    <!-- Række 2: Region / Kommune / Valgsted -->
+    <div class="grid grid-cols-1 md:grid-cols-3 md:items-end gap-3">
+
+      <!-- Region -->
       <div>
         <label class="text-sm text-gray-600">Region</label>
         <select id="regionSelect"
                 class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
       </div>
 
-      <!-- Række 2: Kommune -->
+      <!-- Kommune -->
       <div>
         <label class="text-sm text-gray-600">Kommune</label>
         <select id="kommuneSelect"
                 class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
       </div>
 
-      <!-- Række 3: Valgsted -->
+      <!-- Valgsted -->
       <div>
         <label class="text-sm text-gray-600">Valgsted</label>
         <select id="valgstedSelect"
