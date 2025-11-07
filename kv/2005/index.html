@@ -88,11 +88,8 @@
       </ol>
 
       <div class="flex items-center gap-3 text-lg font-semibold">
-        <label for="kvYearSelect" class="text-white whitespace-nowrap">
-          Skift år:
-        </label>
-        <select id="kvYearSelect"
-                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+        <label for="kvYearSelect" class="text-white whitespace-nowrap">Skift år:</label>
+        <select id="kvYearSelect" class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
           <option value="../2021/">Kommunalvalg 2021</option>
           <option value="../2017/">Kommunalvalg 2017</option>
           <option value="../2013/">Kommunalvalg 2013</option>
@@ -104,8 +101,7 @@
   </nav>
 
   <div class="mx-auto max-w-6xl px-4 pb-4">
-    <div class="text-white/90 text-base md:text-lg">
-    </div>
+    <div class="text-white/90 text-base md:text-lg"></div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 </header>
@@ -121,10 +117,8 @@
         <label class="text-sm text-gray-600">Søg kandidat</label>
         <input id="candidateSearch" type="text"
                class="w-full mt-1 rounded-xl border p-2"
-               placeholder="Indtast kandidatnavn…"
-               autocomplete="off" />
-        <div id="candidateMenu" class="vb-menu hidden"
-             role="listbox" tabindex="-1"
+               placeholder="Indtast kandidatnavn…" autocomplete="off" />
+        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
              aria-labelledby="candidateSearch" style="max-width:36rem"></div>
       </div>
       <div>
@@ -133,15 +127,28 @@
                class="w-full mt-1 rounded-xl border p-2"
                placeholder="Start med at skrive fx Aarhus, Odense, København…" />
       </div>
+
+      <!-- Kommune -->
       <div>
         <label class="text-sm text-gray-600">Kommune</label>
         <select id="kommuneSelect"
                 class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
       </div>
+
+      <!-- Valgsted (NY) -->
+      <div>
+        <label class="text-sm text-gray-600">Valgsted</label>
+        <select id="valgstedSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900"
+                disabled>
+          <option value="">Vælg kommune først…</option>
+        </select>
+      </div>
     </div>
+
     <p class="text-sm text-gray-600">
       Vælg en kommune – eller lad feltet stå tomt for at se resultater for <strong>Hele Danmark</strong>.
-      Nedenfor vises Top 10 kandidater for det valgte område.
+      Vælger du et <strong>valgsted</strong>, filtreres resultaterne til netop det sted.
     </p>
   </section>
 
@@ -158,12 +165,10 @@
       </div>
     </div>
 
-    <!-- INFO-BOKS TIL PROCENTFORKLARING (kun kandidater) -->
     <div id="modeInfoBox"
          class="mt-1 mb-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hidden">
     </div>
 
-    <!-- Loader bar -->
     <div id="loader" class="loader-wrap hidden" aria-live="polite">
       <div class="progress w-48 rounded-full"></div>
       <span>Indlæser…</span>
@@ -189,16 +194,14 @@
           <button id="partyButton" type="button" class="vb-combo-btn"
                   aria-haspopup="listbox" aria-expanded="false" disabled>
             <span id="partyButtonContent" class="vb-combo-label">
-              <span class="vb-badge"
-                    style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
+              <span class="vb-badge" style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
               <span class="truncate text-gray-500">Vælg kommune først…</span>
             </span>
             <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor">
               <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z"/>
             </svg>
           </button>
-          <div id="partyMenu" class="vb-menu hidden"
-               role="listbox" tabindex="-1"
+          <div id="partyMenu" class="vb-menu hidden" role="listbox" tabindex="-1"
                aria-labelledby="partyButton"></div>
         </div>
       </aside>
@@ -209,10 +212,8 @@
             Vælg en kommune for at se partier.
           </div>
           <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
-            <button id="btnSortAlpha" class="vb-tabbox small active"
-                    type="button" title="Alfabetisk">A–Å</button>
-            <button id="btnSortVotes" class="vb-tabbox small"
-                    type="button" title="Flest stemmer">Flest stemmer</button>
+            <button id="btnSortAlpha" class="vb-tabbox small active" type="button" title="Alfabetisk">A–Å</button>
+            <button id="btnSortVotes" class="vb-tabbox small" type="button" title="Flest stemmer">Flest stemmer</button>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -251,110 +252,11 @@
 
   /* Kommuner (96, som i din liste) */
   const KOMMUNER = [
-    "Albertslund Kommune",
-    "Allerød Kommune",
-    "Assens Sammenlægningsudvalg Kommune",
-    "Ballerup Kommune",
-    "Billund Sammenlægningsudvalg Kommune",
-    "Bogense Sammenlægningsudvalg Kommune",
-    "Bornholms Regionskommune",
-    "Brøndby Kommune",
-    "Brønderslev-Dronninglund Sam. Kommune",
-    "Dragør Kommune",
-    "Egedal Sammenlægningsudvalg Kommune",
-    "Esbjerg Sammenlægningsudvalg Kommune",
-    "Favrskov Sammenlægningsudvalg Kommune",
-    "Faxe Sammenlægningsudvalg Kommune",
-    "Fredensborg Sam.læg.udvalg Kommune",
-    "Fredericia Kommune",
-    "Frederiksberg Kommune",
-    "Frederikshavn Sam.læg.udvalg Kommune",
-    "Frederikssund Sam.læg.udvalg Kommune",
-    "Frederiksværk-Hundested Sam. Kommune",
-    "Furesø Sammenlægningsudvalg Kommune",
-    "Faaborg-Midtfyn Sam.læg.udvalg Kommune",
-    "Gentofte Kommune",
-    "Gladsaxe Kommune",
-    "Glostrup Kommune",
-    "Greve Kommune",
-    "Gribskov Sammenlægningsudvalg Kommune",
-    "Guldborgsund Sam.læg.udvalg Kommune",
-    "Haderslev Sammenlægningsudvalg Kommune",
-    "Hedensted Sammenlægningsudvalg Kommune",
-    "Helsingør Kommune",
-    "Herlev Kommune",
-    "Herning Sammenlægningsudvalg Kommune",
-    "Hillerød Sammenlægningsudvalg Kommune",
-    "Hjørring Sammenlægningsudvalg Kommune",
-    "Holbæk Sammenlægningsudvalg Kommune",
-    "Holstebro Sammenlægningsudvalg Kommune",
-    "Horsens Sammenlægningsudvalg Kommune",
-    "Hvidovre Kommune",
-    "Høje-Taastrup Kommune",
-    "Hørsholm Kommune",
-    "Ikast-Brande Sam.læg.udvalg Kommune",
-    "Ishøj Kommune",
-    "Jammerbugt Sammenlægningsudv. Kommune",
-    "Kalundborg Sam.læg.udvalg Kommune",
-    "Kerteminde Sammenlægningsudv. Kommune",
-    "Kolding Sammenlægningsudvalg Kommune",
-    "Københavns Kommune",
-    "Køge Sammenlægningsudvalg Kommune",
-    "Langeland Sammenlægningsudvalg Kommune",
-    "Lejre Sammenlægningsudvalg Kommune",
-    "Lemvig Sammenlægningsudvalg Kommune",
-    "Lolland Sammenlægningsudvalg Kommune",
-    "Lyngby-Taarbæk Kommune",
-    "Mariagerfjord Sam.læg.udvalg Kommune",
-    "Middelfart Sam.læg.udvalg Kommune",
-    "Morsø Kommune",
-    "Norddjurs Sammenlægningsudvalg Kommune",
-    "Nyborg Sammenlægningsudvalg Kommune",
-    "Næstved Sammenlægningsudvalg Kommune",
-    "Odder Kommune",
-    "Odense Kommune",
-    "Odsherred Sammenlægningsudvalg Kommune",
-    "Randers Sammenlægningsudvalg Kommune",
-    "Rebild Sammenlægningsudvalg Kommune",
-    "Ringkøbing-Skjern Sam.læg.udv Kommune",
-    "Ringsted Kommune",
-    "Roskilde Sammenlægningsudvalg Kommune",
-    "Rudersdal Sammenlægningsudvalg Kommune",
-    "Rødovre Kommune",
-    "Samsø Kommune",
-    "Silkeborg Sammenlægningsudvalg Kommune",
-    "Skanderborg Sammenlægningsudv. Kommune",
-    "Skive Sammenlægningsudvalg Kommune",
-    "Slagelse Sammenlægningsudvalg Kommune",
-    "Solrød Kommune",
-    "Sorø Sammenlægningsudvalg Kommune",
-    "Stevns Sammenlægningsudvalg Kommune",
-    "Struer Sammenlægningsudvalg Kommune",
-    "Svendborg Sammenlægningsudvalg Kommune",
-    "Syddjurs Sammenlægningsudvalg Kommune",
-    "Sønderborg Sammenlægningsudv. Kommune",
-    "Thisted Sammenlægningsudvalg Kommune",
-    "Tønder Sammenlægningsudvalg Kommune",
-    "Tårnby Kommune",
-    "Vallensbæk Kommune",
-    "Varde Sammenlægningsudvalg Kommune",
-    "Vejen Sammenlægningsudvalg Kommune",
-    "Vejle Sammenlægningsudvalg Kommune",
-    "Vesthimmerland Sam.læg.udvalg Kommune",
-    "Viborg Sammenlægningsudvalg Kommune",
-    "Vordingborg Sam.læg.sudvalg Kommune",
-    "Ærø Sammenlægningsudvalg Kommune",
-    "Aabenraa Sammenlægningsudvalg Kommune",
-    "Aalborg Sammenlægningsudvalg Kommune",
-    "Århus Kommune"
+    "Albertslund Kommune","Allerød Kommune","Assens Sammenlægningsudvalg Kommune","Ballerup Kommune","Billund Sammenlægningsudvalg Kommune","Bogense Sammenlægningsudvalg Kommune","Bornholms Regionskommune","Brøndby Kommune","Brønderslev-Dronninglund Sam. Kommune","Dragør Kommune","Egedal Sammenlægningsudvalg Kommune","Esbjerg Sammenlægningsudvalg Kommune","Favrskov Sammenlægningsudvalg Kommune","Faxe Sammenlægningsudvalg Kommune","Fredensborg Sam.læg.udvalg Kommune","Fredericia Kommune","Frederiksberg Kommune","Frederikshavn Sam.læg.udvalg Kommune","Frederikssund Sam.læg.udvalg Kommune","Frederiksværk-Hundested Sam. Kommune","Furesø Sammenlægningsudvalg Kommune","Faaborg-Midtfyn Sam.læg.udvalg Kommune","Gentofte Kommune","Gladsaxe Kommune","Glostrup Kommune","Greve Kommune","Gribskov Sammenlægningsudvalg Kommune","Guldborgsund Sam.læg.udvalg Kommune","Haderslev Sammenlægningsudvalg Kommune","Hedensted Sammenlægningsudvalg Kommune","Helsingør Kommune","Herlev Kommune","Herning Sammenlægningsudvalg Kommune","Hillerød Sammenlægningsudvalg Kommune","Hjørring Sammenlægningsudvalg Kommune","Holbæk Sammenlægningsudvalg Kommune","Holstebro Sammenlægningsudvalg Kommune","Horsens Sammenlægningsudvalg Kommune","Hvidovre Kommune","Høje-Taastrup Kommune","Hørsholm Kommune","Ikast-Brande Sam.læg.udvalg Kommune","Ishøj Kommune","Jammerbugt Sammenlægningsudv. Kommune","Kalundborg Sam.læg.udvalg Kommune","Kerteminde Sammenlægningsudv. Kommune","Kolding Sammenlægningsudvalg Kommune","Københavns Kommune","Køge Sammenlægningsudvalg Kommune","Langeland Sammenlægningsudvalg Kommune","Lejre Sammenlægningsudvalg Kommune","Lemvig Sammenlægningsudvalg Kommune","Lolland Sammenlægningsudvalg Kommune","Lyngby-Taarbæk Kommune","Mariagerfjord Sam.læg.udvalg Kommune","Middelfart Sam.læg.udvalg Kommune","Morsø Kommune","Norddjurs Sammenlægningsudvalg Kommune","Nyborg Sammenlægningsudvalg Kommune","Næstved Sammenlægningsudvalg Kommune","Odder Kommune","Odense Kommune","Odsherred Sammenlægningsudvalg Kommune","Randers Sammenlægningsudvalg Kommune","Rebild Sammenlægningsudvalg Kommune","Ringkøbing-Skjern Sam.læg.udv Kommune","Ringsted Kommune","Roskilde Sammenlægningsudvalg Kommune","Rudersdal Sammenlægningsudvalg Kommune","Rødovre Kommune","Samsø Kommune","Silkeborg Sammenlægningsudvalg Kommune","Skanderborg Sammenlægningsudv. Kommune","Skive Sammenlægningsudvalg Kommune","Slagelse Sammenlægningsudvalg Kommune","Solrød Kommune","Sorø Sammenlægningsudvalg Kommune","Stevns Sammenlægningsudvalg Kommune","Struer Sammenlægningsudvalg Kommune","Svendborg Sammenlægningsudvalg Kommune","Syddjurs Sammenlægningsudvalg Kommune","Sønderborg Sammenlægningsudv. Kommune","Thisted Sammenlægningsudvalg Kommune","Tønder Sammenlægningsudvalg Kommune","Tårnby Kommune","Vallensbæk Kommune","Varde Sammenlægningsudvalg Kommune","Vejen Sammenlægningsudvalg Kommune","Vejle Sammenlægningsudvalg Kommune","Vesthimmerland Sam.læg.udvalg Kommune","Viborg Sammenlægningsudvalg Kommune","Vordingborg Sam.læg.sudvalg Kommune","Ærø Sammenlægningsudvalg Kommune","Aabenraa Sammenlægningsudvalg Kommune","Aalborg Sammenlægningsudvalg Kommune","Århus Kommune"
   ];
 
   /* Partinavne, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
-  const LOCAL_MULTI_COMMUNE_PARTIES = [
-    "lokallisten",
-    "fælleslisten",
-    "borgerlisten"
-  ];
+  const LOCAL_MULTI_COMMUNE_PARTIES = ["lokallisten","fælleslisten","borgerlisten"];
 
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
   const DEFAULT_BADGE_BG = "#e5e7eb"; const DEFAULT_BADGE_FG = "#111827";
@@ -362,148 +264,47 @@
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-  const fmtPct = v => new Intl.NumberFormat("da-DK", {
-    style:"percent", minimumFractionDigits:1, maximumFractionDigits:1
-  }).format(v);
+  const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  // Normaliser partinavne, så varianter samles under det rigtige navn
+  // Normaliser partinavne
   function normalizePartyName(p){
     const t = canon(p);
     const lower = t.toLowerCase();
 
-    // ===== Socialdemokratiet =====
-    const socialdemVariants = [
-      "socialdemokratiet",
-      "socialdemokratiet middelfart",
-      "socialdemokratiet aabybro",
-      "socialdemokratiet pandrup",
-      "socialdemokratiet brørup",
-      "socialdemokratiet fjerritslev",
-      "socialdemokratiet ejby",
-      "socialdemokratiet rødding",
-      "socialdemokratiet brovst",
-      "socialdemokratiet holsted",
-      "socialdemokratiet nørre aaby"
-    ];
-    if (socialdemVariants.includes(lower)) {
-      return "Socialdemokratiet";
-    }
+    const socialdemVariants = ["socialdemokratiet","socialdemokratiet middelfart","socialdemokratiet aabybro","socialdemokratiet pandrup","socialdemokratiet brørup","socialdemokratiet fjerritslev","socialdemokratiet ejby","socialdemokratiet rødding","socialdemokratiet brovst","socialdemokratiet holsted","socialdemokratiet nørre aaby"];
+    if (socialdemVariants.includes(lower)) return "Socialdemokratiet";
 
-    // ===== Venstre, Danmarks Liberale Parti =====
-    const venstreVariants = [
-      "venstre, danmarks liberale parti",
-      "venstre - danmarks liberale parti",
-      "langelands venstre, danmarks liber",
-      "venstre danmarks liberale parti",
-      "venstre,danmarks liberale parti",
-      "sundsøre venstre",
-      "venstre, videbæk",
-      "venstre brovst",
-      "venstre i rødding kommune",
-      "venstre, holmsland",
-      "venstre, ringkøbing",
-      "venstre, skjern",
-      "venstre i brørup kommune",
-      "venstre, egvad",
-      "venstre i vejen kommune",
-      "skive venstre",
-      "venstre aabybro",
-      "venstre pandrup",
-      "spøttrup venstre",
-      "venstre fjerritslev",
-      "venstre i holsted kommune",
-      "sallingsund venstre",
-      "venstres ungdom, danm. liberale p"
-    ];
-    if (venstreVariants.includes(lower)) {
-      return "Venstre, Danmarks Liberale Parti";
-    }
+    const venstreVariants = ["venstre, danmarks liberale parti","venstre - danmarks liberale parti","langelands venstre, danmarks liber","venstre danmarks liberale parti","venstre,danmarks liberale parti","sundsøre venstre","venstre, videbæk","venstre brovst","venstre i rødding kommune","venstre, holmsland","venstre, ringkøbing","venstre, skjern","venstre i brørup kommune","venstre, egvad","venstre i vejen kommune","skive venstre","venstre aabybro","venstre pandrup","spøttrup venstre","venstre fjerritslev","venstre i holsted kommune","sallingsund venstre","venstres ungdom, danm. liberale p"];
+    if (venstreVariants.includes(lower)) return "Venstre, Danmarks Liberale Parti";
 
-    // ===== SF - Socialistisk Folkeparti =====
-    if(
-      lower === "sf - socialistisk folkeparti" ||
-      lower === "sf - socialistiske folkeparti" ||
-      lower === "sf-socialistisk folkeparti" ||
-      lower === "sf - socialitisk folkeparti" ||
-      lower === "sf- socialistisk folkeparti"
-    ){
-      return "SF - Socialistisk Folkeparti";
-    }
+    if (lower==="sf - socialistisk folkeparti"||lower==="sf - socialistiske folkeparti"||lower==="sf-socialistisk folkeparti"||lower==="sf - socialitisk folkeparti"||lower==="sf- socialistisk folkeparti"||lower==="socialistisk folkeparti") return "SF - Socialistisk Folkeparti";
 
-    // *** NYT: ren "Socialistisk Folkeparti" skal også mappes til SF ***
-    if (lower === "socialistisk folkeparti") {
-      return "SF - Socialistisk Folkeparti";
-    }
+    if (lower==="det radikale venstre"||lower==="det radikale venstre - gribskov ra") return "Det Radikale Venstre";
 
-    // ===== Det Radikale Venstre =====
-    if(
-      lower === "det radikale venstre" ||
-      lower === "det radikale venstre - gribskov ra"
-    ){
-      return "Det Radikale Venstre";
-    }
+    const enhedslistenVariants=["enhedslisten - de rød-grønne","enhedslisten, de rød-grønne","enhedslisten-de rød-grønne","enhedslisten - de rød grønne","enhedslisten - de rød/grønne","enhedslisten - de rød - grønne","enhedslisten de rød-grønne"];
+    if (enhedslistenVariants.includes(lower)) return "Enhedslisten - De Rød-Grønne";
 
-    // ===== Enhedslisten - De Rød-Grønne =====
-    const enhedslistenVariants = [
-      "enhedslisten - de rød-grønne",
-      "enhedslisten, de rød-grønne",
-      "enhedslisten-de rød-grønne",
-      "enhedslisten - de rød grønne",
-      "enhedslisten - de rød/grønne",
-      "enhedslisten - de rød - grønne",
-      "enhedslisten de rød-grønne"
-    ];
-    if (enhedslistenVariants.includes(lower)) {
-      return "Enhedslisten - De Rød-Grønne";
-    }
-
-    // ===== Det Konservative Folkeparti =====
-    const konservativeVariants = [
-      "det konservative folkeparti",
-      "det konservative folkeparti.",
-      "det konservative folkeparti i thy",
-      "det konservative folkeparti i this",
-      "det konservative folkeparti h.næs",
-      "det konservative folkeparti - jamm",
-      "det konservative folkeparti, vord.",
-      "det konservative folkeparti hader",
-      "det konservative folkeparti vojen",
-      "det konservative folkeparti gram"
-    ];
-    if (konservativeVariants.includes(lower)) {
-      return "Det Konservative Folkeparti";
-    }
+    const konservativeVariants=["det konservative folkeparti","det konservative folkeparti.","det konservative folkeparti i thy","det konservative folkeparti i this","det konservative folkeparti h.næs","det konservative folkeparti - jamm","det konservative folkeparti, vord.","det konservative folkeparti hader","det konservative folkeparti vojen","det konservative folkeparti gram"];
+    if (konservativeVariants.includes(lower)) return "Det Konservative Folkeparti";
 
     return t;
   }
 
-  const totalValidVotes = (rows) => {
-    let sum = 0;
-    for(const r of rows){ sum += r.stemmer || 0; }
-    return sum;
-  };
+  const totalValidVotes = (rows) => rows.reduce((s,r)=>s+(r.stemmer||0),0);
 
   /* ==== Slug + hash til stabile valgsted_id'er ==== */
   function slugify(s) {
     return (s || "")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/æ/gi, "ae").replace(/ø/gi, "oe").replace(/å/gi, "aa")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 100);
+      .normalize("NFD").replace(/\p{Diacritic}/gu, "")
+      .replace(/æ/gi,"ae").replace(/ø/gi,"oe").replace(/å/gi,"aa")
+      .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,100);
   }
-  function shortHash(s) {
-    let h = 0; const str = String(s || "");
-    for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) | 0;
-    return Math.abs(h).toString(36);
-  }
+  function shortHash(s){ let h=0; const str=String(s||""); for(let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))|0; return Math.abs(h).toString(36); }
 
   /* ==== GLOBAL UID ==== */
   const makeUid = (r) => {
@@ -515,7 +316,11 @@
 
   /* ===== App-state ===== */
   const state = {
-    rows:[], kommune:"", activeParty:"",
+    rows:[],            // filtreret efter valgsted (eller alle)
+    rowsAll:[],         // alle rækker i valgt kommune
+    kommune:"", activeParty:"",
+    valgstedId:"",      // valgt valgsted_id (tom = alle)
+    valgsteder:[],      // [{id,navn}]
     selected:new Map(),
     candidateSortMode:"alpha",
     topListMode:"top10",   // top10 | all
@@ -539,12 +344,14 @@
     el('loader')?.classList.remove('hidden');
     el('overviewTop')?.setAttribute('aria-busy','true');
     el('kommuneSelect')?.setAttribute('disabled','');
+    el('valgstedSelect')?.setAttribute('disabled','');
   }
   function hideLoading(){
     state.isLoading=false;
     el('loader')?.classList.add('hidden');
     el('overviewTop')?.removeAttribute('aria-busy');
     el('kommuneSelect')?.removeAttribute('disabled');
+    if(state.kommune) el('valgstedSelect')?.removeAttribute('disabled');
   }
 
   /* ===== URL ===== */
@@ -552,6 +359,7 @@
   function persistUrl(push=false){
     const u=new URL(location.href);
     if(state.kommune) u.searchParams.set("kommune", state.kommune); else u.searchParams.delete("kommune");
+    if(state.valgstedId) u.searchParams.set("valgsted", state.valgstedId); else u.searchParams.delete("valgsted");
     if(state.activeParty) u.searchParams.set("parti", state.activeParty); else u.searchParams.delete("parti");
     const cand = getSelectedIds(); if(cand.length) u.searchParams.set("cand", cand.join(",")); else u.searchParams.delete("cand");
     if(state.topListMode!=="top10") u.searchParams.set("view","top50"); else u.searchParams.delete("view");
@@ -563,12 +371,15 @@
   async function hydrateFromUrl(){
     const p=new URLSearchParams(location.search);
     const k=p.get("kommune"), parti=p.get("parti");
+    const vs=p.get("valgsted")||"";
     const cand=(p.get("cand")||"").split(",").map(s=>s.trim()).filter(Boolean);
     const view=p.get("view"), sort=p.get("sort");
 
     state.topListMode=(view==="top50")?"all":"top10";
     state.candidateSortMode=(sort==="votes")?"votes":"alpha";
     updateTopToggleUI(); updateCandSortToggleUI(); updateTopButtonsForScope();
+
+    state.valgstedId = vs; // sættes før indlæsning, så dropdown kan markeres
 
     if(k && KOMMUNER.includes(k)){
       el("kommuneSelect").value=k; state.kommune=k; await loadKommuneData(k);
@@ -602,46 +413,37 @@
     renderLanding(); initKommuneDropdown();
 
     // År-vælger
-    const yearSel = el("kvYearSelect");
-    if(yearSel){
-      yearSel.addEventListener("change", ()=>{
-        const url = yearSel.value;
-        if(url) window.location.href = url;
-      });
-    }
+    el("kvYearSelect")?.addEventListener("change", ()=>{ const url=el("kvYearSelect").value; if(url) window.location.href=url; });
 
     el("btnSortAlpha").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="alpha"){
-        state.candidateSortMode="alpha";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
+        state.candidateSortMode="alpha"; updateCandSortToggleUI();
+        if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);
       }
     });
     el("btnSortVotes").addEventListener("click", ()=>{
       if(state.candidateSortMode!=="votes"){
-        state.candidateSortMode="votes";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
+        state.candidateSortMode="votes"; updateCandSortToggleUI();
+        if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);
       }
     });
 
     el("btnTop10").addEventListener("click", ()=>{
-      if(state.topListMode!=="top10"){
-        state.topListMode="top10";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
+      if(state.topListMode!=="top10"){ state.topListMode="top10"; updateTopToggleUI(); renderOverview(); persistUrl(true); }
     });
     el("btnAll").addEventListener("click", ()=>{
-      if(state.topListMode!=="all"){
-        state.topListMode="all";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
+      if(state.topListMode!=="all"){ state.topListMode="all"; updateTopToggleUI(); renderOverview(); persistUrl(true); }
+    });
+
+    // Valgsted select change
+    el("valgstedSelect").addEventListener("change", ()=>{
+      state.valgstedId = el("valgstedSelect").value || "";
+      state.rows = filterRowsForValgsted(state.rowsAll);
+      // ryd parti når valgsted skifter (mindsker forvirring)
+      state.activeParty = "";
+      renderPartyCombobox();
+      updateTopButtonsForScope(); renderOverview(); renderAll(); renderContextBar();
+      persistUrl(true);
     });
 
     await hydrateFromUrl();
@@ -656,35 +458,25 @@
   function buildCandidateList(rows){
     const m = new Map();
     for(const r of rows){
-      if(isListestemmer(r.kandidat_navn)) continue; // skjul listestemmer
-      if(!m.has(r.uid)){
-        m.set(r.uid, { uid:r.uid, kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
-      }
+      if(isListestemmer(r.kandidat_navn)) continue;
+      if(!m.has(r.uid)) m.set(r.uid, { uid:r.uid, kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
     }
     return Array.from(m.values());
   }
   function rankCandidates(cands, q){
-    const Q = fold(q);
-    if (!Q) return [];
-    return cands
-      .map(c => {
-        const name = normalizeCandidateName(c.kandidat_navn);
-        const f = fold(name);
-        let score = -Infinity;
-        if (f.startsWith(Q)) {
-          score = 300 - (f.length - Q.length);
-        } else {
-          const hasWordStart = f.split(/\s+/).some(w => w.startsWith(Q));
-          if (hasWordStart) score = 200 - f.indexOf(Q);
-          else if (f.includes(Q)) score = 100 - f.indexOf(Q);
-        }
-        const pf = fold(c.parti);
-        if (pf.startsWith(Q) || pf.includes("(" + Q + ")")) score += 20;
-        return { ...c, _score: score, _name: name };
-      })
-      .filter(x => x._score > -Infinity)
-      .sort((a, b) => b._score - a._score || a._name.localeCompare(b._name, "da"))
-      .slice(0, 15);
+    const Q = fold(q); if (!Q) return [];
+    return cands.map(c=>{
+      const name=normalizeCandidateName(c.kandidat_navn), f=fold(name);
+      let score=-Infinity;
+      if(f.startsWith(Q)) score=300-(f.length-Q.length);
+      else{
+        const hasWordStart=f.split(/\s+/).some(w=>w.startsWith(Q));
+        if(hasWordStart) score=200-f.indexOf(Q);
+        else if(f.includes(Q)) score=100-f.indexOf(Q);
+      }
+      const pf=fold(c.parti); if(pf.startsWith(Q)||pf.includes("("+Q+")")) score+=20;
+      return {...c,_score:score,_name:name};
+    }).filter(x=>x._score>-Infinity).sort((a,b)=>b._score-a._score||a._name.localeCompare(b._name,"da")).slice(0,15);
   }
 
   function renderLanding(){
@@ -692,12 +484,11 @@
     if(inputK){
       inputK.addEventListener('input',(e)=>{
         const val=(e.target.value||'').toLowerCase(); if(!val) return;
-        const sorted = KOMMUNER.slice().sort((a,b)=>a.localeCompare(b,"da"));
+        const sorted=KOMMUNER.slice().sort((a,b)=>a.localeCompare(b,"da"));
         const hit=sorted.map(k=>({k})).find(x=>x.k.toLowerCase().startsWith(val));
         if(hit){
-          el('kommuneSelect').value=hit.k; state.kommune=hit.k;
-          persistUrl(true); loadKommuneData(hit.k);
-          renderContextBar();
+          el('kommuneSelect').value=hit.k; state.kommune=hit.k; state.valgstedId=""; // reset valgsted ved ny kommune
+          persistUrl(true); loadKommuneData(hit.k); renderContextBar();
         }
       });
     }
@@ -719,16 +510,13 @@
           </span>
         </div>`;
       }).join("");
-      menu.querySelectorAll('.vb-option').forEach(opt=>{
-        opt.onclick=()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
-      });
+      menu.querySelectorAll('.vb-option').forEach(opt=>{ opt.onclick=()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10)); });
       openMenu();
     }
     function selectByIndex(i){
       const results=rankCandidates(buildCandidateList(state.rows||[]), input.value);
       const sel=results[i]; if(!sel) return;
-      toggleCandidateFromTop(sel.uid, state.rows||[]);
-      closeMenu(); input.value="";
+      toggleCandidateFromTop(sel.uid, state.rows||[]); closeMenu(); input.value="";
     }
     let t=null;
     input?.addEventListener('input', ()=>{
@@ -739,52 +527,69 @@
     input?.addEventListener('keydown',(e)=>{
       const results=rankCandidates(buildCandidateList(state.rows||[]), input.value);
       if(e.key==='ArrowDown'){
-        e.preventDefault(); if(!results.length) return;
-        activeIndex=(activeIndex+1)%results.length; renderMenuFor(input.value);
+        e.preventDefault(); if(!results.length) return; activeIndex=(activeIndex+1)%results.length; renderMenuFor(input.value);
         const opt=menu.querySelector(`[data-idx="${activeIndex}"]`);
-        if(opt){
-          menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false'));
-          opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'});
-        }
-      }
-      else if(e.key==='ArrowUp'){
-        e.preventDefault(); if(!results.length) return;
-        activeIndex=(activeIndex<=0?results.length-1:activeIndex-1); renderMenuFor(input.value);
+        if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+      } else if(e.key==='ArrowUp'){
+        e.preventDefault(); if(!results.length) return; activeIndex=(activeIndex<=0?results.length-1:activeIndex-1); renderMenuFor(input.value);
         const opt=menu.querySelector(`[data-idx="${activeIndex}"]`);
-        if(opt){
-          menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false'));
-          opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'});
-        }
-      }
-      else if(e.key==='Enter'){
-        if(!menu.classList.contains('hidden')){
-          e.preventDefault(); selectByIndex(activeIndex>=0?activeIndex:0);
-        }
-      }
-      else if(e.key==='Escape'){ closeMenu(); }
+        if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); }
+      } else if(e.key==='Enter'){
+        if(!menu.classList.contains('hidden')){ e.preventDefault(); selectByIndex(activeIndex>=0?activeIndex:0); }
+      } else if(e.key==='Escape'){ closeMenu(); }
     });
-    document.addEventListener('click',(e)=>{
-      const box=el('candidateSearch')?.parentElement;
-      if(box && !box.contains(e.target)) closeMenu();
-    });
+    document.addEventListener('click',(e)=>{ const box=el('candidateSearch')?.parentElement; if(box && !box.contains(e.target)) closeMenu(); });
   }
 
   /* ===== Dropdowns ===== */
   function initKommuneDropdown(){
     const ksel=el("kommuneSelect");
     const sorted = KOMMUNER.slice().sort((a,b)=>a.localeCompare(b,"da"));
-    ksel.innerHTML=`<option value="">Hele Danmark</option>`+
-      sorted.map(k=>`<option value="${k}">${k}</option>`).join("");
+    ksel.innerHTML=`<option value="">Hele Danmark</option>`+sorted.map(k=>`<option value="${k}">${k}</option>`).join("");
     ksel.disabled=false;
     ksel.onchange=()=>{
-      const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
+      const k=ksel.value; state.kommune=k; state.activeParty=""; state.valgstedId=""; clearAll();
       if(k){ persistUrl(true); loadKommuneData(k);} else { persistUrl(true); loadNationalData(); }
       renderContextBar();
     };
   }
 
+  function buildValgstederFromRows(rows){
+    const m=new Map();
+    for(const r of rows){
+      const id=canon(r.valgsted_id||""); const navn=canon(r.valgsted_navn||"");
+      if(!id) continue; if(!m.has(id)) m.set(id, navn || id);
+    }
+    const list=Array.from(m, ([id,navn])=>({id,navn}));
+    const collator=new Intl.Collator('da',{numeric:true,sensitivity:'base'});
+    list.sort((a,b)=>collator.compare(a.navn,b.navn));
+    return list;
+  }
+
+  function updateValgstedDropdown(){
+    const sel=el("valgstedSelect");
+    if(!state.kommune){
+      sel.innerHTML=`<option value="">Vælg kommune først…</option>`;
+      sel.disabled=true; state.valgsteder=[]; return;
+    }
+    state.valgsteder = buildValgstederFromRows(state.rowsAll);
+    const opts = [`<option value="">Alle valgsteder</option>`].concat(
+      state.valgsteder.map(v=>`<option value="${escapeHtml(v.id)}">${escapeHtml(v.navn)}</option>`)
+    ).join("");
+    sel.innerHTML=opts; sel.disabled=false;
+
+    // Sæt valgt fra URL hvis muligt
+    if(state.valgstedId && state.valgsteder.some(v=>v.id===state.valgstedId)){
+      sel.value=state.valgstedId;
+    } else {
+      state.valgstedId=""; sel.value="";
+    }
+  }
+
   function clearAll(){
-    state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent="";
+    state.rows=[]; state.rowsAll=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent="";
+    // nulstil valgsted UI
+    const vs=el("valgstedSelect"); vs.innerHTML=`<option value="">Vælg kommune først…</option>`; vs.disabled=!state.kommune;
   }
   function resetPartyUI(){
     const btn=el("partyButton"), btnc=el("partyButtonContent");
@@ -813,13 +618,13 @@
     return {
       region:        canon(pick(r, "region")),
       kommune:       canon(pick(r, "kommune")),
-      valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgstedid", "sted_id")),
-      valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
-      kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
-      kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn", "navn", "kandidat", "kandidat_id"))),
-      parti:         normalizePartyName(canon(pick(r, "parti", "listenavn"))),
-      parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse", "bogstavsbetegnelse")),
-      stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
+      valgsted_id:   canon(pick(r, "valgsted_id","afstemningssted_id","afstemningsområde_id","valgstedid","sted_id")),
+      valgsted_navn: canon(pick(r, "valgsted_navn","afstemningssted","afstemningsområde","valgsted","sted_navn")),
+      kandidat_id:   canon(pick(r, "kandidat_id","kandidat","navn","kandidat_navn")),
+      kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn","navn","kandidat","kandidat_id"))),
+      parti:         normalizePartyName(canon(pick(r, "parti","listenavn"))),
+      parti_bogstav: canon(pick(r, "parti_bogstav","listebogstav","bogstavbetegnelse","bogstavsbetegnelse")),
+      stemmer:       Number(pick(r, "stemmer","stemmetal","stemmer_i_alt") || 0) || 0
     };
   }
 
@@ -894,11 +699,18 @@
     return rows;
   }
 
+  function filterRowsForValgsted(rows){
+    if(!state.valgstedId) return rows;
+    return rows.filter(r=>r.valgsted_id===state.valgstedId);
+  }
+
   async function loadNationalData(){
     try{
       showLoading(); el('error').textContent=''; el('kommunetitel').textContent='(Hele Danmark)';
       const allNames=KOMMUNER;
       const chunks=await Promise.all(allNames.map(name=>loadRowsForKommune(name).catch(()=>[])));
+      state.rowsAll=[]; // ikke i brug i landsvisning
+      state.valgstedId=""; updateValgstedDropdown(); // disable
       state.rows=chunks.flat(); afterDataLoaded();
     } finally { hideLoading(); }
   }
@@ -906,9 +718,14 @@
   async function loadKommuneData(k){
     try{
       showLoading(); el("error").textContent=""; el("kommunetitel").textContent=k?`(${k})`:"";
-      const rows=await loadRowsForKommune(k); state.rows=rows; afterDataLoaded();
+      const rows=await loadRowsForKommune(k);
+      state.rowsAll=rows.slice(); // gem alle for kommunen
+      updateValgstedDropdown();   // udfyld valgsted-dropdown
+      state.rows = filterRowsForValgsted(state.rowsAll);
+      afterDataLoaded();
     } catch(e){
       el("error").textContent=`Kunne ikke finde data for ${k}. Tjek at filen findes på ${BASE_PATH}${kommuneFileKey(k)}.csv`;
+      state.rows=[]; state.rowsAll=[]; updateValgstedDropdown();
     } finally { hideLoading(); }
   }
 
@@ -947,7 +764,7 @@
   function totalsByCandidate(rows){
     const m=new Map();
     for(const r of rows){
-      if(isListestemmer(r.kandidat_navn)) continue; // listestemmer skal ikke tælle som egne kandidater
+      if(isListestemmer(r.kandidat_navn)) continue;
       if(!m.has(r.uid)){
         m.set(r.uid,{ uid:r.uid,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0 });
       }
@@ -958,10 +775,14 @@
 
   function primaryKommuneForCandidate(uid, rows){
     const sample = rows.find(r=>r.uid===uid);
-    if(sample){
-      return { kommune: sample.kommune };
-    }
+    if(sample){ return { kommune: sample.kommune }; }
     return null;
+  }
+
+  function getValgstedLabel(){
+    if(!state.valgstedId) return "";
+    const v = state.valgsteder.find(x=>x.id===state.valgstedId);
+    return v ? v.navn : "";
   }
 
   function renderOverview(){
@@ -970,26 +791,22 @@
     const showCandidatePercent = !!state.kommune;
 
     const isDK = !state.kommune;
-    const scopeText = isDK ? "Hele Danmark" : state.kommune;
+    const scopeText = isDK ? "Hele Danmark" : (state.kommune + (state.valgstedId ? ` · ${getValgstedLabel()}` : ""));
     el("top10Scope").textContent = rows.length ? scopeText : '';
 
     const info = el("modeInfoBox");
     if(info){
       if(showCandidatePercent){
         info.classList.remove("hidden");
-        info.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer i kommunen.";
+        info.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer i kommunen/valgstedet.";
       } else {
-        info.classList.add("hidden");
-        info.textContent = "";
+        info.classList.add("hidden"); info.textContent = "";
       }
     }
 
-    // Kandidat-mode (den eneste mode på 2005-siden)
     const ranked=totalsByCandidate(rows);
     const list=state.topListMode==="top10"?ranked.slice(0,10):ranked.slice(0,50);
-    el("top10Title").textContent=state.topListMode==="top10"
-      ? "Top 10 kandidater (personlige stemmer)"
-      : "Top 50 kandidater (personlige stemmer)";
+    el("top10Title").textContent=state.topListMode==="top10" ? "Top 10 kandidater (personlige stemmer)" : "Top 50 kandidater (personlige stemmer)";
 
     function itemHTML(k,idx){
       const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
@@ -1016,11 +833,7 @@
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
         const uid=item.getAttribute('data-uid');
         item.addEventListener('click', ()=>toggleCandidateFromTop(uid, rows));
-        item.addEventListener('keydown',(e)=>{
-          if(e.key==='Enter'||e.key===' '){
-            e.preventDefault(); toggleCandidateFromTop(uid, rows);
-          }
-        });
+        item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCandidateFromTop(uid, rows); }});
       });
     });
   }
@@ -1030,7 +843,7 @@
     if(!state.kommune || (target && target.kommune && state.kommune!==target.kommune)){
       if(target){
         const ksel=el('kommuneSelect'); ksel.value=target.kommune; state.kommune=target.kommune;
-
+        state.valgstedId=""; // skift kommune = nulstil valgsted
         const existing=getSelectedIds(); const nextCand=Array.from(new Set([...existing, uid]));
         state.pendingCandidateIds=[uid];
         persistUrl(true);
@@ -1042,7 +855,7 @@
       }
     }
     const sample=(state.rows||[]).find(r=>r.uid===uid);
-    if(!sample || isListestemmer(sample.kandidat_navn)) return; // listestemmer kan ikke vælges
+    if(!sample || isListestemmer(sample.kandidat_navn)) return;
     if(state.selected.has(uid)){ state.selected.delete(uid); renderAll(); persistUrl(false); return; }
     state.selected.set(uid, { uid, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
     renderAll(); persistUrl(false);
@@ -1050,24 +863,15 @@
   }
 
   function updateTopButtonsForScope(){
-    const btnAll=el("btnAll");
-    if(!btnAll) return;
-    btnAll.textContent = "Top 50";
+    const btnAll=el("btnAll"); if(!btnAll) return; btnAll.textContent = "Top 50";
   }
 
   function detectPartyLetter(rowsForParti){
     if (!rowsForParti || !rowsForParti.length) return null;
-
-    const name = (rowsForParti[0].parti || "").toLowerCase();
-
+    const name=(rowsForParti[0].parti||"").toLowerCase();
     if (name.includes("socialdemokratiet")) return "A";
     if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
-    if (
-      name.startsWith("sf ") ||
-      name.includes("sf - socialistisk folkeparti") ||
-      name.includes("sf-socialistisk folkeparti") ||
-      name.includes("sf- socialistisk folkeparti")
-    ) return "F";
+    if (name.startsWith("sf ")||name.includes("sf - socialistisk folkeparti")||name.includes("sf-socialistisk folkeparti")||name.includes("sf- socialistisk folkeparti")) return "F";
     if (name.includes("konservative")) return "C";
     if (name.includes("dansk folkeparti")) return "O";
     if (name.includes("radikale venstre")) return "B";
@@ -1075,7 +879,6 @@
     if (name.includes("liberal alliance")) return "I";
     if (name.includes("kristendemokraterne")) return "K";
     if (name.includes("alternativet")) return "Å";
-
     return null;
   }
 
@@ -1095,9 +898,7 @@
       const kandidater=Array.from(map.values());
       const letter=detectPartyLetter(rowsP);
       res.push({
-        parti,
-        letter,
-        hasLetter: !!letter,
+        parti, letter, hasLetter: !!letter,
         kandidatAntal: kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length,
         kandidater
       });
@@ -1174,7 +975,6 @@
     if(!parti){ header.textContent="Vælg et parti i drop-down menuen."; return; }
     header.textContent=parti;
 
-    // filtrér listestemmer fra
     const kandidaterAll=(getPartyStats().find(x=>x.parti===parti)?.kandidater||[])
       .filter(k=>!isListestemmer(k.kandidat_navn));
 
@@ -1215,16 +1015,14 @@
   function computeTotalsByCandidate(){
     const m=new Map();
     for(const r of state.rows){
-      if(isListestemmer(r.kandidat_navn)) continue; // listestemmer tælles ikke som kandidat
+      if(isListestemmer(r.kandidat_navn)) continue;
       m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
     }
     return m;
   }
   function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
 
-  const getSelected = () =>
-    Array.from(state.selected.values()).filter(k=>!isListestemmer(k.kandidat_navn));
-
+  const getSelected = () => Array.from(state.selected.values()).filter(k=>!isListestemmer(k.kandidat_navn));
   function renderSelected(){
     const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
     function letterForParti(parti){ const stat=getPartyStats().find(s=>s.parti===parti); return stat?.letter||null; }
@@ -1256,8 +1054,6 @@
       const key=`${r.kommune}::${r.valgsted_id}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
       const ps=m.get(key);
-      // her opsummerer vi alle stemmer, inkl. listestemmer, men da listestemmer aldrig bliver valgte kandidater,
-      // vil de ikke fremgå som kolonner i tabellen
       ps[r.uid]=(ps[r.uid]||0)+r.stemmer;
     }
     const collator = new Intl.Collator('da', { numeric: true, sensitivity: 'base' });
@@ -1289,7 +1085,7 @@
 
     const totals=computeTotalsByCandidate();
     tfoot.innerHTML=`<tr class="border-t">
-      <th class="py-2 pr-3 text-left">${state.kommune ? 'Kommunetotal' : 'Total'}</th>
+      <th class="py-2 pr-3 text-left">${state.kommune ? (state.valgstedId ? 'Valgsted-total' : 'Kommunetotal') : 'Total'}</th>
       ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.uid)||0)}</td>`).join("")}
     </tr>`;
   }
@@ -1301,33 +1097,35 @@
     } else {
       parts.push(`<span class="crumb" data-nav="dk">Hele Danmark</span>`);
       parts.push(`<span class="sep">/</span>`);
-      parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+      if(state.valgstedId){
+        parts.push(`<span class="crumb" data-nav="kommune">${escapeHtml(state.kommune)}</span>`);
+        parts.push(`<span class="sep">/</span>`);
+        parts.push(`<span class="crumb-strong">${escapeHtml(getValgstedLabel())}</span>`);
+      } else {
+        parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+      }
     }
     bar.innerHTML=parts.join("");
     bar.querySelector('[data-nav="dk"]')?.addEventListener('click', ()=>{
-      el('kommuneSelect').value='';
-      state.kommune=''; clearAll(); persistUrl(true); loadNationalData();
+      el('kommuneSelect').value=''; state.kommune=''; state.valgstedId=""; clearAll(); persistUrl(true); loadNationalData();
+    });
+    bar.querySelector('[data-nav="kommune"]')?.addEventListener('click', ()=>{
+      // klik på kommune-crumb rydder valgsted-filter
+      state.valgstedId=""; el('valgstedSelect').value=""; state.rows=filterRowsForValgsted(state.rowsAll);
+      persistUrl(true); renderOverview(); renderAll(); renderPartyCombobox(); renderContextBar();
     });
   }
 
   function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
 </script>
-    <footer class="mt-10 border-t bg-gray-100">
+
+<footer class="mt-10 border-t bg-gray-100">
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
               flex flex-col md:flex-row items-center justify-between
               gap-3 md:gap-6 text-sm md:text-base text-gray-700">
-    
-    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
-      hej@valgbar.dk
-    </a>
-
-    <p class="text-center">
-      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
-    </p>
-
-    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
-      Om Valgbar
-    </a>
+    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">hej@valgbar.dk</a>
+    <p class="text-center">Data stammer fra KMDValg, Danmarks Statistik og valg.dk</p>
+    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">Om Valgbar</a>
   </div>
 </footer>
 </body>
