@@ -70,7 +70,6 @@
 </head>
 
 <body class="bg-gray-50 text-gray-900">
-<!-- HEADER -->
 <header class="vb-hero">
   <div class="mx-auto max-w-6xl px-4 py-6 flex items-center gap-4">
     <a href="../../" class="flex items-center gap-3">
@@ -78,7 +77,6 @@
     </a>
   </div>
 
-  <!-- Brødkrumme + årsvælger -->
   <nav aria-label="Brødkrumme" class="mx-auto max-w-6xl px-4 pb-2">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
       <ol class="flex items-center gap-2 text-lg font-semibold">
@@ -88,11 +86,8 @@
       </ol>
 
       <div class="flex items-center gap-3 text-lg font-semibold">
-        <label for="kvYearSelect" class="text-white whitespace-nowrap">
-          Skift år:
-        </label>
-        <select id="kvYearSelect"
-                class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
+        <label for="kvYearSelect" class="text-white whitespace-nowrap">Skift år:</label>
+        <select id="kvYearSelect" class="rounded-lg bg-white text-gray-900 text-sm md:text-base px-2 py-1">
           <option value="../2021/">Kommunalvalg 2021</option>
           <option value="../2017/">Kommunalvalg 2017</option>
           <option value="../2013/">Kommunalvalg 2013</option>
@@ -104,57 +99,58 @@
   </nav>
 
   <div class="mx-auto max-w-6xl px-4 pb-4">
-    <div class="text-white/90 text-base md:text-lg">
-    </div>
+    <div class="text-white/90 text-base md:text-lg"></div>
     <div id="error" class="mt-2 text-sm text-red-200"></div>
   </div>
 </header>
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
-  <!-- KONTEKST/BRODKRUMMER -->
   <div id="contextBar" class="context-bar"></div>
 
-  <!-- LANDING (søg + dropdowns) -->
   <section id="landing" class="vb-card p-4 space-y-4">
+    <!-- række 1: søg -->
     <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
       <div class="relative">
         <label class="text-sm text-gray-600">Søg kandidat</label>
-        <input id="candidateSearch" type="text"
-               class="w-full mt-1 rounded-xl border p-2"
-               placeholder="Indtast kandidatnavn…"
-               autocomplete="off" />
-        <div id="candidateMenu" class="vb-menu hidden"
-             role="listbox" tabindex="-1"
-             aria-labelledby="candidateSearch" style="max-width:36rem"></div>
+        <input id="candidateSearch" type="text" class="w-full mt-1 rounded-xl border p-2" placeholder="Indtast kandidatnavn…" autocomplete="off" />
+        <div id="candidateMenu" class="vb-menu hidden" role="listbox" tabindex="-1" aria-labelledby="candidateSearch" style="max-width:36rem"></div>
       </div>
       <div>
         <label class="text-sm text-gray-600">Søg kommune</label>
-        <input id="kommuneSearch" type="text"
-               class="w-full mt-1 rounded-xl border p-2"
-               placeholder="Start med at skrive fx Aarhus, Odense, København…" />
+        <input id="kommuneSearch" type="text" class="w-full mt-1 rounded-xl border p-2" placeholder="Start med at skrive fx Aarhus, Odense, København…" />
       </div>
+    </div>
+
+    <!-- række 2: region/kommune/valgsted -->
+    <div class="grid grid-cols-1 md:grid-cols-3 md:items-end gap-3">
       <div>
         <label class="text-sm text-gray-600">Region</label>
-        <select id="regionSelect"
-                class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
+        <select id="regionSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900"></select>
       </div>
       <div>
         <label class="text-sm text-gray-600">Kommune</label>
-        <select id="kommuneSelect"
-                class="w-full mt-1 rounded-xl border p-2 text-gray-900"
-                disabled></select>
+        <select id="kommuneSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled></select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Valgsted</label>
+        <select id="valgstedSelect" class="w-full mt-1 rounded-xl border p-2 text-gray-900" disabled>
+          <option value="">(Vælg kommune for at vælge valgsted)</option>
+        </select>
       </div>
     </div>
+
     <p class="text-sm text-gray-600">
-      Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne.
+      Vælg en region, kommune og evt. valgsted – eller begynd at skrive i søgefelterne.
       Nedenfor vises Top 10 kandidater for det valgte område.
     </p>
   </section>
 
-  <!-- TOP 10 / PARTITOTAL -->
   <section id="overviewTop" class="vb-card p-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+      <div>
+        <h2 id="top10Title" class="font-semibold">Top 10 kandidater (personlige stemmer)</h2>
+        <div id="modeInfoBox" class="mt-1 mb-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hidden"></div>
+      </div>
       <div class="flex items-center gap-3">
         <div id="top10Scope" class="text-sm text-gray-500 text-right"></div>
         <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
@@ -168,12 +164,6 @@
       </div>
     </div>
 
-    <!-- INFO-BOKS TIL PROCENTFORKLARING -->
-    <div id="modeInfoBox"
-         class="mt-1 mb-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hidden">
-    </div>
-
-    <!-- Loader bar -->
     <div id="loader" class="loader-wrap hidden" aria-live="polite">
       <div class="progress w-48 rounded-full"></div>
       <span>Indlæser…</span>
@@ -185,7 +175,6 @@
     </div>
   </section>
 
-  <!-- PARTIER OG KANDIDATER -->
   <section>
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-xl font-semibold">Partier og kandidater</h2>
@@ -196,33 +185,23 @@
       <aside class="md:col-span-1 vb-card p-4 space-y-2">
         <label class="text-sm font-medium">Vælg parti</label>
         <div id="partyCombo" class="relative">
-          <button id="partyButton" type="button" class="vb-combo-btn"
-                  aria-haspopup="listbox" aria-expanded="false" disabled>
+          <button id="partyButton" type="button" class="vb-combo-btn" aria-haspopup="listbox" aria-expanded="false" disabled>
             <span id="partyButtonContent" class="vb-combo-label">
-              <span class="vb-badge"
-                    style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
+              <span class="vb-badge" style="background:#e5e7eb; color:#111827; border-color:#e5e7eb"> </span>
               <span class="truncate text-gray-500">Vælg kommune først…</span>
             </span>
-            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z"/>
-            </svg>
+            <svg class="h-4 w-4 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.104l3.71-3.873a.75.75 0 011.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0l-4.24-4.43a.75.75 0 01.02-1.06z"/></svg>
           </button>
-          <div id="partyMenu" class="vb-menu hidden"
-               role="listbox" tabindex="-1"
-               aria-labelledby="partyButton"></div>
+          <div id="partyMenu" class="vb-menu hidden" role="listbox" tabindex="-1" aria-labelledby="partyButton"></div>
         </div>
       </aside>
 
       <section class="md:col-span-2 vb-card p-4 space-y-3" id="partyDetail">
         <div class="flex items-center justify-between gap-3">
-          <div id="partyDetailHeader" class="text-gray-500 text-sm">
-            Vælg en kommune for at se partier.
-          </div>
+          <div id="partyDetailHeader" class="text-gray-500 text-sm">Vælg en kommune for at se partier.</div>
           <div class="rounded-2xl border bg-white p-1 shadow-sm flex gap-2">
-            <button id="btnSortAlpha" class="vb-tabbox small active"
-                    type="button" title="Alfabetisk">A–Å</button>
-            <button id="btnSortVotes" class="vb-tabbox small"
-                    type="button" title="Flest stemmer">Flest stemmer</button>
+            <button id="btnSortAlpha" class="vb-tabbox small active" type="button" title="Alfabetisk">A–Å</button>
+            <button id="btnSortVotes" class="vb-tabbox small" type="button" title="Flest stemmer">Flest stemmer</button>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -233,7 +212,6 @@
     </div>
   </section>
 
-  <!-- SAMMENLIGNING -->
   <section id="compareSection" class="vb-card p-4 space-y-3 hidden">
     <div class="flex items-center justify-between">
       <h2 class="font-medium">Sammenligning af kandidater</h2>
@@ -242,7 +220,6 @@
     <div id="selectedList" class="space-y-2"></div>
   </section>
 
-  <!-- TABEL pr. valgsted -->
   <section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
     <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
     <div class="overflow-auto">
@@ -258,8 +235,9 @@
 <script>
   /* ===== DATA-STI (KV2009) ===== */
   const BASE_PATH = '/data/kv/2009/';
+  const VALGSTED_ALL_VALUE = "__ALL__";
 
-  /* Regioner & kommuner (98 kommuner fra reformen i 2007 gælder også i 2009) */
+  /* Regioner & kommuner (98 kommuner) */
   const REGIONS = {
     "Region Hovedstaden": ["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
     "Region Sjælland": ["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
@@ -268,11 +246,12 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  /* Partinavne, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
+  /* Lokale lister gjort unikke pr. kommune */
   const LOCAL_MULTI_COMMUNE_PARTIES = [
     "lokallisten",
     "fælleslisten",
-    "borgerlisten"
+    "borgerlisten",
+    "beboerlisten"
   ];
 
   const PARTY_COLORS = { "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666" };
@@ -281,105 +260,51 @@
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-  const fmtPct = v => new Intl.NumberFormat("da-DK", {
-    style:"percent", minimumFractionDigits:2, maximumFractionDigits:2
-  }).format(v);
+  const fmtPct = v => new Intl.NumberFormat("da-DK", { style:"percent", minimumFractionDigits:2, maximumFractionDigits:2 }).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  // Normaliser partinavne, så varianter samles under det rigtige navn
+  // Normaliser partinavne, så varianter samles
   function normalizePartyName(p){
-    const t = canon(p);
-    const lower = t.toLowerCase();
-
-    // Venstre, Danmarks Liberale Parti
-    if(
-      lower === "venstre, danmarks liberale parti" ||
-      lower === "venstre - danmarks liberale parti" ||
-      lower === "langelands venstre, danmarks liber"
-    ){
-      return "Venstre, Danmarks Liberale Parti";
-    }
-
-    // SF - Socialistisk Folkeparti
-    if(
-      lower === "sf - socialistisk folkeparti" ||
-      lower === "sf - socialistiske folkeparti" ||
-      lower === "sf-socialistisk folkeparti" ||
-      lower === "sf - socialitisk folkeparti" ||
-      lower === "sf- socialistisk folkeparti"
-    ){
-      return "SF - Socialistisk Folkeparti";
-    }
-
-    // Det Konservative Folkeparti
-    if(
-      lower === "det konservative folkeparti" ||
-      lower === "det konservative folkeparti." // just in case of trailing punctuation
-    ){
-      return "Det Konservative Folkeparti";
-    }
-
-    // Det Radikale Venstre
-    if(
-      lower === "det radikale venstre - gribskov ra"
-    ){
-      return "Det Radikale Venstre";
-    }
-
-    // Enhedslisten - De Rød-Grønne
-    if(
-      lower === "enhedslisten, de rød-grønne"
-    ){
-      return "Enhedslisten - De Rød-Grønne";
-    }
-
+    const t = canon(p); const lower = t.toLowerCase();
+    if (lower.includes("venstre") && lower.includes("liberale")) return "Venstre, Danmarks Liberale Parti";
+    if (lower.startsWith("sf ") || lower.includes("sf - socialistisk")) return "SF - Socialistisk Folkeparti";
+    if (lower.startsWith("det konservative")) return "Det Konservative Folkeparti";
+    if (lower.includes("radikale venstre")) return "Det Radikale Venstre";
+    if (lower.startsWith("enhedslisten")) return "Enhedslisten - De Rød-Grønne";
     return t;
   }
 
-  const totalValidVotes = (rows) => {
-    let sum = 0;
-    for(const r of rows){ sum += r.stemmer || 0; }
-    return sum;
-  };
+  const totalValidVotes = rows => rows.reduce((s,r)=>s+(r.stemmer||0),0);
 
   function findRegionForKommune(kommune){
     for(const [reg,kommuner] of Object.entries(REGIONS)){ if(kommuner.includes(kommune)) return reg; }
     return "";
   }
 
-  /* ==== Slug + hash til stabile valgsted_id'er ==== */
+  /* Slug + hash til stabile valgsted_id'er */
   function slugify(s) {
-    return (s || "")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/æ/gi, "ae").replace(/ø/gi, "oe").replace(/å/gi, "aa")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 100);
+    return (s || "").normalize("NFD").replace(/\p{Diacritic}/gu, "")
+      .replace(/æ/gi,"ae").replace(/ø/gi,"oe").replace(/å/gi,"aa")
+      .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,100);
   }
-  function shortHash(s) {
-    let h = 0; const str = String(s || "");
-    for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) | 0;
-    return Math.abs(h).toString(36);
-  }
+  function shortHash(s){ let h=0; const str=String(s||""); for(let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))|0; return Math.abs(h).toString(36); }
 
-  /* ==== GLOBAL UID ==== */
+  /* GLOBAL UID */
   const makeUid = (r) => {
-    const region = canon(r.region || "");
+    const region  = canon(r.region || "");
     const kommune = canon(r.kommune || "");
-    const parti = canon(r.parti || "");
-    const kid = canon(r.kandidat_id || "");
+    const parti   = canon(r.parti || "");
+    const kid     = canon(r.kandidat_id || "");
     return `${region}|||${kommune}|||${parti}|||${kid}`;
   };
 
   /* ===== App-state ===== */
   const state = {
-    rows:[], region:"", kommune:"", activeParty:"",
+    rows:[], region:"", kommune:"", valgsted:"", activeParty:"",
     selected:new Map(),
     candidateSortMode:"alpha",
     topListMode:"top10",   // top10 | all
@@ -402,11 +327,7 @@
   function updateModeToggleUI(){
     const a=el("btnModeCand"), b=el("btnModeParty");
     const isParty = state.overviewMode==="party";
-    if(a && b){
-      a.classList.toggle("active", !isParty);
-      b.classList.toggle("active", isParty);
-    }
-    // Teksten i modeInfoBox styres i renderOverview
+    if(a && b){ a.classList.toggle("active", !isParty); b.classList.toggle("active", isParty); }
   }
   function showLoading(){
     state.isLoading=true;
@@ -414,12 +335,14 @@
     el('overviewTop')?.setAttribute('aria-busy','true');
     el('regionSelect')?.setAttribute('disabled','');
     el('kommuneSelect')?.setAttribute('disabled','');
+    el('valgstedSelect')?.setAttribute('disabled','');
   }
   function hideLoading(){
     state.isLoading=false;
     el('loader')?.classList.add('hidden');
     el('overviewTop')?.removeAttribute('aria-busy');
     if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled','');
+    if(state.kommune) el('valgstedSelect')?.removeAttribute('disabled'); else el('valgstedSelect')?.setAttribute('disabled','');
     el('regionSelect')?.removeAttribute('disabled');
   }
 
@@ -429,19 +352,23 @@
     const u=new URL(location.href);
     if(state.region) u.searchParams.set("region", state.region); else u.searchParams.delete("region");
     if(state.kommune) u.searchParams.set("kommune", state.kommune); else u.searchParams.delete("kommune");
+    if(state.kommune){
+      if(state.valgsted && state.valgsted!==VALGSTED_ALL_VALUE) u.searchParams.set("valgsted", state.valgsted);
+      else u.searchParams.delete("valgsted");
+    } else { u.searchParams.delete("valgsted"); }
     if(state.activeParty) u.searchParams.set("parti", state.activeParty); else u.searchParams.delete("parti");
-    const cand = getSelectedIds(); if(cand.length) u.searchParams.set("cand", cand.join(",")); else u.searchParams.delete("cand");
+    const cand=getSelectedIds(); if(cand.length) u.searchParams.set("cand", cand.join(",")); else u.searchParams.delete("cand");
     if(state.topListMode!=="top10") u.searchParams.set("view","top50"); else u.searchParams.delete("view");
     if(state.candidateSortMode!=="alpha") u.searchParams.set("sort","votes"); else u.searchParams.delete("sort");
     if(push) history.pushState({}, "", u); else history.replaceState({}, "", u);
   }
-  function setSelectedFromIds(idArr){ state.pendingCandidateIds = (idArr||[]).filter(Boolean); }
+  function setSelectedFromIds(idArr){ state.pendingCandidateIds=(idArr||[]).filter(Boolean); }
 
   async function hydrateFromUrl(){
     const p=new URLSearchParams(location.search);
     const r=p.get("region"), k=p.get("kommune"), parti=p.get("parti");
     const cand=(p.get("cand")||"").split(",").map(s=>s.trim()).filter(Boolean);
-    const view=p.get("view"), sort=p.get("sort");
+    const view=p.get("view"), sort=p.get("sort"), vsted=p.get("valgsted");
 
     state.topListMode=(view==="top50")?"all":"top10";
     state.candidateSortMode=(sort==="votes")?"votes":"alpha";
@@ -449,11 +376,20 @@
 
     if(r && REGIONS[r]){
       el("regionSelect").value=r; populateKommuner(r); state.region=r;
-      if(k && REGIONS[r].includes(k)){ el("kommuneSelect").value=k; state.kommune=k; await loadKommuneData(k); }
-      else { el("kommuneSelect").value=""; state.kommune=""; await loadRegionData(r); }
+      if(k && REGIONS[r].includes(k)){
+        el("kommuneSelect").value=k; state.kommune=k;
+        state.valgsted = vsted || VALGSTED_ALL_VALUE;
+        await loadKommuneData(k);
+      } else {
+        el("kommuneSelect").value=""; state.kommune=""; state.valgsted="";
+        await loadRegionData(r);
+      }
     } else {
-      el("regionSelect").value=""; el("kommuneSelect").innerHTML='<option value="">Vælg kommune…</option>'; el("kommuneSelect").disabled=true;
-      state.region=""; state.kommune=""; await loadNationalData();
+      el("regionSelect").value="";
+      el("kommuneSelect").innerHTML='<option value="">Vælg kommune…</option>'; el("kommuneSelect").disabled=true;
+      const vsel=el("valgstedSelect"); if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.region=""; state.kommune=""; state.valgsted="";
+      await loadNationalData();
     }
 
     const lookLikeUid = cand.some(x=>x.includes("|||"));
@@ -481,66 +417,17 @@
   window.addEventListener("DOMContentLoaded", async ()=>{
     renderLanding(); initRegionDropdown();
 
-    // År-vælger
     const yearSel = el("kvYearSelect");
-    if(yearSel){
-      yearSel.addEventListener("change", ()=>{
-        const url = yearSel.value;
-        if(url) window.location.href = url;
-      });
-    }
+    yearSel?.addEventListener("change", ()=>{ const url=yearSel.value; if(url) window.location.href=url; });
 
-    el("btnSortAlpha").addEventListener("click", ()=>{
-      if(state.candidateSortMode!=="alpha"){
-        state.candidateSortMode="alpha";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
-      }
-    });
-    el("btnSortVotes").addEventListener("click", ()=>{
-      if(state.candidateSortMode!=="votes"){
-        state.candidateSortMode="votes";
-        updateCandSortToggleUI();
-        if(state.activeParty) renderPartyDetail(state.activeParty);
-        persistUrl(true);
-      }
-    });
+    el("btnSortAlpha").addEventListener("click", ()=>{ if(state.candidateSortMode!=="alpha"){ state.candidateSortMode="alpha"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
+    el("btnSortVotes").addEventListener("click", ()=>{ if(state.candidateSortMode!=="votes"){ state.candidateSortMode="votes"; updateCandSortToggleUI(); if(state.activeParty) renderPartyDetail(state.activeParty); persistUrl(true);} });
 
-    // Mode-knapper: kandidater / partitotal
-    el("btnModeCand").addEventListener("click", ()=>{
-      if(state.overviewMode!=="cand"){
-        state.overviewMode="cand";
-        updateModeToggleUI();
-        updateTopButtonsForScope();
-        renderOverview();
-      }
-    });
-    el("btnModeParty").addEventListener("click", ()=>{
-      if(state.overviewMode!=="party"){
-        state.overviewMode="party";
-        updateModeToggleUI();
-        updateTopButtonsForScope();
-        renderOverview();
-      }
-    });
+    el("btnModeCand").addEventListener("click", ()=>{ if(state.overviewMode!=="cand"){ state.overviewMode="cand"; updateModeToggleUI(); updateTopButtonsForScope(); renderOverview(); } });
+    el("btnModeParty").addEventListener("click", ()=>{ if(state.overviewMode!=="party"){ state.overviewMode="party"; updateModeToggleUI(); updateTopButtonsForScope(); renderOverview(); } });
 
-    el("btnTop10").addEventListener("click", ()=>{
-      if(state.topListMode!=="top10"){
-        state.topListMode="top10";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
-    });
-    el("btnAll").addEventListener("click", ()=>{
-      if(state.topListMode!=="all"){
-        state.topListMode="all";
-        updateTopToggleUI();
-        renderOverview();
-        persistUrl(true);
-      }
-    });
+    el("btnTop10").addEventListener("click", ()=>{ if(state.topListMode!=="top10"){ state.topListMode="top10"; updateTopToggleUI(); renderOverview(); persistUrl(true);} });
+    el("btnAll").addEventListener("click", ()=>{ if(state.topListMode!=="all"){ state.topListMode="all"; updateTopToggleUI(); renderOverview(); persistUrl(true);} });
 
     await hydrateFromUrl();
 
@@ -555,57 +442,48 @@
     const m = new Map();
     for(const r of rows){
       if(isListestemmer(r.kandidat_navn)) continue;
-      if(!m.has(r.uid)){
-        m.set(r.uid, { uid:r.uid, kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
-      }
+      if(!m.has(r.uid)) m.set(r.uid, { uid:r.uid, kandidat_id:r.kandidat_id, kandidat_navn:r.kandidat_navn, parti:r.parti });
     }
     return Array.from(m.values());
   }
   function rankCandidates(cands, q){
-    const Q = fold(q);
-    if (!Q) return [];
-    return cands
-      .map(c => {
-        const name = normalizeCandidateName(c.kandidat_navn);
-        const f = fold(name);
-        let score = -Infinity;
-        if (f.startsWith(Q)) {
-          score = 300 - (f.length - Q.length);
-        } else {
-          const hasWordStart = f.split(/\s+/).some(w => w.startsWith(Q));
-          if (hasWordStart) score = 200 - f.indexOf(Q);
-          else if (f.includes(Q)) score = 100 - f.indexOf(Q);
-        }
-        const pf = fold(c.parti);
-        if (pf.startsWith(Q) || pf.includes("(" + Q + ")")) score += 20;
-        return { ...c, _score: score, _name: name };
-      })
-      .filter(x => x._score > -Infinity)
-      .sort((a, b) => b._score - a._score || a._name.localeCompare(b._name, "da"))
-      .slice(0, 15);
+    const Q = fold(q); if (!Q) return [];
+    return cands.map(c=>{
+      const name=normalizeCandidateName(c.kandidat_navn), f=fold(name);
+      let score=-Infinity;
+      if(f.startsWith(Q)) score=300-(f.length-Q.length);
+      else{
+        const hasWordStart=f.split(/\s+/).some(w=>w.startsWith(Q));
+        if(hasWordStart) score=200-f.indexOf(Q);
+        else if(f.includes(Q)) score=100-f.indexOf(Q);
+      }
+      const pf=fold(c.parti); if(pf.startsWith(Q) || pf.includes("("+Q+")")) score+=20;
+      return {...c,_score:score,_name:name};
+    }).filter(x=>x._score>-Infinity)
+      .sort((a,b)=>b._score-a._score || a._name.localeCompare(b._name,"da"))
+      .slice(0,15);
   }
 
   function renderLanding(){
     const inputK=el('kommuneSearch');
-    if(inputK){
-      inputK.addEventListener('input',(e)=>{
-        const val=(e.target.value||'').toLowerCase(); if(!val) return;
-        const hit=Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
-        if(hit){
-          el('regionSelect').value=hit.r; populateKommuner(hit.r);
-          el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k;
-          persistUrl(true); loadKommuneData(hit.k);
-        }
-      });
-    }
+    inputK?.addEventListener('input',(e)=>{
+      const val=(e.target.value||'').toLowerCase(); if(!val) return;
+      const hit=Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
+      if(hit){
+        el('regionSelect').value=hit.r; populateKommuner(hit.r);
+        el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k; state.valgsted=VALGSTED_ALL_VALUE;
+        persistUrl(true); loadKommuneData(hit.k);
+      }
+    });
+
     const input=el('candidateSearch'), menu=el('candidateMenu'); let activeIndex=-1;
     const closeMenu=()=>{ menu.classList.add('hidden'); activeIndex=-1; };
     const openMenu =()=>{ menu.classList.remove('hidden'); };
     function renderMenuFor(query){
-      const cands=buildCandidateList(state.rows||[]), results=rankCandidates(cands,query);
+      const results=rankCandidates(buildCandidateList(getActiveRows()),query);
       if(!results.length){ closeMenu(); menu.innerHTML=""; return; }
       menu.innerHTML = results.map((c,i)=>{
-        const letter=detectPartyLetter((state.rows||[]).filter(r=>r.parti===c.parti));
+        const letter=detectPartyLetter((getActiveRows()).filter(r=>r.parti===c.parti));
         const bd=badge(letter);
         const sub=`${escapeHtml(c.parti)}`;
         return `<div class="vb-option" role="option" data-idx="${i}" data-uid="${escapeHtml(c.uid)}" aria-selected="${i===activeIndex}">
@@ -616,62 +494,38 @@
           </span>
         </div>`;
       }).join("");
-      menu.querySelectorAll('.vb-option').forEach(opt=>{
-        opt.onclick=()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10));
-      });
+      menu.querySelectorAll('.vb-option').forEach(opt=>{ opt.onclick=()=> selectByIndex(parseInt(opt.getAttribute('data-idx'),10)); });
       openMenu();
     }
     function selectByIndex(i){
-      const results=rankCandidates(buildCandidateList(state.rows||[]), input.value);
+      const results=rankCandidates(buildCandidateList(getActiveRows()), input.value);
       const sel=results[i]; if(!sel) return;
-      toggleCandidateFromTop(sel.uid, state.rows||[]);
-      closeMenu(); input.value="";
+      toggleCandidateFromTop(sel.uid, getActiveRows()); closeMenu(); input.value="";
     }
     let t=null;
-    input?.addEventListener('input', ()=>{
-      const q=input.value.trim(); if(t) clearTimeout(t);
-      if(!q){ closeMenu(); return; }
-      t=setTimeout(()=>renderMenuFor(q),120);
-    });
+    input?.addEventListener('input', ()=>{ const q=input.value.trim(); if(t) clearTimeout(t); if(!q){ closeMenu(); return; } t=setTimeout(()=>renderMenuFor(q),120); });
     input?.addEventListener('keydown',(e)=>{
-      const results=rankCandidates(buildCandidateList(state.rows||[]), input.value);
-      if(e.key==='ArrowDown'){
-        e.preventDefault(); if(!results.length) return;
+      const results=rankCandidates(buildCandidateList(getActiveRows()), input.value);
+      if(e.key==='ArrowDown'){ e.preventDefault(); if(!results.length) return;
         activeIndex=(activeIndex+1)%results.length; renderMenuFor(input.value);
-        const opt=menu.querySelector(`[data-idx="${activeIndex}"]`);
-        if(opt){
-          menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false'));
-          opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'});
-        }
-      }
-      else if(e.key==='ArrowUp'){
-        e.preventDefault(); if(!results.length) return;
+        const opt=menu.querySelector(`[data-idx="${activeIndex}"]`); if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); } }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); if(!results.length) return;
         activeIndex=(activeIndex<=0?results.length-1:activeIndex-1); renderMenuFor(input.value);
-        const opt=menu.querySelector(`[data-idx="${activeIndex}"]`);
-        if(opt){
-          menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false'));
-          opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'});
-        }
-      }
-      else if(e.key==='Enter'){
-        if(!menu.classList.contains('hidden')){
-          e.preventDefault(); selectByIndex(activeIndex>=0?activeIndex:0);
-        }
-      }
+        const opt=menu.querySelector(`[data-idx="${activeIndex}"]`); if(opt){ menu.querySelectorAll('.vb-option').forEach(x=>x.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); opt.scrollIntoView({block:'nearest'}); } }
+      else if(e.key==='Enter'){ if(!menu.classList.contains('hidden')){ e.preventDefault(); selectByIndex(activeIndex>=0?activeIndex:0); } }
       else if(e.key==='Escape'){ closeMenu(); }
     });
-    document.addEventListener('click',(e)=>{
-      const box=el('candidateSearch')?.parentElement;
-      if(box && !box.contains(e.target)) closeMenu();
-    });
+    document.addEventListener('click',(e)=>{ const box=el('candidateSearch')?.parentElement; if(box && !box.contains(e.target)) closeMenu(); });
   }
 
   /* ===== Dropdowns ===== */
   function initRegionDropdown(){
     const rsel=el("regionSelect");
     rsel.innerHTML=`<option value="">Hele Danmark</option>`+Object.keys(REGIONS).map(r=>`<option value="${r}">${r}</option>`).join("");
-    rsel.onchange=()=>{ const r=rsel.value; state.region=r; state.kommune=""; state.activeParty="";
+    rsel.onchange=()=>{ 
+      const r=rsel.value; state.region=r; state.kommune=""; state.valgsted=""; state.activeParty="";
       el("kommuneSelect").disabled=!r; el("kommuneSelect").innerHTML=`<option value="">Vælg kommune…</option>`;
+      const vsel=el("valgstedSelect"); if(vsel){ vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
       if(r) populateKommuner(r); clearAll();
       if(r){ persistUrl(true); loadRegionData(r);} else { persistUrl(true); loadNationalData(); }
       renderContextBar();
@@ -681,12 +535,24 @@
   function populateKommuner(region){
     const ksel=el("kommuneSelect"), kommuner=REGIONS[region]||[];
     ksel.innerHTML=`<option value="">Vælg kommune…</option>`+kommuner.map(k=>`<option value="${k}">${k}</option>`).join("");
-    ksel.onchange=()=>{ const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
+    ksel.onchange=()=>{ 
+      const k=ksel.value; state.kommune=k; state.activeParty=""; state.valgsted="";
+      clearAll();
+      const vsel=el("valgstedSelect");
+      if(k){ vsel.disabled=true; vsel.innerHTML=`<option value="">Indlæser valgsteder…</option>`; }
+      else { vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
       if(k){ persistUrl(true); loadKommuneData(k);} else { persistUrl(true); loadRegionData(state.region); }
       renderContextBar();
     };
   }
-  function clearAll(){ state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent=""; }
+  function clearAll(){
+    state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent="";
+    const vsel=el("valgstedSelect");
+    if(vsel){
+      if(state.kommune){ vsel.disabled=false; vsel.innerHTML=`<option value="">Vælg valgsted…</option>`; }
+      else { vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
+    }
+  }
   function resetPartyUI(){
     const btn=el("partyButton"), btnc=el("partyButtonContent");
     const disabled=!state.kommune;
@@ -696,6 +562,30 @@
       : `<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
     el("partyMenu").innerHTML=""; el("partyDetailHeader").textContent = disabled ? "Vælg en kommune for at se partier." : "Vælg et parti i drop-down menuen.";
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
+  }
+  function populateValgsteder(){
+    const vsel=el("valgstedSelect"); if(!vsel) return;
+    if(!state.kommune){
+      vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`;
+      state.valgsted=""; return;
+    }
+    const map=new Map();
+    for(const r of (state.rows||[])){
+      const id=canon(r.valgsted_id), navn=canon(r.valgsted_navn);
+      if(!id||!navn) continue;
+      if(!map.has(id)) map.set(id,navn);
+    }
+    const entries=Array.from(map.entries()).sort((a,b)=>a[1].localeCompare(b[1],'da'));
+    if(!entries.length){
+      vsel.disabled=true; vsel.innerHTML=`<option value="">(Ingen valgsteder fundet)</option>`; state.valgsted=""; return;
+    }
+    vsel.disabled=false;
+    const allOpt = `<option value="${VALGSTED_ALL_VALUE}">Alle valgsteder i kommunen</option>`;
+    vsel.innerHTML = `<option value="">Vælg valgsted…</option>${allOpt}${entries.map(([id,navn])=>`<option value="${escapeHtml(id)}">${escapeHtml(navn)}</option>`).join("")}`;
+    vsel.value = state.valgsted || VALGSTED_ALL_VALUE;
+    if(!vsel.value) vsel.value = VALGSTED_ALL_VALUE;
+    state.valgsted = vsel.value;
+    vsel.onchange = ()=>{ state.valgsted = vsel.value || ""; renderOverview(); renderAll(); renderContextBar(); persistUrl(true); };
   }
 
   /* ===== Data: fetch & parse ===== */
@@ -712,51 +602,41 @@
 
   function mapRowCommon(r){
     return {
-      region:        canon(pick(r, "region")),
-      kommune:       canon(pick(r, "kommune")),
-      valgsted_id:   canon(pick(r, "valgsted_id", "afstemningssted_id", "afstemningsområde_id", "valgstedid", "sted_id")),
-      valgsted_navn: canon(pick(r, "valgsted_navn", "afstemningssted", "afstemningsområde", "valgsted", "sted_navn")),
-      kandidat_id:   canon(pick(r, "kandidat_id", "kandidat", "navn", "kandidat_navn")),
-      kandidat_navn: normalizeCandidateName(canon(pick(r, "kandidat_navn", "navn", "kandidat", "kandidat_id"))),
-      parti:         normalizePartyName(canon(pick(r, "parti", "listenavn"))),
-      parti_bogstav: canon(pick(r, "parti_bogstav", "listebogstav", "bogstavbetegnelse", "bogstavsbetegnelse")),
-      stemmer:       Number(pick(r, "stemmer", "stemmetal", "stemmer_i_alt") || 0) || 0
+      region:        canon(pick(r,"region")),
+      kommune:       canon(pick(r,"kommune")),
+      valgsted_id:   canon(pick(r,"valgsted_id","afstemningssted_id","afstemningsområde_id","valgstedid","sted_id")),
+      valgsted_navn: canon(pick(r,"valgsted_navn","afstemningssted","afstemningsområde","valgsted","sted_navn")),
+      kandidat_id:   canon(pick(r,"kandidat_id","kandidat","navn","kandidat_navn")),
+      kandidat_navn: normalizeCandidateName(canon(pick(r,"kandidat_navn","navn","kandidat","kandidat_id"))),
+      parti:         normalizePartyName(canon(pick(r,"parti","listenavn"))),
+      parti_bogstav: canon(pick(r,"parti_bogstav","listebogstav","bogstavbetegnelse","bogstavsbetegnelse")),
+      stemmer:       Number(pick(r,"stemmer","stemmetal","stemmer_i_alt") || 0) || 0
     };
   }
 
   function parseCsvTextToRows(text){
-    const res = Papa.parse(text, {
-      header:true, skipEmptyLines:true,
-      transformHeader:h=>canon(h.toLowerCase()),
-      delimitersToGuess:[",",";","\t","|"]
-    });
+    const res = Papa.parse(text, { header:true, skipEmptyLines:true, transformHeader:h=>canon(h.toLowerCase()), delimitersToGuess:[",",";","\t","|"] });
     return res.data.map(mapRowCommon);
   }
 
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
-
     const regName = findRegionForKommune(k);
-    const regSafe = encodeURIComponent(regName || '');
-    const safe    = encodeURIComponent(k);
-    const url     = `${BASE_PATH}${regSafe}/${safe}.csv`;
-
+    const url = `${BASE_PATH}${encodeURIComponent(regName||'')}/${encodeURIComponent(k)}.csv`;
     const text = await fetchText(url);
     if (/<html[^>]*>/i.test(text)) throw new Error('Not CSV');
-
     const rows = parseCsvTextToRows(text);
 
     for (const r of rows) {
       if (!r.kommune) r.kommune = k;
       if (!r.region)  r.region  = regName;
 
-      // --- SPECIALCASE: Lokallisten/Fælleslisten/Borgerlisten pr. kommune ---
+      // lokale lister unikke pr. kommune
       const pLower = canon(r.parti).toLowerCase();
       if (LOCAL_MULTI_COMMUNE_PARTIES.includes(pLower) && r.kommune) {
-        const baseName = canon(r.parti); // bevar original stavning
+        const baseName = canon(r.parti);
         r.parti = `${baseName} (${r.kommune})`;
       }
-      // -----------------------------------------------------------------------
 
       if (!r.valgsted_id) {
         const base = `${slugify(r.kommune)}__${slugify(r.valgsted_navn)}`;
@@ -771,7 +651,7 @@
 
   async function loadNationalData(){
     try{
-      showLoading(); el('error').textContent=''; el('kommunetitel').textContent='(Danmark)';
+      showLoading(); el('error').textContent=''; el('kommunetitel').textContent='(Danmark)'; state.valgsted="";
       const allNames=Object.values(REGIONS).flat();
       const chunks=await Promise.all(allNames.map(name=>loadRowsForKommune(name).catch(()=>[])));
       state.rows=chunks.flat(); afterDataLoaded();
@@ -779,7 +659,7 @@
   }
   async function loadRegionData(region){
     try{
-      showLoading(); el('error').textContent=''; el('kommunetitel').textContent=`(${region})`;
+      showLoading(); el('error').textContent=''; el('kommunetitel').textContent=`(${region})`; state.valgsted="";
       const names=(REGIONS[region]||[]);
       const chunks=await Promise.all(names.map(name=>loadRowsForKommune(name).catch(()=>[])));
       state.rows=chunks.flat(); afterDataLoaded();
@@ -796,9 +676,11 @@
 
   function afterDataLoaded(){
     applyPendingSelections();
-    resetPartyUI(); if(state.kommune) renderPartyCombobox();
+    resetPartyUI();
+    if(state.kommune){ renderPartyCombobox(); populateValgsteder(); }
+    else { const vsel=el("valgstedSelect"); if(vsel){ vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; } state.valgsted=""; }
     updateTopButtonsForScope(); renderOverview(); renderAll(); renderContextBar();
-    document.getElementById('candidateMenu')?.classList.add('hidden');
+    el('candidateMenu')?.classList.add('hidden');
   }
   function applyPendingSelections(){
     if(state.pendingCandidateIds && state.pendingCandidateIds.length){
@@ -810,96 +692,88 @@
     }
   }
 
-  const sortKandidaterAlpha = (a,b)=>{
-    const aName=normalizeCandidateName(a.kandidat_navn), bName=normalizeCandidateName(b.kandidat_navn);
-    const al=isListestemmer(aName), bl=isListestemmer(bName);
-    if(al&&!bl) return 1; if(!al&&bl) return -1;
-    return aName.localeCompare(bName,"da");
-  };
-  const sortKandidaterVotes = (a,b)=>{
-    const aName=normalizeCandidateName(a.kandidat_navn), bName=normalizeCandidateName(b.kandidat_navn);
-    const al=isListestemmer(aName), bl=isListestemmer(bName);
-    if(al&&!bl) return 1; if(!al&&bl) return -1;
-    const dv=(b.total||0)-(a.total||0); if(dv!==0) return dv;
-    return aName.localeCompare(bName,"da");
-  };
-
-  function totalsByCandidate(rows){
-    const m=new Map();
-    for(const r of rows){
-      if(!m.has(r.uid)){
-        m.set(r.uid,{ uid:r.uid,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0 });
-      }
-      m.get(r.uid).total += r.stemmer;
+  /* Active rows helper (valgstedsfilter) */
+  function getActiveRows(){
+    const rows=state.rows||[];
+    if(state.kommune && state.valgsted && state.valgsted!==VALGSTED_ALL_VALUE){
+      return rows.filter(r=>r.valgsted_id===state.valgsted);
     }
-    return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
+    return rows;
+  }
+  function getCurrentValgstedName(){
+    if(!state.kommune || !state.valgsted || state.valgsted===VALGSTED_ALL_VALUE) return "";
+    const row=(state.rows||[]).find(r=>r.valgsted_id===state.valgsted);
+    return row ? row.valgsted_navn : "";
   }
 
-  // Partitotal: personlige + listestemmer pr. parti
+  /* Sortering */
+  const sortKandidaterAlpha = (a,b)=>{ const aN=normalizeCandidateName(a.kandidat_navn), bN=normalizeCandidateName(b.kandidat_navn);
+    const al=isListestemmer(aN), bl=isListestemmer(bN); if(al&&!bl) return 1; if(!al&&bl) return -1; return aN.localeCompare(bN,"da"); };
+  const sortKandidaterVotes = (a,b)=>{ const aN=normalizeCandidateName(a.kandidat_navn), bN=normalizeCandidateName(b.kandidat_navn);
+    const al=isListestemmer(aN), bl=isListestemmer(bN); if(al&&!bl) return 1; if(!al&&bl) return -1; const dv=(b.total||0)-(a.total||0); if(dv!==0) return dv; return aN.localeCompare(bN,"da"); };
+
+  /* Aggregater */
+  function totalsByCandidate(rows){
+    const m=new Map();
+    for(const r of rows){ if(!m.has(r.uid)) m.set(r.uid,{ uid:r.uid,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0 }); m.get(r.uid).total += r.stemmer; }
+    return Array.from(m.values()).filter(k=>!isListestemmer(k.kandidat_navn)).sort((a,b)=>b.total-a.total);
+  }
   function totalsByPartyAllVotes(rows){
-    const m = new Map();
-    for(const r of rows){
-      const parti = r.parti || "(ukendt parti)";
-      m.set(parti, (m.get(parti)||0) + (r.stemmer||0));
-    }
-    const entries = Array.from(m.entries()).map(([parti,total])=>{
-      const rowsForParti = rows.filter(x=>x.parti===parti);
-      const letter = detectPartyLetter(rowsForParti);
-      return { parti, total, letter };
+    const m=new Map();
+    for(const r of rows){ const parti=r.parti||"(ukendt parti)"; m.set(parti,(m.get(parti)||0)+(r.stemmer||0)); }
+    const entries=Array.from(m.entries()).map(([parti,total])=>{
+      const rowsForParti=rows.filter(x=>x.parti===parti); const letter=detectPartyLetter(rowsForParti);
+      return { parti,total,letter };
     });
     entries.sort((a,b)=>(b.total-a.total) || a.parti.localeCompare(b.parti,"da"));
     return entries;
   }
-
   function primaryKommuneForCandidate(uid, rows){
-    const sample = rows.find(r=>r.uid===uid);
-    if(sample){
-      return { kommune: sample.kommune, region: sample.region || findRegionForKommune(sample.kommune) };
-    }
+    const sample=rows.find(r=>r.uid===uid);
+    if(sample){ return { kommune: sample.kommune, region: sample.region || findRegionForKommune(sample.kommune) }; }
     return null;
   }
 
+  /* Overview */
   function renderOverview(){
-    const rows=state.rows||[];
+    const rows=getActiveRows();
     const totalValid = totalValidVotes(rows);
     const showCandidatePercent = !!state.kommune;
 
-    // Scope-tekst: kun "Danmark" på landsplan
+    // scope-tekst
     const isDK = !state.region && !state.kommune;
-    const scopeText = isDK ? "Danmark" : "";
+    let scopeText="";
+    if(isDK) scopeText="Danmark";
+    else if(state.region && !state.kommune) scopeText=state.region;
+    else if(state.kommune){
+      const vName=getCurrentValgstedName();
+      scopeText = (state.valgsted && state.valgsted!==VALGSTED_ALL_VALUE && vName) ? `${state.kommune} – ${vName}` : state.kommune;
+    }
     el("top10Scope").textContent = rows.length ? scopeText : '';
 
-    // Info-tekst om procent / partitotal i boksen under overskriften
-    const info = el("modeInfoBox");
+    // info-boks
+    const info=el("modeInfoBox");
     if(info){
-      if(state.overviewMode === "party"){
+      if(state.overviewMode==="party"){
         info.classList.remove("hidden");
-        info.textContent = "Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (personlige + listestemmer).";
-      } else if(state.overviewMode === "cand" && showCandidatePercent){
+        info.textContent="Procenttallet viser partiets andel af alle gyldige stemmer i det valgte område (personlige + listestemmer).";
+      } else if(state.overviewMode==="cand" && showCandidatePercent){
         info.classList.remove("hidden");
-        info.textContent = "Procenttallet viser en kandidats andel af alle gyldige stemmer i kommunen.";
-      } else {
-        info.classList.add("hidden");
-        info.textContent = "";
-      }
+        info.textContent="Procenttallet viser en kandidats andel af alle gyldige stemmer i det valgte område.";
+      } else { info.classList.add("hidden"); info.textContent=""; }
     }
 
-    // Partitotal-mode
+    // PARTI
     if(state.overviewMode==="party"){
-      const ranked = totalsByPartyAllVotes(rows);
-      const isTop10 = state.topListMode==="top10";
-      const list = isTop10 ? ranked.slice(0,10) : ranked;
+      const ranked=totalsByPartyAllVotes(rows);
+      const isTop10=state.topListMode==="top10";
+      const list=isTop10?ranked.slice(0,10):ranked;
+      el("top10Title").textContent = isTop10 ? "Top 10 partier (personlige + listestemmer)" : "Alle partier (personlige + listestemmer)";
 
-      el("top10Title").textContent = isTop10
-        ? "Top 10 partier (personlige + listestemmer)"
-        : "Alle partier (personlige + listestemmer)";
-
-      function itemHTML(p, idx){
-        const bd = badge(p.letter);
-        const share = totalValid > 0 ? p.total / totalValid : null;
-        const shareLabel = share !== null ? fmtPct(share) : null;
-        const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
-        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+      function itemHTML(p,idx){
+        const bd=badge(p.letter);
+        const share = totalValid>0 ? p.total/totalValid : null;
+        const meta = share!==null ? `${fmt(p.total)} stemmer i alt (personlige + liste) · ${fmtPct(share)}` : `${fmt(p.total)} stemmer i alt (personlige + liste)`;
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
@@ -910,57 +784,33 @@
         </li>`;
       }
 
-      const half = Math.ceil(list.length/2);
-      const left = list.slice(0,half);
-      const right = list.slice(half);
+      const half=Math.ceil(list.length/2), left=list.slice(0,half), right=list.slice(half);
+      el("top10ColLeft").innerHTML = left.map((p,i)=>itemHTML(p,i+1)).join("") || `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
+      el("top10ColRight").innerHTML = right.map((p,i)=>itemHTML(p,i+1+half)).join("");
 
-      el("top10ColLeft").innerHTML =
-        left.map((p,i)=>itemHTML(p, i+1)).join("") ||
-        `<div class="text-sm text-gray-500">Ingen data at vise.</div>`;
-      el("top10ColRight").innerHTML =
-        right.map((p,i)=>itemHTML(p, i+1+half)).join("");
-
-      // Klik på parti → vælg i combobox (kun i kommunevisning)
       ['top10ColLeft','top10ColRight'].forEach(rootId=>{
         document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
           const parti=item.getAttribute('data-parti');
-          const activate = ()=>{
-            if(!state.kommune) return;
-            state.activeParty = parti;
-            renderPartyCombobox();
-            renderPartyDetail(parti);
-            const u=new URL(location.href);
-            u.searchParams.set("parti", parti);
-            history.replaceState({}, "", u);
-            document.getElementById('partyDetail')?.scrollIntoView({behavior:'smooth'});
-          };
-          item.addEventListener('click', activate);
-          item.addEventListener('keydown', (e)=>{
-            if(e.key==='Enter' || e.key===' '){
-              e.preventDefault();
-              activate();
-            }
-          });
+          const activate=()=>{ if(!state.kommune) return; state.activeParty=parti; renderPartyCombobox(); renderPartyDetail(parti);
+            const u=new URL(location.href); u.searchParams.set("parti",parti); history.replaceState({}, "", u);
+            document.getElementById('partyDetail')?.scrollIntoView({behavior:'smooth'}); };
+          item.addEventListener('click',activate);
+          item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); activate(); } });
         });
       });
-
       return;
     }
 
-    // Kandidat-mode
+    // KANDIDATER
     const ranked=totalsByCandidate(rows);
     const list=state.topListMode==="top10"?ranked.slice(0,10):ranked.slice(0,50);
-    el("top10Title").textContent=state.topListMode==="top10"
-      ? "Top 10 kandidater (personlige stemmer)"
-      : "Top 50 kandidater (personlige stemmer)";
+    el("top10Title").textContent = state.topListMode==="top10" ? "Top 10 kandidater (personlige stemmer)" : "Top 50 kandidater (personlige stemmer)";
 
     function itemHTML(k,idx){
       const letter=detectPartyLetter(rows.filter(r=>r.parti===k.parti));
       const bd=badge(letter);
-      const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
-      const shareLabel = share !== null ? fmtPct(share) : null;
-      const base=`${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
-      const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+      const share = showCandidatePercent && totalValid>0 ? (k.total||0)/totalValid : null;
+      const meta = share!==null ? `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer · ${fmtPct(share)}` : `${escapeHtml(k.parti)} · ${fmt(k.total)} stemmer`;
       return `<li class="top10-item" data-uid="${escapeHtml(k.uid)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
         <span class="rank-pill">${idx}</span>
         <div class="min-w-0 flex-1">
@@ -979,11 +829,7 @@
       document.getElementById(rootId).querySelectorAll('.top10-item').forEach(item=>{
         const uid=item.getAttribute('data-uid');
         item.addEventListener('click', ()=>toggleCandidateFromTop(uid, rows));
-        item.addEventListener('keydown',(e)=>{
-          if(e.key==='Enter'||e.key===' '){
-            e.preventDefault(); toggleCandidateFromTop(uid, rows);
-          }
-        });
+        item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCandidateFromTop(uid, rows); } });
       });
     });
   }
@@ -993,20 +839,18 @@
     if(!state.kommune || (target && target.kommune && state.kommune!==target.kommune)){
       if(target){
         const rsel=el('regionSelect'); rsel.value=target.region; state.region=target.region; populateKommuner(target.region);
-        const ksel=el('kommuneSelect'); ksel.value=target.kommune; state.kommune=target.kommune;
+        const ksel=el('kommuneSelect'); ksel.value=target.kommune; state.kommune=target.kommune; state.valgsted=VALGSTED_ALL_VALUE;
 
         const existing=getSelectedIds(); const nextCand=Array.from(new Set([...existing, uid]));
         state.pendingCandidateIds=[uid];
         persistUrl(true);
-        const u=new URL(location.href);
-        if(nextCand.length) u.searchParams.set("cand", nextCand.join(",")); else u.searchParams.delete("cand");
+        const u=new URL(location.href); if(nextCand.length) u.searchParams.set("cand", nextCand.join(",")); else u.searchParams.delete("cand");
         history.replaceState({}, "", u);
         loadKommuneData(target.kommune);
         return;
       }
     }
-    const sample=(state.rows||[]).find(r=>r.uid===uid);
-    if(!sample) return;
+    const sample=(state.rows||[]).find(r=>r.uid===uid); if(!sample) return;
     if(state.selected.has(uid)){ state.selected.delete(uid); renderAll(); persistUrl(false); return; }
     state.selected.set(uid, { uid, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
     renderAll(); persistUrl(false);
@@ -1014,87 +858,42 @@
   }
 
   function updateTopButtonsForScope(){
-    const btnAll=el("btnAll");
-    if(!btnAll) return;
-    if(state.overviewMode==="party"){
-      btnAll.textContent = "Alle partier";
-    } else {
-      btnAll.textContent = "Top 50";
-    }
+    const btnAll=el("btnAll"); if(!btnAll) return;
+    btnAll.textContent = (state.overviewMode==="party") ? "Alle partier" : "Top 50";
   }
 
-function detectPartyLetter(rowsForParti){
-  if (!rowsForParti || !rowsForParti.length) return null;
+  /* Partibogstav (2009): store partier, Åbenhedslisten uden bogstav */
+  function detectPartyLetter(rowsForParti){
+    if(!rowsForParti || !rowsForParti.length) return null;
+    const name=(rowsForParti[0].parti||"").toLowerCase();
 
-  const name = (rowsForParti[0].parti || "").toLowerCase();
+    if (name.includes("åbenhedslisten")) return null;
 
-  // Socialdemokratiet
-  if (name.includes("socialdemokratiet")) return "A";
-
-  // Venstre, Danmarks Liberale Parti
-  if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
-
-  // SF - Socialistisk Folkeparti
-  if (
-    name.startsWith("sf ") ||
-    name.includes("sf - socialistisk folkeparti") ||
-    name.includes("sf-socialistisk folkeparti") ||
-    name.includes("sf- socialistisk folkeparti")
-  ) return "F";
-
-  // Det Konservative Folkeparti / Konservative
-  if (name.includes("konservative")) return "C";
-
-  // Dansk Folkeparti
-  if (name.includes("dansk folkeparti")) return "O";
-
-  // Radikale Venstre
-  if (name.includes("radikale venstre")) return "B";
-
-  // Enhedslisten
-  if (name.includes("enhedslisten")) return "Ø";
-
-  // Liberal Alliance
-  if (name.includes("liberal alliance")) return "I";
-
-  // Kristendemokraterne
-  if (name.includes("kristendemokraterne")) return "K";
-
-  // Alternativet
-  if (name.includes("alternativet")) return "Å";
-
-  // Alle andre partier → grå cirkel uden bogstav
-  return null;
-}
+    if (name.includes("socialdemokratiet")) return "A";
+    if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
+    if (name.includes("radikale venstre")) return "B";
+    if (name.includes("konservative")) return "C";
+    if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti")) return "F";
+    if (name.includes("enhedslisten")) return "Ø";
+    if (name.includes("liberal alliance")) return "I";
+    if (name.includes("kristendemokraterne")) return "K";
+    if (name.includes("dansk folkeparti")) return "O";
+    return null; // alle andre → grå cirkel
+  }
 
   function getPartyStats(){
     const byParti=new Map();
-    for(const r of state.rows){
-      if(!byParti.has(r.parti)) byParti.set(r.parti,[]);
-      byParti.get(r.parti).push(r);
-    }
+    const rows=getActiveRows();
+    for(const r of rows){ if(!byParti.has(r.parti)) byParti.set(r.parti,[]); byParti.get(r.parti).push(r); }
     const res=[];
     for(const [parti,rowsP] of byParti.entries()){
       const map=new Map();
-      for(const r of rowsP){
-        if(!map.has(r.uid)) map.set(r.uid,{ uid:r.uid, kandidat_navn:r.kandidat_navn, parti:r.parti, total:0 });
-        map.get(r.uid).total += r.stemmer;
-      }
+      for(const r of rowsP){ if(!map.has(r.uid)) map.set(r.uid,{ uid:r.uid, kandidat_navn:r.kandidat_navn, parti:r.parti, total:0 }); map.get(r.uid).total += r.stemmer; }
       const kandidater=Array.from(map.values());
       const letter=detectPartyLetter(rowsP);
-      res.push({
-        parti,
-        letter,
-        hasLetter: !!letter,
-        kandidatAntal: kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length,
-        kandidater
-      });
+      res.push({ parti, letter, hasLetter:!!letter, kandidatAntal:kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length, kandidater });
     }
-    res.sort((a,b)=>{
-      if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1;
-      if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da");
-      return a.parti.localeCompare(b.parti,"da");
-    });
+    res.sort((a,b)=>{ if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1; if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da"); return a.parti.localeCompare(b.parti,"da"); });
     return res;
   }
 
@@ -1107,23 +906,14 @@ function detectPartyLetter(rowsForParti){
   function renderPartyCombobox(){
     if(!state.kommune){ resetPartyUI(); return; }
     const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
-    if(!stats.length){
-      btn.disabled=true;
-      btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`;
-      menu.innerHTML=""; return;
-    }
+    if(!stats.length){ btn.disabled=true; btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`; menu.innerHTML=""; return; }
     btn.disabled=false;
 
     function renderButton(){
-      if(!state.activeParty){
-        btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
-        return;
-      }
-      const cur=stats.find(s=>s.parti===state.activeParty);
-      const {style,text}=badge(cur?.letter||null);
+      if(!state.activeParty){ btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`; return; }
+      const cur=stats.find(s=>s.parti===state.activeParty); const {style,text}=badge(cur?.letter||null);
       btnc.innerHTML=`<span class="vb-badge" style="${style}">${text}</span><span class="truncate">${escapeHtml(state.activeParty)}</span>`;
     }
-
     function renderMenu(){
       menu.innerHTML=stats.map(s=>{
         const {style,text}=badge(s.letter); const sel=s.parti===state.activeParty;
@@ -1134,19 +924,11 @@ function detectPartyLetter(rowsForParti){
         </div>`;
       }).join("");
       menu.querySelectorAll('.vb-option').forEach((opt,i)=>{
-        opt.onclick=()=>{
-          state.activeParty=opt.getAttribute('data-parti');
-          renderButton(); closePartyMenu(); renderPartyDetail(state.activeParty);
-          menu.querySelectorAll('.vb-option').forEach((x,j)=>x.setAttribute('aria-selected', j===i));
-          persistUrl(false);
-        };
+        opt.onclick=()=>{ state.activeParty=opt.getAttribute('data-parti'); renderButton(); closePartyMenu(); renderPartyDetail(state.activeParty);
+          menu.querySelectorAll('.vb-option').forEach((x,j)=>x.setAttribute('aria-selected', j===i)); persistUrl(false); };
       });
     }
-
-    btn.onclick=()=>{
-      const open=btn.getAttribute('aria-expanded')==='true';
-      if(open) closePartyMenu(); else { renderMenu(); openPartyMenu(); }
-    };
+    btn.onclick=()=>{ const open=btn.getAttribute('aria-expanded')==='true'; if(open) closePartyMenu(); else { renderMenu(); openPartyMenu(); } };
     function openPartyMenu(){ btn.setAttribute('aria-expanded','true'); menu.classList.remove('hidden'); menu.focus(); }
     function closePartyMenu(){ btn.setAttribute('aria-expanded','false'); menu.classList.add('hidden'); }
     window.closePartyMenu=closePartyMenu;
@@ -1163,9 +945,7 @@ function detectPartyLetter(rowsForParti){
     header.textContent=parti;
 
     const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
-    const sorted=kandidaterAll.slice().sort(
-      state.candidateSortMode==='alpha'?sortKandidaterAlpha:sortKandidaterVotes
-    );
+    const sorted=kandidaterAll.slice().sort(state.candidateSortMode==='alpha'?sortKandidaterAlpha:sortKandidaterVotes);
 
     const mid=Math.ceil(sorted.length/2), leftArr=sorted.slice(0,mid), rightArr=sorted.slice(mid);
     function card(k){
@@ -1181,16 +961,14 @@ function detectPartyLetter(rowsForParti){
         </div>
         <button class="vb-btn" data-add="${k.uid}">Tilføj</button>
       </div>`;
-      div.querySelector('button[data-add]').onclick=()=>{
-        state.selected.set(k.uid,{ uid:k.uid, kandidat_navn:k.kandidat_navn, parti:k.parti });
-        renderAll(); persistUrl(false);
-      };
+      div.querySelector('button[data-add]').onclick=()=>{ state.selected.set(k.uid,{ uid:k.uid, kandidat_navn:k.kandidat_navn, parti:k.parti }); renderAll(); persistUrl(false); };
       return div;
     }
     leftArr.forEach(k=>left.appendChild(card(k)));
     rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
+  /* Valgstedstabel + valgte */
   function renderAll(){
     renderSelected();
     renderPsTable(getPollingStations(), getSelectedOrdered());
@@ -1199,8 +977,8 @@ function detectPartyLetter(rowsForParti){
     el("tabsCard").classList.toggle("hidden",!hasSel);
   }
   function computeTotalsByCandidate(){
-    const m=new Map();
-    for(const r of state.rows) m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
+    const m=new Map(); const rows=getActiveRows();
+    for(const r of rows) m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
     return m;
   }
   function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
@@ -1210,9 +988,7 @@ function detectPartyLetter(rowsForParti){
     root.innerHTML= sel.map(k=>{
       const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.uid)||0;
       const listestemmer=isListestemmer(k.kandidat_navn);
-      const totalTekst=listestemmer
-        ? `${fmt(total)} ${total===1?'listestemme':'listestemmer'}`
-        : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+      const totalTekst=listestemmer?`${fmt(total)} ${total===1?'listestemme':'listestemmer'}`:`${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
       return `<div class="rounded-xl border p-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <span class="vb-badge" style="${bd.style}">${bd.text}</span>
@@ -1234,12 +1010,11 @@ function detectPartyLetter(rowsForParti){
   const getSelectedOrdered = () => { const s=getSelected().slice(); s.sort(sortKandidaterAlpha); return s; };
 
   function getPollingStations(){
-    const m=new Map();
-    for(const r of state.rows){
+    const m=new Map(); const rows=getActiveRows();
+    for(const r of rows){
       const key=`${r.kommune}::${r.valgsted_id}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
-      const ps=m.get(key);
-      ps[r.uid]=(ps[r.uid]||0)+r.stemmer;
+      const ps=m.get(key); ps[r.uid]=(ps[r.uid]||0)+r.stemmer;
     }
     const collator = new Intl.Collator('da', { numeric: true, sensitivity: 'base' });
     return Array.from(m.values()).sort((a,b)=>collator.compare(a.navn, b.navn));
@@ -1247,10 +1022,7 @@ function detectPartyLetter(rowsForParti){
 
   function renderPsTable(psList, sel){
     const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
-    if(!sel.length){
-      thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th></tr>`;
-      tbody.innerHTML=""; tfoot.innerHTML=""; return;
-    }
+    if(!sel.length){ thead.innerHTML=`<tr><th class="text-left py-2 pr-3">Valgsted</th></tr>`; tbody.innerHTML=""; tfoot.innerHTML=""; return; }
     const header = sel.map(s=>{
       const stat = state.kommune ? getPartyStats().find(x=>x.parti===s.parti) : null;
       const bd = badge(stat?.letter || null);
@@ -1269,55 +1041,72 @@ function detectPartyLetter(rowsForParti){
     </tr>`).join("");
 
     const totals=computeTotalsByCandidate();
+    let label='Total';
+    if(state.kommune){
+      if(state.valgsted && state.valgsted!==VALGSTED_ALL_VALUE) label='Valgsted total';
+      else label='Kommunetotal';
+    }
     tfoot.innerHTML=`<tr class="border-t">
-      <th class="py-2 pr-3 text-left">${state.kommune ? 'Kommunetotal' : 'Total'}</th>
+      <th class="py-2 pr-3 text-left">${label}</th>
       ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.uid)||0)}</td>`).join("")}
     </tr>`;
   }
 
+  /* Brødkrummer */
   function renderContextBar(){
     const bar=el('contextBar'); const parts=[];
-    parts.push(!state.region
-      ? `<span class="crumb-strong">Danmark</span>`
-      : `<span class="crumb" data-nav="dk">Danmark</span>`);
+    const hasRegion=!!state.region, hasKommune=!!state.kommune;
+    const hasValgsted = !!state.kommune && !!state.valgsted && state.valgsted!==VALGSTED_ALL_VALUE && !!getCurrentValgstedName();
+
+    parts.push(!hasRegion ? `<span class="crumb-strong">Danmark</span>` : `<span class="crumb" data-nav="dk">Danmark</span>`);
+
     if(state.region){
       parts.push(`<span class="sep">/</span>`);
-      parts.push(!state.kommune
-        ? `<span class="crumb-strong">${escapeHtml(state.region)}</span>`
-        : `<span class="crumb" data-nav="region">${escapeHtml(state.region)}</span>`);
+      const regionActive = state.region && !state.kommune;
+      parts.push(regionActive ? `<span class="crumb-strong">${escapeHtml(state.region)}</span>` : `<span class="crumb" data-nav="region">${escapeHtml(state.region)}</span>`);
+
       if(state.kommune){
         parts.push(`<span class="sep">/</span>`);
-        parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+        if(hasValgsted){
+          parts.push(`<span class="crumb" data-nav="kommune">${escapeHtml(state.kommune)}</span>`);
+          parts.push(`<span class="sep">/</span>`);
+          const vName=getCurrentValgstedName() || "Valgsted";
+          parts.push(`<span class="crumb-strong">${escapeHtml(vName)}</span>`);
+        } else {
+          parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+        }
       }
     }
     bar.innerHTML=parts.join("");
+
     bar.querySelector('[data-nav="dk"]')?.addEventListener('click', ()=>{
-      el('regionSelect').value=''; el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>'; el('kommuneSelect').disabled=true;
-      state.region=''; state.kommune=''; clearAll(); persistUrl(true); loadNationalData();
+      el('regionSelect').value='';
+      el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>'; el('kommuneSelect').disabled=true;
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.region=''; state.kommune=''; state.valgsted=''; clearAll(); persistUrl(true); loadNationalData();
     });
     bar.querySelector('[data-nav="region"]')?.addEventListener('click', ()=>{
-      el('kommuneSelect').value=''; state.kommune=''; clearAll(); persistUrl(true); loadRegionData(state.region);
+      el('kommuneSelect').value='';
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.kommune=''; state.valgsted=''; clearAll(); persistUrl(true); loadRegionData(state.region);
+    });
+    bar.querySelector('[data-nav="kommune"]')?.addEventListener('click', ()=>{
+      state.valgsted=VALGSTED_ALL_VALUE;
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.value=VALGSTED_ALL_VALUE; }
+      renderOverview(); renderAll(); renderContextBar(); persistUrl(true);
     });
   }
 
   function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
 </script>
-    <footer class="mt-10 border-t bg-gray-100">
+
+<footer class="mt-10 border-t bg-gray-100">
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
               flex flex-col md:flex-row items-center justify-between
               gap-3 md:gap-6 text-sm md:text-base text-gray-700">
-    
-    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
-      hej@valgbar.dk
-    </a>
-
-    <p class="text-center">
-      Data stammer fra KMDValg, Danmarks Statistik og valg.dk
-    </p>
-
-    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
-      Om Valgbar
-    </a>
+    <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">hej@valgbar.dk</a>
+    <p class="text-center">Data stammer fra KMDValg, Danmarks Statistik og valg.dk</p>
+    <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">Om Valgbar</a>
   </div>
 </footer>
 </body>
