@@ -118,6 +118,7 @@
 
   <!-- LANDING (søg + dropdowns) -->
   <section id="landing" class="vb-card p-4 space-y-4">
+    <!-- Række 1: søg -->
     <div class="grid grid-cols-1 md:grid-cols-2 md:items-end gap-3">
       <div class="relative">
         <label class="text-sm text-gray-600">Søg kandidat</label>
@@ -135,6 +136,10 @@
                class="w-full mt-1 rounded-xl border p-2"
                placeholder="Start med at skrive fx Aarhus, Odense, København…" />
       </div>
+    </div>
+
+    <!-- Række 2: Region / Kommune / Valgsted (samme linje) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 md:items-end gap-3">
       <div>
         <label class="text-sm text-gray-600">Region</label>
         <select id="regionSelect"
@@ -146,9 +151,18 @@
                 class="w-full mt-1 rounded-xl border p-2 text-gray-900"
                 disabled></select>
       </div>
+      <div>
+        <label class="text-sm text-gray-600">Valgsted</label>
+        <select id="valgstedSelect"
+                class="w-full mt-1 rounded-xl border p-2 text-gray-900"
+                disabled>
+          <option value="">(Vælg kommune for at vælge valgsted)</option>
+        </select>
+      </div>
     </div>
+
     <p class="text-sm text-gray-600">
-      Vælg en region og/eller kommune – eller begynd at skrive i søgefelterne.
+      Vælg en region, kommune og evt. valgsted – eller begynd at skrive i søgefelterne.
       Nedenfor vises Top 10 kandidater for det valgte område.
     </p>
   </section>
@@ -263,9 +277,9 @@
 <script>
   /* ===== DATA-STI (KV2013) ===== */
   const BASE_PATH = '/data/kv/2013/';
+  const VALGSTED_ALL_VALUE = "__ALL__";
 
-  /* Regioner & kommuner (som 2021 – samme 98 kommuner gælder i 2013)
-     VIGTIGT: Helsingør er med i Region Hovedstaden */
+  /* Regioner & kommuner (samme 98) */
   const REGIONS = {
     "Region Hovedstaden": ["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
     "Region Sjælland": ["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
@@ -274,7 +288,7 @@
     "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  /* Lokale lister, der skal være unikke pr. kommune – fx "Lokallisten (Assens)" */
+  /* Lokale lister, der skal være unikke pr. kommune */
   const LOCAL_MULTI_COMMUNE_PARTIES = [
     "lokallisten",
     "fælleslisten",
@@ -288,77 +302,53 @@
   /* ===== Hjælpere ===== */
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
-  const fmtPct = v => new Intl.NumberFormat("da-DK", {
-    style:"percent", minimumFractionDigits:2, maximumFractionDigits:2
-  }).format(v);
+  const fmtPct = v => new Intl.NumberFormat("da-DK", { style:"percent", minimumFractionDigits:2, maximumFractionDigits:2 }).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isListestemmer = name => { const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; }
   const fold = (s) => (s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName = (name) => (name||"").replace(/,(\S)/g, ', $1');
 
-  /* ===== Kanoniske partinavne + aliaser =====
-     Sørger for at fx "Venstre" og "Venstre, Danmarks Liberale Parti"
-     bliver lagt sammen som samme parti. */
+  /* Partinavne (alias → kanonisk) */
   const PARTY_NAME_ALIASES = {
-    // Det rigtige parti: "Venstre, Danmarks Liberale Parti"
-    "Venstre, Danmarks Liberale Parti": [
-      "Venstre"
-    ],
-
-    // Det rigtige parti: "Radikale Venstre"
-    "Radikale Venstre": [
-      "Det Radikale Venstre"
-    ],
-
-    // Det rigtige parti: "Enhedslisten - De Rød-Grønne"
-    "Enhedslisten - De Rød-Grønne": [
-      "Enhedslisten",
-      "Enhedslisten, De Rød-Grønne"
-    ],
-
-    // Det rigtige parti: "Det Konservative Folkeparti"
-    "Det Konservative Folkeparti": [
-      "Konservative"
-    ],
-
-    // Det rigtige parti: "SF - Socialistisk Folkeparti"
-    "SF - Socialistisk Folkeparti": [
-      "Socialistisk Folkeparti"
-    ]
+    "Venstre, Danmarks Liberale Parti": ["Venstre"],
+    "Radikale Venstre": ["Det Radikale Venstre"],
+    "Enhedslisten - De Rød-Grønne": ["Enhedslisten","Enhedslisten, De Rød-Grønne"],
+    "Det Konservative Folkeparti": ["Konservative"],
+    "SF - Socialistisk Folkeparti": ["Socialistisk Folkeparti"]
   };
-
-  /* Byg et opslag fra alias → kanonisk partinavn */
   const PARTY_NAME_CANON = (() => {
     const m = new Map();
     for (const [canonName, aliases] of Object.entries(PARTY_NAME_ALIASES)) {
-      const keyCanon = canon(canonName).toLowerCase();
-      m.set(keyCanon, canonName); // det kanoniske navn selv
-      for (const alias of aliases) {
-        const keyAlias = canon(alias).toLowerCase();
-        m.set(keyAlias, canonName); // alias → kanonisk
-      }
+      m.set(canon(canonName).toLowerCase(), canonName);
+      for (const a of aliases) m.set(canon(a).toLowerCase(), canonName);
     }
     return m;
   })();
+  const normalizePartyName = raw => PARTY_NAME_CANON.get(canon(raw).toLowerCase()) || canon(raw);
 
-  function normalizePartyName(rawName) {
-    const key = canon(rawName).toLowerCase();
-    return PARTY_NAME_CANON.get(key) || canon(rawName);
-  }
-
-  const totalValidVotes = (rows) => {
-    let sum = 0;
-    for(const r of rows){ sum += r.stemmer || 0; }
-    return sum;
-  };
+  const totalValidVotes = (rows) => rows.reduce((s,r)=>s+(r.stemmer||0),0);
 
   function findRegionForKommune(kommune){
     for(const [reg,kommuner] of Object.entries(REGIONS)){ if(kommuner.includes(kommune)) return reg; }
     return "";
   }
 
-  /* ==== Slug + hash til stabile valgsted_id'er ==== */
+  /* Valgsted-filter */
+  function getActiveRows(){
+    const rows = state.rows || [];
+    if(state.kommune && state.valgsted && state.valgsted !== VALGSTED_ALL_VALUE){
+      return rows.filter(r => r.valgsted_id === state.valgsted);
+    }
+    return rows;
+  }
+  function getCurrentValgstedName(){
+    if(!state.kommune || !state.valgsted || state.valgsted === VALGSTED_ALL_VALUE) return "";
+    const row = (state.rows||[]).find(r=>r.valgsted_id===state.valgsted);
+    return row ? row.valgsted_navn : "";
+  }
+
+  /* Slug/hash til stabile valgsted_id'er (fallback) */
   function slugify(s) {
     return (s || "")
       .normalize("NFD")
@@ -375,19 +365,18 @@
     return Math.abs(h).toString(36);
   }
 
-  /* ==== GLOBAL UID ==== */
+  /* GLOBAL UID */
   const makeUid = (r) => {
-  const region  = canon(r.region || "");
-  const kommune = canon(r.kommune || "");
-  const parti   = canon(r.parti || "");
-  const kid     = canon(r.kandidat_id || "");
-  return `${region}|||${kommune}|||${parti}|||${kid}`;
-};
-
+    const region  = canon(r.region || "");
+    const kommune = canon(r.kommune || "");
+    const parti   = canon(r.parti || "");
+    const kid     = canon(r.kandidat_id || "");
+    return `${region}|||${kommune}|||${parti}|||${kid}`;
+  };
 
   /* ===== App-state ===== */
   const state = {
-    rows:[], region:"", kommune:"", activeParty:"",
+    rows:[], region:"", kommune:"", valgsted:"", activeParty:"",
     selected:new Map(),
     candidateSortMode:"alpha",
     topListMode:"top10",   // top10 | all
@@ -421,12 +410,14 @@
     el('overviewTop')?.setAttribute('aria-busy','true');
     el('regionSelect')?.setAttribute('disabled','');
     el('kommuneSelect')?.setAttribute('disabled','');
+    el('valgstedSelect')?.setAttribute('disabled','');
   }
   function hideLoading(){
     state.isLoading=false;
     el('loader')?.classList.add('hidden');
     el('overviewTop')?.removeAttribute('aria-busy');
     if(state.region) el('kommuneSelect')?.removeAttribute('disabled'); else el('kommuneSelect')?.setAttribute('disabled','');
+    if(state.kommune) el('valgstedSelect')?.removeAttribute('disabled'); else el('valgstedSelect')?.setAttribute('disabled','');
     el('regionSelect')?.removeAttribute('disabled');
   }
 
@@ -436,6 +427,12 @@
     const u=new URL(location.href);
     if(state.region) u.searchParams.set("region", state.region); else u.searchParams.delete("region");
     if(state.kommune) u.searchParams.set("kommune", state.kommune); else u.searchParams.delete("kommune");
+    if(state.kommune){
+      if(state.valgsted && state.valgsted !== VALGSTED_ALL_VALUE) u.searchParams.set("valgsted", state.valgsted);
+      else u.searchParams.delete("valgsted");
+    } else {
+      u.searchParams.delete("valgsted");
+    }
     if(state.activeParty) u.searchParams.set("parti", state.activeParty); else u.searchParams.delete("parti");
     const cand = getSelectedIds(); if(cand.length) u.searchParams.set("cand", cand.join(",")); else u.searchParams.delete("cand");
     if(state.topListMode!=="top10") u.searchParams.set("view","top50"); else u.searchParams.delete("view");
@@ -449,6 +446,7 @@
     const r=p.get("region"), k=p.get("kommune"), parti=p.get("parti");
     const cand=(p.get("cand")||"").split(",").map(s=>s.trim()).filter(Boolean);
     const view=p.get("view"), sort=p.get("sort");
+    const vsted=p.get("valgsted");
 
     state.topListMode=(view==="top50")?"all":"top10";
     state.candidateSortMode=(sort==="votes")?"votes":"alpha";
@@ -456,11 +454,22 @@
 
     if(r && REGIONS[r]){
       el("regionSelect").value=r; populateKommuner(r); state.region=r;
-      if(k && REGIONS[r].includes(k)){ el("kommuneSelect").value=k; state.kommune=k; await loadKommuneData(k); }
-      else { el("kommuneSelect").value=""; state.kommune=""; await loadRegionData(r); }
+      if(k && REGIONS[r].includes(k)){
+        el("kommuneSelect").value=k; state.kommune=k;
+        state.valgsted = vsted || VALGSTED_ALL_VALUE;
+        await loadKommuneData(k);
+      } else {
+        el("kommuneSelect").value=""; state.kommune=""; state.valgsted="";
+        await loadRegionData(r);
+      }
     } else {
-      el("regionSelect").value=""; el("kommuneSelect").innerHTML='<option value="">Vælg kommune…</option>'; el("kommuneSelect").disabled=true;
-      state.region=""; state.kommune=""; await loadNationalData();
+      el("regionSelect").value="";
+      el("kommuneSelect").innerHTML='<option value="">Vælg kommune…</option>';
+      el("kommuneSelect").disabled=true;
+      const vsel=el("valgstedSelect");
+      if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.region=""; state.kommune=""; state.valgsted="";
+      await loadNationalData();
     }
 
     const lookLikeUid = cand.some(x=>x.includes("|||"));
@@ -514,7 +523,7 @@
       }
     });
 
-    // Mode-knapper: kandidater / partitotal
+    // Mode-knapper
     el("btnModeCand").addEventListener("click", ()=>{
       if(state.overviewMode!=="cand"){
         state.overviewMode="cand";
@@ -600,7 +609,7 @@
         const hit=Object.entries(REGIONS).flatMap(([r,ks])=>ks.map(k=>({r,k}))).find(x=>x.k.toLowerCase().startsWith(val));
         if(hit){
           el('regionSelect').value=hit.r; populateKommuner(hit.r);
-          el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k;
+          el('kommuneSelect').value=hit.k; state.region=hit.r; state.kommune=hit.k; state.valgsted=VALGSTED_ALL_VALUE;
           persistUrl(true); loadKommuneData(hit.k);
         }
       });
@@ -677,8 +686,10 @@
   function initRegionDropdown(){
     const rsel=el("regionSelect");
     rsel.innerHTML=`<option value="">Hele Danmark</option>`+Object.keys(REGIONS).map(r=>`<option value="${r}">${r}</option>`).join("");
-    rsel.onchange=()=>{ const r=rsel.value; state.region=r; state.kommune=""; state.activeParty="";
+    rsel.onchange=()=>{ 
+      const r=rsel.value; state.region=r; state.kommune=""; state.valgsted=""; state.activeParty="";
       el("kommuneSelect").disabled=!r; el("kommuneSelect").innerHTML=`<option value="">Vælg kommune…</option>`;
+      const vsel=el("valgstedSelect"); if(vsel){ vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
       if(r) populateKommuner(r); clearAll();
       if(r){ persistUrl(true); loadRegionData(r);} else { persistUrl(true); loadNationalData(); }
       renderContextBar();
@@ -688,12 +699,25 @@
   function populateKommuner(region){
     const ksel=el("kommuneSelect"), kommuner=REGIONS[region]||[];
     ksel.innerHTML=`<option value="">Vælg kommune…</option>`+kommuner.map(k=>`<option value="${k}">${k}</option>`).join("");
-    ksel.onchange=()=>{ const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
+    ksel.onchange=()=>{ 
+      const k=ksel.value; state.kommune=k; state.activeParty=""; state.valgsted=""; clearAll();
+      const vsel=el("valgstedSelect");
+      if(vsel){
+        if(k){ vsel.disabled=true; vsel.innerHTML=`<option value="">Indlæser valgsteder…</option>`; }
+        else { vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
+      }
       if(k){ persistUrl(true); loadKommuneData(k);} else { persistUrl(true); loadRegionData(state.region); }
       renderContextBar();
     };
   }
-  function clearAll(){ state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent=""; }
+  function clearAll(){ 
+    state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent="";
+    const vsel=el("valgstedSelect");
+    if(vsel){
+      if(state.kommune){ vsel.disabled=false; vsel.innerHTML=`<option value="">Vælg valgsted…</option>`; }
+      else { vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
+    }
+  }
   function resetPartyUI(){
     const btn=el("partyButton"), btnc=el("partyButtonContent");
     const disabled=!state.kommune;
@@ -703,6 +727,34 @@
       : `<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
     el("partyMenu").innerHTML=""; el("partyDetailHeader").textContent = disabled ? "Vælg en kommune for at se partier." : "Vælg et parti i drop-down menuen.";
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
+  }
+  function populateValgsteder(){
+    const vsel=el("valgstedSelect");
+    if(!vsel) return;
+    if(!state.kommune){
+      vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`;
+      state.valgsted=""; return;
+    }
+    const map=new Map();
+    for(const r of (state.rows||[])){
+      const id=canon(r.valgsted_id), navn=canon(r.valgsted_navn);
+      if(!id||!navn) continue;
+      if(!map.has(id)) map.set(id,navn);
+    }
+    const entries=Array.from(map.entries()).sort((a,b)=>a[1].localeCompare(b[1],'da'));
+    if(!entries.length){
+      vsel.disabled=true; vsel.innerHTML=`<option value="">(Ingen valgsteder fundet)</option>`; state.valgsted=""; return;
+    }
+    vsel.disabled=false;
+    const allOpt = `<option value="${VALGSTED_ALL_VALUE}">Alle valgsteder i kommunen</option>`;
+    vsel.innerHTML = `<option value="">Vælg valgsted…</option>${allOpt}${entries.map(([id,navn])=>`<option value="${escapeHtml(id)}">${escapeHtml(navn)}</option>`).join("")}`;
+    vsel.value = state.valgsted || VALGSTED_ALL_VALUE;
+    if(!vsel.value) vsel.value = VALGSTED_ALL_VALUE;
+    state.valgsted = vsel.value;
+    vsel.onchange = ()=>{
+      state.valgsted = vsel.value || "";
+      renderOverview(); renderAll(); renderContextBar(); persistUrl(true);
+    };
   }
 
   /* ===== Data: fetch & parse ===== */
@@ -758,10 +810,10 @@
       if (!r.kommune) r.kommune = k;
       if (!r.region)  r.region  = regName;
 
-      // Lokale lister: gør dem unikke pr. kommune
+      // Lokale lister som unikke pr. kommune
       const pLower = canon(r.parti).toLowerCase();
       if (LOCAL_MULTI_COMMUNE_PARTIES.includes(pLower) && r.kommune) {
-        const baseName = canon(r.parti); // bevar original stavning
+        const baseName = canon(r.parti);
         r.parti = `${baseName} (${r.kommune})`;
       }
 
@@ -779,6 +831,7 @@
   async function loadNationalData(){
     try{
       showLoading(); el('error').textContent=''; el('kommunetitel').textContent='(Danmark)';
+      state.valgsted="";
       const allNames=Object.values(REGIONS).flat();
       const chunks=await Promise.all(allNames.map(name=>loadRowsForKommune(name).catch(()=>[])));
       state.rows=chunks.flat(); afterDataLoaded();
@@ -787,6 +840,7 @@
   async function loadRegionData(region){
     try{
       showLoading(); el('error').textContent=''; el('kommunetitel').textContent=`(${region})`;
+      state.valgsted="";
       const names=(REGIONS[region]||[]);
       const chunks=await Promise.all(names.map(name=>loadRowsForKommune(name).catch(()=>[])));
       state.rows=chunks.flat(); afterDataLoaded();
@@ -803,7 +857,15 @@
 
   function afterDataLoaded(){
     applyPendingSelections();
-    resetPartyUI(); if(state.kommune) renderPartyCombobox();
+    resetPartyUI();
+    if(state.kommune){
+      renderPartyCombobox();
+      populateValgsteder();
+    } else {
+      const vsel=el("valgstedSelect");
+      if(vsel){ vsel.disabled=true; vsel.innerHTML=`<option value="">(Vælg kommune for at vælge valgsted)</option>`; }
+      state.valgsted="";
+    }
     updateTopButtonsForScope(); renderOverview(); renderAll(); renderContextBar();
     document.getElementById('candidateMenu')?.classList.add('hidden');
   }
@@ -867,13 +929,20 @@
   }
 
   function renderOverview(){
-    const rows=state.rows||[];
+    const rows=getActiveRows();
     const totalValid = totalValidVotes(rows);
     const showCandidatePercent = !!state.kommune;
 
-    // Scope-tekst: kun "Danmark" på landsplan
+    // Scope-tekst
     const isDK = !state.region && !state.kommune;
-    const scopeText = isDK ? "Danmark" : "";
+    let scopeText = "";
+    if(isDK){ scopeText = "Danmark"; }
+    else if(state.region && !state.kommune){ scopeText = state.region; }
+    else if(state.kommune){
+      const vName = getCurrentValgstedName();
+      scopeText = (state.valgsted && state.valgsted !== VALGSTED_ALL_VALUE && vName)
+        ? `${state.kommune} – ${vName}` : state.kommune;
+    }
     el("top10Scope").textContent = rows.length ? scopeText : '';
 
     const infoBox = el("percentInfoOverview");
@@ -998,7 +1067,7 @@
     if(!state.kommune || (target && target.kommune && state.kommune!==target.kommune)){
       if(target){
         const rsel=el('regionSelect'); rsel.value=target.region; state.region=target.region; populateKommuner(target.region);
-        const ksel=el('kommuneSelect'); ksel.value=target.kommune; state.kommune=target.kommune;
+        const ksel=el('kommuneSelect'); ksel.value=target.kommune; state.kommune=target.kommune; state.valgsted=VALGSTED_ALL_VALUE;
 
         const existing=getSelectedIds(); const nextCand=Array.from(new Set([...existing, uid]));
         state.pendingCandidateIds=[uid];
@@ -1029,30 +1098,29 @@
     }
   }
 
-  /* Ny detectPartyLetter: kun de store partier får bogstav/farve, resten er grå */
+  /* Partibogstav: kun store partier, Åbenhedslisten uden bogstav */
   function detectPartyLetter(rowsForParti){
-  if(!rowsForParti || !rowsForParti.length) return null;
-  const name = (rowsForParti[0].parti || "").toLowerCase();
+    if(!rowsForParti || !rowsForParti.length) return null;
+    const name = (rowsForParti[0].parti || "").toLowerCase();
 
-  // Åbenhedslisten skal *ikke* have partibogstav
-  if (name.includes("åbenhedslisten")) return null;
+    if (name.includes("åbenhedslisten")) return null;
 
-  if (name.includes("socialdemokratiet")) return "A";
-  if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
-  if (name.includes("radikale venstre")) return "B";
-  if (name.includes("det konservative folkeparti") || name.includes("konservative")) return "C";
-  if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti") || name.includes("socialistisk folkeparti")) return "F";
-  if (name.includes("enhedslisten")) return "Ø";
-  if (name.includes("liberal alliance")) return "I";
-  if (name.includes("kristendemokraterne")) return "K";
-  if (name.includes("dansk folkeparti")) return "O";
-
-  return null; // alle andre → grå cirkel
-}
+    if (name.includes("socialdemokratiet")) return "A";
+    if (name.includes("venstre, danmarks liberale parti") || name === "venstre") return "V";
+    if (name.includes("radikale venstre")) return "B";
+    if (name.includes("det konservative folkeparti") || name.includes("konservative")) return "C";
+    if (name.startsWith("sf ") || name.includes("sf - socialistisk folkeparti") || name.includes("socialistisk folkeparti")) return "F";
+    if (name.includes("enhedslisten")) return "Ø";
+    if (name.includes("liberal alliance")) return "I";
+    if (name.includes("kristendemokraterne")) return "K";
+    if (name.includes("dansk folkeparti")) return "O";
+    return null;
+  }
 
   function getPartyStats(){
     const byParti=new Map();
-    for(const r of state.rows){
+    const rows = getActiveRows();
+    for(const r of rows){
       if(!byParti.has(r.parti)) byParti.set(r.parti,[]);
       byParti.get(r.parti).push(r);
     }
@@ -1183,7 +1251,8 @@
   }
   function computeTotalsByCandidate(){
     const m=new Map();
-    for(const r of state.rows) m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
+    const rows = getActiveRows();
+    for(const r of rows) m.set(r.uid,(m.get(r.uid)||0)+r.stemmer);
     return m;
   }
   function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
@@ -1218,7 +1287,8 @@
 
   function getPollingStations(){
     const m=new Map();
-    for(const r of state.rows){
+    const rows = getActiveRows();
+    for(const r of rows){
       const key=`${r.kommune}::${r.valgsted_id}`;
       if(!m.has(key)) m.set(key,{id:key,navn:r.valgsted_navn,kommune:r.kommune});
       const ps=m.get(key);
@@ -1252,40 +1322,71 @@
     </tr>`).join("");
 
     const totals=computeTotalsByCandidate();
+    let label='Total';
+    if(state.kommune){
+      if(state.valgsted && state.valgsted !== VALGSTED_ALL_VALUE) label='Valgsted total';
+      else label='Kommunetotal';
+    }
     tfoot.innerHTML=`<tr class="border-t">
-      <th class="py-2 pr-3 text-left">${state.kommune ? 'Kommunetotal' : 'Total'}</th>
+      <th class="py-2 pr-3 text-left">${label}</th>
       ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums font-medium">${fmt(totals.get(s.uid)||0)}</td>`).join("")}
     </tr>`;
   }
 
+  /* Brødkrummer */
   function renderContextBar(){
     const bar=el('contextBar'); const parts=[];
-    parts.push(!state.region
+    const hasRegion=!!state.region, hasKommune=!!state.kommune;
+    const hasValgsted = !!state.kommune && !!state.valgsted && state.valgsted !== VALGSTED_ALL_VALUE && !!getCurrentValgstedName();
+
+    parts.push(!hasRegion
       ? `<span class="crumb-strong">Danmark</span>`
       : `<span class="crumb" data-nav="dk">Danmark</span>`);
+
     if(state.region){
       parts.push(`<span class="sep">/</span>`);
-      parts.push(!state.kommune
+      const regionActive = state.region && !state.kommune;
+      parts.push(regionActive
         ? `<span class="crumb-strong">${escapeHtml(state.region)}</span>`
         : `<span class="crumb" data-nav="region">${escapeHtml(state.region)}</span>`);
+
       if(state.kommune){
         parts.push(`<span class="sep">/</span>`);
-        parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+        if(hasValgsted){
+          parts.push(`<span class="crumb" data-nav="kommune">${escapeHtml(state.kommune)}</span>`);
+          parts.push(`<span class="sep">/</span>`);
+          const vName=getCurrentValgstedName() || "Valgsted";
+          parts.push(`<span class="crumb-strong">${escapeHtml(vName)}</span>`);
+        } else {
+          parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+        }
       }
     }
     bar.innerHTML=parts.join("");
+
     bar.querySelector('[data-nav="dk"]')?.addEventListener('click', ()=>{
-      el('regionSelect').value=''; el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>'; el('kommuneSelect').disabled=true;
-      state.region=''; state.kommune=''; clearAll(); persistUrl(true); loadNationalData();
+      el('regionSelect').value='';
+      el('kommuneSelect').innerHTML='<option value="">Vælg kommune…</option>';
+      el('kommuneSelect').disabled=true;
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.region=''; state.kommune=''; state.valgsted=''; clearAll(); persistUrl(true); loadNationalData();
     });
     bar.querySelector('[data-nav="region"]')?.addEventListener('click', ()=>{
-      el('kommuneSelect').value=''; state.kommune=''; clearAll(); persistUrl(true); loadRegionData(state.region);
+      el('kommuneSelect').value='';
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.disabled=true; vsel.innerHTML='<option value="">(Vælg kommune for at vælge valgsted)</option>'; }
+      state.kommune=''; state.valgsted=''; clearAll(); persistUrl(true); loadRegionData(state.region);
+    });
+    bar.querySelector('[data-nav="kommune"]')?.addEventListener('click', ()=>{
+      state.valgsted=VALGSTED_ALL_VALUE;
+      const vsel=el('valgstedSelect'); if(vsel){ vsel.value=VALGSTED_ALL_VALUE; }
+      renderOverview(); renderAll(); renderContextBar(); persistUrl(true);
     });
   }
 
   function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
 </script>
-    <footer class="mt-10 border-t bg-gray-100">
+
+<footer class="mt-10 border-t bg-gray-100">
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
               flex flex-col md:flex-row items-center justify-between
               gap-3 md:gap-6 text-sm md:text-base text-gray-700">
