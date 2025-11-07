@@ -342,23 +342,15 @@ const sortKandidaterVotes = (a,b)=>{ const al=isListestemmer(a.kandidat_navn), b
 
 function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
-/* Loader */
+/* Loader – nu UDEN at disable dropdowns */
 function showLoading(msg = "Indlæser…") {
   el('loader')?.classList.remove('hidden');
   const txt = el('loaderText'); if(txt) txt.textContent = msg || "Indlæser…";
   el('overviewTop')?.setAttribute('aria-busy','true');
-  el('storkredsSelect')?.setAttribute('disabled','');
-  el('kredsSelect')?.setAttribute('disabled','');
-  el('valgstedSelect')?.setAttribute('disabled','');
 }
 function hideLoading() {
   el('loader')?.classList.add('hidden');
   el('overviewTop')?.removeAttribute('aria-busy');
-  el('storkredsSelect')?.removeAttribute('disabled');
-  if (state.storkreds) el('kredsSelect')?.removeAttribute('disabled');
-  // Valgsted aktiveres kun når en kreds er valgt (ikke "Alle")
-  const vsel = el('valgstedSelect');
-  if (vsel) vsel.disabled = !(state.kreds && state.kreds !== KREDS_ALL_VALUE);
 }
 
 /* DK->storkreds hop */
@@ -507,7 +499,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
       clearValgsted();
     }else if(k && (KREDS_BY_STORKREDS[s]||[]).includes(k)){
       el("kredsSelect").value=k; state.kreds=k; await loadKredsData(s,k);
-      populateValgsteder(); // nu kan vi evt. anvende ps fra URL
+      populateValgsteder();
       if(ps){
         const vsel = el("valgstedSelect");
         const item = findPsInCurrentKredsByKey(ps);
@@ -692,7 +684,6 @@ function findPsInCurrentKredsByKey(key){
   return list.find(x=>x.key===key) || null;
 }
 function buildPsListForKreds(kreds){
-  // hent fra cachet storkredsfil for robusthed
   const cacheKey = `${state.storkreds}::__ALL__`;
   const all = state.csvCache.get(cacheKey) || state.rows || [];
   const psMap = new Map();
@@ -849,11 +840,13 @@ function detectPartyLetter(parti, rowsForParti){
   if(keyNorm.includes("socialistisk folkeparti") || keyNorm==="sf") return "F";
   return null;
 }
+
 function applyValgstedFilter(arr){
   if(!state.valgstedKey || state.valgstedKey===VALGSTED_ALL_VALUE) return arr;
   const [kredsName, psId] = state.valgstedKey.split("::");
   return arr.filter(r => canon(r.kreds)===canon(kredsName) && canon(r.valgsted_id)===canon(psId));
 }
+
 function getActiveRows(){
   const base = state.rows.slice();
   if(state.storkreds && state.selectedKredse.size){
@@ -1048,7 +1041,7 @@ function renderOverview(){
     }
 
     const totalVotesScope = rows.reduce((sum,r)=>sum + (r.stemmer||0), 0);
-    const showPct = !isDK; // kun storkreds/kreds/valgsted, ikke DK
+    const showPct = !isDK;
 
     function itemHTML(k, idx){
       const letter = detectPartyLetter(k.parti, rows.filter(r=>r.parti===k.parti));
@@ -1535,7 +1528,7 @@ function initCandidateSearch(){
 
 function closePartyMenu(){ const btn=el('partyButton'), menu=el('partyMenu'); btn?.setAttribute('aria-expanded','false'); menu?.classList.add('hidden'); }
 </script>
-    <footer class="mt-10 border-t bg-gray-100">
+<footer class="mt-10 border-t bg-gray-100">
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
               flex flex-col md:flex-row items-center justify-between
               gap-3 md:gap-6 text-sm md:text-base text-gray-700">
