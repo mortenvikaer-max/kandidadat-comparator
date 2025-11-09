@@ -120,33 +120,33 @@
       </p>
     </section>
 
-    <!-- Byg indeks (logik kommer senere) -->
+    <!-- Byg indeks -->
     <section class="vb-card p-4 md:p-5 space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold">Byg kandidatindeks (stub – logik kommer senere)</h2>
+        <h2 class="text-lg font-semibold">Byg kandidatindeks (skelet)</h2>
         <button id="btnBuildIndex" class="vb-btn text-sm">
           Byg kandidatindeks
         </button>
       </div>
       <p class="text-sm text-slate-700">
-        Når vi har implementeret logikken, vil denne knap:
+        Lige nu bygger knappen et <strong>skelet</strong> af kandidatindekset:
       </p>
       <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
-        <li>Gennemlæse alle valgs datafiler.</li>
-        <li>Lave en samlet liste over kandidater pr. valg, parti og stemmetal.</li>
-        <li>Generere en JSON-struktur, som du kan gemme som fx <code>/data/candidate-index.json</code>.</li>
+        <li>Version + tidspunkt for generering.</li>
+        <li>Liste over alle valg (type, år, URL).</li>
+        <li>En tom <code>candidates</code>-liste pr. valg, som vi fylder ud i næste skridt.</li>
       </ul>
       <p class="text-xs text-slate-500">
-        Lige nu er knappen kun en “stub” og viser en besked. Vi fylder den med rigtig logik i næste skridt.
+        Næste skridt bliver at læse dine eksisterende datafiler og fylde <code>candidates</code>-listerne med rigtige kandidater.
       </p>
 
       <div class="space-y-2">
         <label for="outputJson" class="text-sm font-medium text-slate-800">
-          Output (JSON – når logikken er implementeret)
+          Output (JSON til fx <code>/data/candidate-index.json</code>)
         </label>
         <textarea id="outputJson"
                   class="w-full h-64 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-                  placeholder='Når vi har bygget logikken, vil det genererede JSON komme her...'
+                  placeholder='Tryk på "Byg kandidatindeks" for at generere JSON...'
                   spellcheck="false"></textarea>
       </div>
     </section>
@@ -159,7 +159,7 @@
     </div>
   </footer>
 
-   <script>
+  <script>
     // ============================================================
     // KONFIGURATION: Hvilke valg skal med i kandidatindekset?
     // ============================================================
@@ -174,7 +174,6 @@
         year: 2022,
         type: "ft",
         dataRoot: "../data/ft/2022/",
-        // Tilpas til din faktiske URL
         detailUrl: "/folketingsvalg/2022/"
       },
       {
@@ -268,7 +267,7 @@
       {
         key: "rv2017",
         label: "Regionsrådsvalg",
-        year: 2017,        // rettet fra 20217 → 2017
+        year: 2017,
         type: "rv",
         dataRoot: "../data/rv/2017/",
         detailUrl: "/regionsraadsvalg/2017/"
@@ -311,7 +310,7 @@
       }
     ];
 
-    // Mapping fra type-kode til læsevenligt label (bruges i tabellen)
+    // Mapping fra type-kode til læsevenligt label (bruges i tabellen og i output)
     const VB_TYPE_LABELS = {
       ft: "Folketingsvalg",
       kv: "Kommunalvalg",
@@ -319,37 +318,87 @@
       ep: "Europa-Parlamentsvalg"
     };
 
-    // ===== Kandidat-indeks: version og navne-helpers =====
+    // Version til kandidatindekset – hvis vi senere ændrer struktur, kan vi sætte den til 2, 3, ...
     const CANDIDATE_INDEX_VERSION = 1;
+
+    // ------------------------------------------------------------
+    // Navne-helpers (så "Line Barfod, Nørrebro" og "Line Barfod"
+    // kan pege på samme person i søgningen)
+    // ------------------------------------------------------------
 
     function normalizeDisplayName(raw) {
       if (!raw) return "";
-      return raw.replace(/\s+/g, " ").trim();
+      let s = String(raw).trim();
+      // Fjern foranstillede/trailende kommaer og ekstra mellemrum
+      s = s.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ");
+      return s;
     }
 
     function toSearchName(raw) {
       if (!raw) return "";
-      const s = raw
-        .toString()
-        .trim()
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "")
-        .toLowerCase();
-      return s.replace(/\s+/g, " ");
+      let s = String(raw).toLowerCase();
+      s = s.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      s = s.replace(/[^a-z0-9æøå\s]/g, " ");
+      s = s.replace(/\s+/g, " ").trim();
+      return s;
     }
 
     function buildSearchNameFromVariants(nameVariants) {
-      if (!Array.isArray(nameVariants)) nameVariants = [];
-      const joined = nameVariants
+      const parts = (nameVariants || [])
         .filter(Boolean)
-        .map(v => normalizeDisplayName(v))
-        .join(" ");
-      return toSearchName(joined);
+        .map(v => toSearchName(v))
+        .filter(Boolean);
+      return Array.from(new Set(parts)).join(" ");
     }
 
-    // ============================================================
-    // VIS: Konfigurationstabel i UI'et
-    // ============================================================
+    // Ét kandidat-objekt i det globale indeks
+    function createCandidateEntry(opts) {
+      const {
+        electionKey,
+        year,
+        type,
+        fullName,
+        nameVariants = [],
+        party,
+        partyLetter = "",
+        votes = null,
+        area = "",
+        extra = {}
+      } = opts || {};
+
+      const cleanDisplayName = normalizeDisplayName(fullName);
+
+      const allVariants = Array.from(
+        new Set(
+          [cleanDisplayName, ...(nameVariants || [])]
+            .filter(Boolean)
+            .map(v => normalizeDisplayName(v))
+        )
+      );
+
+      const searchName = buildSearchNameFromVariants(allVariants);
+
+      return {
+        electionKey,
+        year,
+        type,
+        // ID skal bare være nogenlunde stabil – vi kan altid ændre den senere,
+        // så længe den er unik pr. valg + kandidat.
+        id: `${electionKey || "unknown"}:${searchName}`,
+        name: cleanDisplayName,
+        nameVariants: allVariants,
+        searchName,
+        party: party || "",
+        partyLetter: partyLetter || "",
+        votes: typeof votes === "number" ? votes : null,
+        area: area || "",
+        ...extra
+      };
+    }
+
+    // ------------------------------------------------------------
+    // Render konfigurationen som en tabel i UI'et
+    // ------------------------------------------------------------
     (function renderElectionTable() {
       const tbody = document.getElementById("electionTableBody");
       if (!tbody) return;
@@ -357,6 +406,7 @@
       const rows = VB_ELECTION_SOURCES
         .slice()
         .sort((a, b) => {
+          // sortér først efter type-label, så efter år (nyeste først)
           const ta = VB_TYPE_LABELS[a.type] || a.type;
           const tb = VB_TYPE_LABELS[b.type] || b.type;
           if (ta < tb) return -1;
@@ -379,40 +429,34 @@
       tbody.innerHTML = rows.join("");
     })();
 
-    // ============================================================
-    // STEP 5: Byg et skelet til kandidatindekset (uden kandidater)
-    // ============================================================
-    function buildCandidateIndexSkeleton() {
-      const now = new Date().toISOString();
-
-      const elections = VB_ELECTION_SOURCES.map(src => ({
-        key: src.key,
-        type: src.type,
-        typeLabel: VB_TYPE_LABELS[src.type] || src.type,
-        year: src.year,
-        label: src.label,
-        detailUrl: src.detailUrl,
-        // Her kommer kandidaterne ind i senere steps
-        candidates: []
-      }));
-
-      return {
-        version: CANDIDATE_INDEX_VERSION,
-        builtAt: now,
-        elections
-      };
-    }
-
-    // Knap: byg indeks (skelet) og skriv JSON til textarea
+    // ------------------------------------------------------------
+    // Byg kandidatindeks-skelet, når der klikkes på knappen
+    // ------------------------------------------------------------
     document.getElementById("btnBuildIndex")?.addEventListener("click", () => {
+      const nowIso = new Date().toISOString();
+
+      const result = {
+        version: CANDIDATE_INDEX_VERSION,
+        builtAt: nowIso,
+        elections: VB_ELECTION_SOURCES.map(src => ({
+          key: src.key,
+          type: src.type,
+          typeLabel: VB_TYPE_LABELS[src.type] || src.type,
+          year: src.year,
+          label: src.label,
+          detailUrl: src.detailUrl,
+          // Her kommer der senere rigtige kandidater ind:
+          candidates: []
+        }))
+      };
+
       const textarea = document.getElementById("outputJson");
-      const indexObj = buildCandidateIndexSkeleton();
       if (textarea) {
-        textarea.value = JSON.stringify(indexObj, null, 2);
+        textarea.value = JSON.stringify(result, null, 2);
       }
+
       alert("Kandidatindeks-skelet er bygget. Næste skridt bliver at fylde kandidater ind i 'candidates'-listerne.");
     });
   </script>
-
 </body>
 </html>
