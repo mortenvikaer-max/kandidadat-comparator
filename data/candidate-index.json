@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "builtAt": "2025-11-09T21:05:22.787Z",
+  "elections": [
+    {
+      "key": "ft2022",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2022,
+      "label": "Folketingsvalg",
+      "detailUrl": "/folketingsvalg/2022/",
+      "candidates": []
+    },
+    {
+      "key": "ft2019",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2019,
+      "label": "Folketingsvalg",
+      "detailUrl": "/folketingsvalg/2019/",
+      "candidates": []
+    },
+    {
+      "key": "ft2015",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2015,
+      "label": "Folketingsvalg",
+      "detailUrl": "/folketingsvalg/2015/",
+      "candidates": []
+    },
+    {
+      "key": "ft2011",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2011,
+      "label": "Folketingsvalg",
+      "detailUrl": "/folketingsvalg/2011/",
+      "candidates": []
+    },
+    {
+      "key": "ft2007",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2007,
+      "label": "Folketingsvalg",
+      "detailUrl": "/folketingsvalg/2007/",
+      "candidates": []
+    },
+    {
+      "key": "kv2021",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2021,
+      "label": "Kommunalvalg 2021",
+      "detailUrl": "/kommunalvalg/2021/",
+      "candidates": [
+        {
+          "id": "LINE_BARFOD_ID",
+          "displayName": "Line Barfod",
+          "searchName": "line barfod",
+          "aliases": [
+            "line barfod, nørrebro"
+          ],
+          "party": "Enhedslisten",
+          "partyLetter": "Ø",
+          "areaType": "kommune",
+          "areaName": "København",
+          "votes": 0,
+          "detailUrl": "/kommunalvalg/2021/?cand=LINE_BARFOD_ID"
+        },
+        {
+          "id": "ANNA_ANDERSEN_ID",
+          "displayName": "Anna Andersen",
+          "searchName": "anna andersen",
+          "aliases": [],
+          "party": "Socialdemokratiet",
+          "partyLetter": "A",
+          "areaType": "kommune",
+          "areaName": "Aarhus",
+          "votes": 0,
+          "detailUrl": "/kommunalvalg/2021/?cand=ANNA_ANDERSEN_ID"
+        }
+      ]
+    },
+    {
+      "key": "kv2017",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2017,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kommunalvalg/2017/",
+      "candidates": []
+    },
+    {
+      "key": "kv2013",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2013,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kommunalvalg/2013/",
+      "candidates": []
+    },
+    {
+      "key": "kv2009",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2009,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kommunalvalg/2009/",
+      "candidates": []
+    },
+    {
+      "key": "kv2005",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2005,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kommunalvalg/2005/",
+      "candidates": []
+    },
+    {
+      "key": "rv2021",
+      "type": "rv",
+      "typeLabel": "Regionsrådsvalg",
+      "year": 2021,
+      "label": "Regionsrådsvalg",
+      "detailUrl": "/regionsraadsvalg/2021/",
+      "candidates": []
+    },
+    {
+      "key": "rv2017",
+      "type": "rv",
+      "typeLabel": "Regionsrådsvalg",
+      "year": 2017,
+      "label": "Regionsrådsvalg",
+      "detailUrl": "/regionsraadsvalg/2017/",
+      "candidates": []
+    },
+    {
+      "key": "ep2024",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2024,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/europaparlamentsvalg/2024/",
+      "candidates": []
+    },
+    {
+      "key": "ep2019",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2019,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/europaparlamentsvalg/2019/",
+      "candidates": []
+    },
+    {
+      "key": "ep2014",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2014,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/europaparlamentsvalg/2014/",
+      "candidates": []
+    },
+    {
+      "key": "ep2009",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2009,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/europaparlamentsvalg/2009/",
+      "candidates": []
+    }
+  ]
+}
