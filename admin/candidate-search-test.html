@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valgbar – Kandidatsøgning (test)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .vb-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .vb-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      border: 1px solid #0f172a;
+      background: #0f172a;
+      color: #f9fafb;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .vb-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    code {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 0.1rem 0.3rem;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+<header class="border-b bg-white">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2">
+        <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
+      </a>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+          Admin / Test
+        </span>
+        <span class="text-lg font-semibold text-slate-900">
+          Kandidatsøgning – test af kandidatindeks
+        </span>
+      </div>
+    </div>
+    <span class="text-xs text-slate-500 text-right">
+      Intern test-side. viser kun læsning af<br>
+      <code>/data/candidate-index.json</code>.
+    </span>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- Intro -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <h1 class="text-xl md:text-2xl font-semibold">
+      Test: Kan vi læse kandidatindekset?
+    </h1>
+    <p class="text-sm md:text-base text-slate-700">
+      Denne side gør kun én ting: Den henter <code>/data/candidate-index.json</code>
+      og viser et lille overblik over, hvor mange valg og kandidatrekorder der er i filen.
+      Når dette virker, kan vi bygge en rigtig kandidatsøgning ovenpå.
+    </p>
+
+    <div class="flex items-center gap-3">
+      <button id="btnReload" class="vb-btn">
+        Genindlæs kandidatindeks
+      </button>
+      <span id="status" class="text-sm text-slate-600">
+        Klar til at hente kandidatindeks…
+      </span>
+    </div>
+  </section>
+
+  <!-- Overblik -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <h2 class="text-lg font-semibold">Overblik</h2>
+    <div id="summary" class="text-sm text-slate-700">
+      (Ingen data endnu – tryk på “Genindlæs kandidatindeks” eller reload siden.)
+    </div>
+  </section>
+
+  <!-- Debug / råt view -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-lg font-semibold">Debug-udsnit</h2>
+      <span class="text-xs text-slate-500">
+        Viser kun et kort overblik (ikke hele JSON'en).
+      </span>
+    </div>
+    <pre id="debug"
+         class="w-full h-64 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50 overflow-auto">
+Ingen data endnu…
+    </pre>
+  </section>
+
+</main>
+
+<footer class="border-t bg-slate-100 mt-8">
+  <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+    <span>Valgbar · Admin/test – kandidatindeks</span>
+    <span>Læsning sker kun i browseren – ingen server-side logik</span>
+  </div>
+</footer>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const summaryEl = document.getElementById("summary");
+  const debugEl = document.getElementById("debug");
+  const reloadBtn = document.getElementById("btnReload");
+
+  async function loadCandidateIndex() {
+    try {
+      statusEl.textContent = "Indlæser kandidatindeks fra /data/candidate-index.json…";
+      summaryEl.textContent = "Indlæser…";
+      debugEl.textContent = "Indlæser…";
+
+      const resp = await fetch("/data/candidate-index.json", { cache: "no-store" });
+      if (!resp.ok) {
+        throw new Error("HTTP " + resp.status + " – " + resp.statusText);
+      }
+      const data = await resp.json();
+
+      const elections = Array.isArray(data.elections) ? data.elections : [];
+      let totalCandidates = 0;
+      const perElection = elections.map(e => {
+        const n = Array.isArray(e.candidates) ? e.candidates.length : 0;
+        totalCandidates += n;
+        return {
+          key: e.key,
+          type: e.type,
+          year: e.year,
+          label: e.label || "",
+          candidates: n
+        };
+      });
+
+      statusEl.textContent =
+        "OK: Fandt " + elections.length + " valg og " + totalCandidates + " kandidatrekorder i kandidatindekset.";
+
+      if (!elections.length) {
+        summaryEl.textContent =
+          "Der er ingen valg i 'elections'-feltet. Tjek, at kandidatindekset er genereret korrekt i admin-værktøjet.";
+      } else {
+        const listHtml = perElection
+          .sort((a, b) => {
+            // sortér efter type + år (nyeste først)
+            if (a.type < b.type) return -1;
+            if (a.type > b.type) return 1;
+            return b.year - a.year;
+          })
+          .map(e => {
+            const label = (e.label || e.type || "").toString();
+            return `<li>
+              <strong>${label} ${e.year}</strong>
+              – key: <code>${e.key}</code>,
+              kandidatrekorder: <strong>${e.candidates}</strong>
+            </li>`;
+          })
+          .join("");
+
+        summaryEl.innerHTML = `
+          <p class="mb-2">
+            Kandidatindeks-version: <code>${data.version ?? "ukendt"}</code><br>
+            Sidst bygget: <code>${data.builtAt ?? "ukendt"}</code>
+          </p>
+          <p class="mb-2">Valg i indekset:</p>
+          <ul class="list-disc list-inside space-y-1 text-sm">
+            ${listHtml}
+          </ul>
+        `;
+      }
+
+      debugEl.textContent = JSON.stringify({
+        version: data.version,
+        builtAt: data.builtAt,
+        elections: perElection
+      }, null, 2);
+
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "Fejl ved læsning af kandidatindeks.";
+      summaryEl.textContent =
+        "Der opstod en fejl ved læsning af /data/candidate-index.json. " +
+        "Tjek filens placering og at den er gyldig JSON.";
+      debugEl.textContent = String(err);
+    }
+  }
+
+  reloadBtn?.addEventListener("click", () => {
+    loadCandidateIndex();
+  });
+
+  // hent automatisk ved load
+  document.addEventListener("DOMContentLoaded", () => {
+    loadCandidateIndex();
+  });
+</script>
+</body>
+</html>
