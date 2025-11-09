@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valgbar – Byg kandidatindeks</title>
+
+  <!-- Tailwind (valgfrit, mest for at gøre det pænt) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-4xl mx-auto p-4 space-y-4">
+    <h1 class="text-2xl font-bold">Byg kandidatindeks</h1>
+    <p class="text-sm text-gray-600">
+      Denne side er kun til intern brug. Når du åbner den i browseren, vil den senere kunne læse alle valgdatafiler
+      og bygge én samlet <code>candidates-index.json</code>, som forsiden kan bruge til kandidatsøgning.
+    </p>
+
+    <div class="border rounded-xl bg-white p-4 space-y-3">
+      <p class="text-sm text-gray-700">
+        Lige nu er denne side kun et skelet. I de næste skridt tilføjer vi JavaScript, der:
+      </p>
+      <ul class="list-disc list-inside text-sm text-gray-700">
+        <li>henter dine eksisterende valgdata (CSV/XLSX)</li>
+        <li>samler kandidater på tværs af valg</li>
+        <li>giver dig en færdig <code>candidates-index.json</code></li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>
