@@ -41,6 +41,20 @@
       padding: 0.1rem 0.3rem;
       font-size: 0.85em;
     }
+    .vb-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .vb-log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
   </style>
 </head>
 
@@ -62,8 +76,8 @@
       </div>
     </div>
     <span class="text-xs text-slate-500">
-        Denne side er kun til internt brug (ingen login – gem URL'en).
-      </span>
+      Denne side er kun til internt brug (ingen login – gem URL'en).
+    </span>
   </div>
 </header>
 
@@ -92,12 +106,13 @@
     <div class="flex items-center justify-between gap-2">
       <h2 class="text-lg font-semibold">Valg i kandidatindekset</h2>
       <span class="text-xs text-slate-500">
-          Konfiguration styres i JavaScript nederst i denne fil.
-        </span>
+        Konfiguration og kildefiler styres i JavaScript nederst i denne fil.
+      </span>
     </div>
     <p class="text-sm text-slate-700">
       Nedenfor vises de valg, som vil blive inkluderet i kandidatindekset.
-      Du kan senere tilføje eller fjerne valg ved at redigere konfigurationen i <code>VB_ELECTION_SOURCES</code>.
+      For hvert valg kan du (på sigt) lave en lille kandidat-kildefil
+      under <code>/data/candidate-sources/</code>, som admin-siden læser.
     </p>
     <div class="overflow-auto">
       <table class="min-w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
@@ -108,6 +123,7 @@
           <th class="text-left px-3 py-2 border-b border-slate-200">Nøgle</th>
           <th class="text-left px-3 py-2 border-b border-slate-200">Data-mappe</th>
           <th class="text-left px-3 py-2 border-b border-slate-200">Detalje-side (URL)</th>
+          <th class="text-left px-3 py-2 border-b border-slate-200">Kandidat-kilde</th>
         </tr>
         </thead>
         <tbody id="electionTableBody" class="divide-y divide-slate-100 bg-white">
@@ -116,42 +132,35 @@
       </table>
     </div>
     <p class="text-xs text-slate-500">
-      Tjek især, at <code>dataRoot</code> og <code>detailUrl</code> matcher din faktiske mappestruktur.
+      Tjek især, at <code>detailUrl</code> og <code>candidateSource</code> matcher din faktiske mappestruktur.
     </p>
   </section>
 
   <!-- Byg indeks -->
   <section class="vb-card p-4 md:p-5 space-y-3">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold">Byg kandidatindeks</h2>
+      <div>
+        <h2 class="text-lg font-semibold">Byg kandidatindeks</h2>
+        <p class="text-xs text-slate-600">
+          Kører i din browser. Ingen filer skrives automatisk – du kopierer selv JSON-outputtet.
+        </p>
+      </div>
       <button id="btnBuildIndex" class="vb-btn text-sm">
         Byg kandidatindeks
       </button>
     </div>
-    <p class="text-sm text-slate-700">
-      Når du klikker på knappen, sker der følgende:
-    </p>
-    <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
-      <li>Der bygges et skelet med alle valg fra <code>VB_ELECTION_SOURCES</code>.</li>
-      <li>Der indlæses kandidater fra JSON-filer i <code>/data/candidate-sources/</code> (fx <code>kv2021.json</code>).</li>
-      <li>Resultatet vises som et samlet JSON-objekt i tekstfeltet herunder.</li>
-    </ul>
-    <p class="text-xs text-slate-500">
-      Når du er tilfreds, kan du kopiere JSON'en og gemme den som fx <code>/data/candidate-index.json</code>,
-      som forsiden senere kan bruge til søgning.
-    </p>
+
+    <div id="buildStatus" class="text-xs text-slate-600 vb-log space-y-1"></div>
 
     <div class="space-y-2">
       <label for="outputJson" class="text-sm font-medium text-slate-800">
-        Output (globalt kandidatindeks som JSON)
+        Output (JSON til <code>/data/candidate-index.json</code>)
       </label>
       <textarea id="outputJson"
                 class="w-full h-64 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-                placeholder='Klik "Byg kandidatindeks" for at generere JSON...'
+                placeholder='Tryk på "Byg kandidatindeks" for at generere JSON...'
                 spellcheck="false"></textarea>
     </div>
-
-    <div id="statusText" class="text-xs text-slate-500"></div>
   </section>
 </main>
 
@@ -164,7 +173,7 @@
 
 <script>
   // ============================================================
-  // 1) KONFIGURATION: Hvilke valg skal med i kandidatindekset?
+  // KONFIGURATION: Hvilke valg skal med i kandidatindekset?
   // ============================================================
 
   const VB_ELECTION_SOURCES = [
@@ -177,7 +186,8 @@
       year: 2022,
       type: "ft",
       dataRoot: "../data/ft/2022/",
-      detailUrl: "/folketingsvalg/2022/"
+      detailUrl: "/folketingsvalg/2022/",
+      candidateSource: "../data/candidate-sources/ft2022.json"
     },
     {
       key: "ft2019",
@@ -185,7 +195,8 @@
       year: 2019,
       type: "ft",
       dataRoot: "../data/ft/2019/",
-      detailUrl: "/folketingsvalg/2019/"
+      detailUrl: "/folketingsvalg/2019/",
+      candidateSource: "../data/candidate-sources/ft2019.json"
     },
     {
       key: "ft2015",
@@ -193,7 +204,8 @@
       year: 2015,
       type: "ft",
       dataRoot: "../data/ft/2015/",
-      detailUrl: "/folketingsvalg/2015/"
+      detailUrl: "/folketingsvalg/2015/",
+      candidateSource: "../data/candidate-sources/ft2015.json"
     },
     {
       key: "ft2011",
@@ -201,7 +213,8 @@
       year: 2011,
       type: "ft",
       dataRoot: "../data/ft/2011/",
-      detailUrl: "/folketingsvalg/2011/"
+      detailUrl: "/folketingsvalg/2011/",
+      candidateSource: "../data/candidate-sources/ft2011.json"
     },
     {
       key: "ft2007",
@@ -209,7 +222,8 @@
       year: 2007,
       type: "ft",
       dataRoot: "../data/ft/2007/",
-      detailUrl: "/folketingsvalg/2007/"
+      detailUrl: "/folketingsvalg/2007/",
+      candidateSource: "../data/candidate-sources/ft2007.json"
     },
 
     // -----------------------------
@@ -221,7 +235,8 @@
       year: 2021,
       type: "kv",
       dataRoot: "../data/kv/2021/",
-      detailUrl: "/kommunalvalg/2021/"
+      detailUrl: "/kommunalvalg/2021/",
+      candidateSource: "../data/candidate-sources/kv2021.json"
     },
     {
       key: "kv2017",
@@ -229,7 +244,8 @@
       year: 2017,
       type: "kv",
       dataRoot: "../data/kv/2017/",
-      detailUrl: "/kommunalvalg/2017/"
+      detailUrl: "/kommunalvalg/2017/",
+      candidateSource: "../data/candidate-sources/kv2017.json"
     },
     {
       key: "kv2013",
@@ -237,7 +253,8 @@
       year: 2013,
       type: "kv",
       dataRoot: "../data/kv/2013/",
-      detailUrl: "/kommunalvalg/2013/"
+      detailUrl: "/kommunalvalg/2013/",
+      candidateSource: "../data/candidate-sources/kv2013.json"
     },
     {
       key: "kv2009",
@@ -245,7 +262,8 @@
       year: 2009,
       type: "kv",
       dataRoot: "../data/kv/2009/",
-      detailUrl: "/kommunalvalg/2009/"
+      detailUrl: "/kommunalvalg/2009/",
+      candidateSource: "../data/candidate-sources/kv2009.json"
     },
     {
       key: "kv2005",
@@ -253,7 +271,8 @@
       year: 2005,
       type: "kv",
       dataRoot: "../data/kv/2005/",
-      detailUrl: "/kommunalvalg/2005/"
+      detailUrl: "/kommunalvalg/2005/",
+      candidateSource: "../data/candidate-sources/kv2005.json"
     },
 
     // -----------------------------
@@ -265,7 +284,8 @@
       year: 2021,
       type: "rv",
       dataRoot: "../data/rv/2021/",
-      detailUrl: "/regionsraadsvalg/2021/"
+      detailUrl: "/regionsraadsvalg/2021/",
+      candidateSource: "../data/candidate-sources/rv2021.json"
     },
     {
       key: "rv2017",
@@ -273,7 +293,8 @@
       year: 2017,
       type: "rv",
       dataRoot: "../data/rv/2017/",
-      detailUrl: "/regionsraadsvalg/2017/"
+      detailUrl: "/regionsraadsvalg/2017/",
+      candidateSource: "../data/candidate-sources/rv2017.json"
     },
 
     // -----------------------------
@@ -285,7 +306,8 @@
       year: 2024,
       type: "ep",
       dataRoot: "../data/ep/2024/",
-      detailUrl: "/europaparlamentsvalg/2024/"
+      detailUrl: "/europaparlamentsvalg/2024/",
+      candidateSource: "../data/candidate-sources/ep2024.json"
     },
     {
       key: "ep2019",
@@ -293,7 +315,8 @@
       year: 2019,
       type: "ep",
       dataRoot: "../data/ep/2019/",
-      detailUrl: "/europaparlamentsvalg/2019/"
+      detailUrl: "/europaparlamentsvalg/2019/",
+      candidateSource: "../data/candidate-sources/ep2019.json"
     },
     {
       key: "ep2014",
@@ -301,7 +324,8 @@
       year: 2014,
       type: "ep",
       dataRoot: "../data/ep/2014/",
-      detailUrl: "/europaparlamentsvalg/2014/"
+      detailUrl: "/europaparlamentsvalg/2014/",
+      candidateSource: "../data/candidate-sources/ep2014.json"
     },
     {
       key: "ep2009",
@@ -309,7 +333,8 @@
       year: 2009,
       type: "ep",
       dataRoot: "../data/ep/2009/",
-      detailUrl: "/europaparlamentsvalg/2009/"
+      detailUrl: "/europaparlamentsvalg/2009/",
+      candidateSource: "../data/candidate-sources/ep2009.json"
     }
   ];
 
@@ -321,48 +346,70 @@
   };
 
   // ============================================================
-  // 2) KONFIG: Hvilke kandidat-kilder findes der allerede?
-  //    (LIGE NU kun kv2021 – de andre kan du tilføje senere)
+  // Navne-helpers til kandidatindeks (for at matche fx "Line Barfod" / "Line Barfod, Nørrebro")
   // ============================================================
+  const VB_NameHelpers = (() => {
+    const stripPlaceSuffix = (name) => {
+      if (!name) return "";
+      let s = name.trim();
+      const m = s.match(/^(.+?),\s*([^,]+)$/);
+      if (!m) return s;
+      const last = m[2].trim();
+      if (!last) return s;
+      if (/^(Nørrebro|Østerbro|Vesterbro|Amager|Valby|Vanløse|Bispebjerg|Brønshøj.*|Indre By)$/i.test(last)) {
+        return m[1].trim();
+      }
+      if (/^(Aarhus|Aalborg|Odense|Esbjerg|Randers|Kolding|Horsens|Vejle|Roskilde|Helsingør)$/i.test(last)) {
+        return m[1].trim();
+      }
+      return s;
+    };
 
-  // Sti er relativ fra admin-siden. Hvis admin ligger i /admin/,
-  // og din mappe er /data/candidate-sources/, så er ../data/... korrekt.
-  const VB_CANDIDATE_SOURCE_FILES = {
-    // eksempel: Kommunalvalg 2021
-    kv2021: "../data/candidate-sources/kv2021.json"
-    // senere kan du tilføje fx:
-    // kv2017: "../data/candidate-sources/kv2017.json",
-    // ft2022: "../data/candidate-sources/ft2022.json", osv.
-  };
+    const normalizeWhitespace = (s) => (s || "").replace(/\s+/g, " ").trim();
+
+    const normalizeSearchString = (s) => {
+      return (s || "")
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9æøå ]/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const unique = (arr) => {
+      const seen = new Set();
+      const out = [];
+      for (const v of arr) {
+        const key = v.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(v);
+        }
+      }
+      return out;
+    };
+
+    const buildNameRecord = (rawName) => {
+      const cleaned = normalizeWhitespace(rawName || "");
+      const base = stripPlaceSuffix(cleaned);
+      const variants = unique([cleaned, base].filter(Boolean));
+      const searchName = normalizeSearchString(base || cleaned);
+      return {
+        raw: rawName || "",
+        displayName: base || cleaned || "",
+        baseName: base || cleaned || "",
+        variants,
+        searchName
+      };
+    };
+
+    return { buildNameRecord, normalizeSearchString };
+  })();
 
   // ============================================================
-  // 3) Navne-helpers (til søgning og normalisering)
+  // Render tabel over valg-konfiguration
   // ============================================================
-
-  function vbNormalizeName(name) {
-    if (!name) return "";
-    // fjern dobbeltmellemrum og trim
-    return name.replace(/\s+/g, " ").trim();
-  }
-
-  function vbFold(str) {
-    return (str || "")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase()
-      .trim();
-  }
-
-  function vbMakeSearchName(displayName) {
-    const clean = vbNormalizeName(displayName)
-      .replace(/,.+$/, ""); // fjern evt. ", Nørrebro" mm.
-    return vbFold(clean);
-  }
-
-  // ============================================================
-  // 4) UI: Vis valg-konfigurationen i tabellen
-  // ============================================================
-
   (function renderElectionTable() {
     const tbody = document.getElementById("electionTableBody");
     if (!tbody) return;
@@ -385,6 +432,7 @@
             <td class="px-3 py-2 align-top"><code>${src.key}</code></td>
             <td class="px-3 py-2 align-top font-mono text-xs">${src.dataRoot}</td>
             <td class="px-3 py-2 align-top font-mono text-xs">${src.detailUrl}</td>
+            <td class="px-3 py-2 align-top font-mono text-xs">${src.candidateSource || "—"}</td>
           </tr>
         `;
       });
@@ -393,128 +441,133 @@
   })();
 
   // ============================================================
-  // 5) Byg skelet + indlæs kandidat-kilder
+  // Bygge-logik: læs kandidat-kildefiler og lav samlet indeks
   // ============================================================
 
-  function buildGlobalIndexSkeleton() {
+  const elStatus = document.getElementById("buildStatus");
+  const elOutput = document.getElementById("outputJson");
+
+  function logLine(msg) {
+    if (!elStatus) return;
+    const time = new Date().toLocaleTimeString("da-DK");
+    const div = document.createElement("div");
+    div.textContent = `[${time}] ${msg}`;
+    elStatus.appendChild(div);
+  }
+
+  async function loadCandidateSourceForElection(src) {
+    if (!src.candidateSource) {
+      logLine(`(${src.key}) Ingen candidateSource angivet – springer over.`);
+      return [];
+    }
+    try {
+      logLine(`(${src.key}) Henter kandidat-kilde: ${src.candidateSource}`);
+      const res = await fetch(src.candidateSource, { cache: "no-store" });
+      if (!res.ok) {
+        logLine(`(${src.key}) Kunne ikke hente kandidat-kilde (HTTP ${res.status}) – ingen kandidater for dette valg.`);
+        return [];
+      }
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        logLine(`(${src.key}) Kandidat-kilde er ikke et array – forventede en liste af kandidater. Ingen kandidater tilføjet.`);
+        return [];
+      }
+      logLine(`(${src.key}) Indlæste ${data.length} kandidater fra kandidat-kilde.`);
+      return data;
+    } catch (err) {
+      console.error(err);
+      logLine(`(${src.key}) Fejl ved læsning af kandidat-kilde: ${err.message || err}`);
+      return [];
+    }
+  }
+
+  function mapCandidateRecord(raw, src) {
+    // rå format fra candidateSource:
+    // Vi forventer felter som:
+    // - candidateId (eller id / kandidat_id)
+    // - name (eller displayName / kandidat_navn)
+    // - party, partyShort
+    // - totalVotes (eller votes)
+    // - area (kommune, kreds, region ...)
+    const nameRaw = raw.name || raw.displayName || raw.kandidat_navn || raw.candidateName || "";
+    const nameRec = VB_NameHelpers.buildNameRecord(nameRaw);
+
+    const candidateId = String(
+      raw.candidateId || raw.id || raw.kandidat_id || raw.personId || ""
+    ).trim();
+
+    const party = raw.party || raw.parti || "";
+    const partyShort = raw.partyShort || raw.partyLetter || raw.parti_bogstav || "";
+    const totalVotes = Number(raw.totalVotes ?? raw.votes ?? raw.stemmer ?? 0) || 0;
+    const area = raw.area || raw.kommune || raw.kreds || raw.region || "";
+
     return {
-      version: 1,
-      builtAt: new Date().toISOString(),
-      elections: VB_ELECTION_SOURCES.map(src => ({
-        key: src.key,
-        type: src.type,
-        typeLabel: VB_TYPE_LABELS[src.type] || src.type,
-        year: src.year,
-        label: src.label,
-        detailUrl: src.detailUrl,
-        candidates: []   // udfyldes nedenfor, hvis der findes en kandidat-kilde
-      }))
+      candidateId,
+      displayName: nameRec.displayName,
+      normalizedName: nameRec.searchName,
+      nameVariants: nameRec.variants,
+      party,
+      partyShort,
+      totalVotes,
+      area,
+      electionKey: src.key,
+      electionLabel: src.label,
+      electionYear: src.year,
+      electionType: src.type,
+      electionTypeLabel: VB_TYPE_LABELS[src.type] || src.type,
+      electionDetailUrl: src.detailUrl
     };
   }
 
-  async function loadCandidateSourceFile(electionKey) {
-    const path = VB_CANDIDATE_SOURCE_FILES[electionKey];
-    if (!path) return null; // ingen kandidat-kilde for dette valg (endnu)
+  async function buildCandidateIndex() {
+    if (elStatus) elStatus.innerHTML = "";
+    logLine("Starter opbygning af kandidatindeks...");
 
-    try {
-      const res = await fetch(path, { cache: "no-store" });
-      if (!res.ok) {
-        console.warn("Kunne ikke hente kandidatkilde for", electionKey, path, res.status);
-        return null;
-      }
-      const data = await res.json();
-      if (!data || !Array.isArray(data.candidates)) {
-        console.warn("Uventet format i kandidatkilde for", electionKey, data);
-        return null;
-      }
+    const electionsOut = [];
+    let globalCandidateCount = 0;
 
-      // Normalisér kandidater en smule, så vi er sikre på felterne
-      const normCandidates = data.candidates.map(c => {
-        const displayName = vbNormalizeName(c.displayName || "");
-        const searchName = c.searchName || vbMakeSearchName(displayName);
-        const aliases = Array.isArray(c.aliases) ? c.aliases : [];
+    for (const src of VB_ELECTION_SOURCES) {
+      const typeLabel = VB_TYPE_LABELS[src.type] || src.type;
+      logLine(`--- ${typeLabel} ${src.year} (${src.key}) ---`);
 
-        return {
-          id: c.id || null,
-          displayName,
-          searchName,
-          aliases,
-          party: c.party || "",
-          partyLetter: c.partyLetter || "",
-          areaType: c.areaType || "",
-          areaName: c.areaName || "",
-          votes: typeof c.votes === "number" ? c.votes : 0,
-          detailUrl: c.detailUrl || ""
-        };
-      }).filter(c => c.id && c.displayName);
+      const rawCandidates = await loadCandidateSourceForElection(src);
+      const mapped = rawCandidates
+        .map(c => mapCandidateRecord(c, src))
+        .filter(c => c.candidateId); // kræver id
 
-      return {
-        meta: {
-          electionKey: data.electionKey || electionKey,
-          year: data.year || null,
-          label: data.electionLabel || null
-        },
-        candidates: normCandidates
+      const electionObj = {
+        key: src.key,
+        type: src.type,
+        typeLabel,
+        year: src.year,
+        label: src.label,
+        detailUrl: src.detailUrl,
+        candidates: mapped
       };
-    } catch (err) {
-      console.error("Fejl ved hentning af kandidatkilde for", electionKey, err);
-      return null;
-    }
-  }
 
-  async function buildGlobalIndexWithSources() {
-    const index = buildGlobalIndexSkeleton();
+      electionsOut.push(electionObj);
+      globalCandidateCount += mapped.length;
 
-    for (const election of index.elections) {
-      const loaded = await loadCandidateSourceFile(election.key);
-      if (loaded && Array.isArray(loaded.candidates)) {
-        election.candidates = loaded.candidates;
-        // hvis vi vil, kan vi overskrive label/year med mere præcis info fra kilden:
-        if (loaded.meta.label) election.label = loaded.meta.label;
-        if (loaded.meta.year) election.year = loaded.meta.year;
-      }
+      logLine(`(${src.key}) Tilføjede ${mapped.length} kandidater til kandidatindeks.`);
     }
 
-    return index;
-  }
+    const indexObj = {
+      version: 1,
+      builtAt: new Date().toISOString(),
+      elections: electionsOut
+    };
 
-  // ============================================================
-  // 6) Knap: Byg kandidatindeks
-  // ============================================================
-
-  const btn = document.getElementById("btnBuildIndex");
-  const outputEl = document.getElementById("outputJson");
-  const statusEl = document.getElementById("statusText");
-
-  async function handleBuildClick() {
-    if (!btn || !outputEl) return;
-    btn.disabled = true;
-    statusEl.textContent = "Bygger kandidatindeks – læser kandidatkilder (fx kv2021.json)...";
-
-    try {
-      const index = await buildGlobalIndexWithSources();
-      outputEl.value = JSON.stringify(index, null, 2);
-
-      const totalElections = index.elections.length;
-      const withCandidates = index.elections.filter(e => (e.candidates || []).length > 0);
-      const totalCandidates = withCandidates.reduce((sum, e) => sum + e.candidates.length, 0);
-
-      statusEl.textContent =
-        `Færdig. Valg i alt: ${totalElections}. ` +
-        `Valg med kandidater: ${withCandidates.length}. ` +
-        `Kandidater i alt: ${totalCandidates}.`;
-
-      alert("Kandidatindeks er bygget. Du kan nu kopiere JSON'en og gemme den som fx /data/candidate-index.json.");
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = "Der opstod en fejl under opbygning af kandidatindekset. Se konsollen for detaljer.";
-      alert("Der opstod en fejl under opbygning af kandidatindekset.");
-    } finally {
-      btn.disabled = false;
+    if (elOutput) {
+      elOutput.value = JSON.stringify(indexObj, null, 2);
     }
+
+    logLine(`FÆRDIG: ${electionsOut.length} valg og ${globalCandidateCount} kandidatrekorder i kandidatindekset.`);
+    logLine(`Kopiér JSON ovenfor til /data/candidate-index.json på din server.`);
   }
 
-  btn?.addEventListener("click", handleBuildClick);
+  document.getElementById("btnBuildIndex")?.addEventListener("click", () => {
+    buildCandidateIndex();
+  });
 </script>
 </body>
 </html>
