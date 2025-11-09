@@ -212,14 +212,17 @@
       // -----------------------------
       // Kommunalvalg
       // -----------------------------
-      {
-        key: "kv2021",
-        label: "Kommunalvalg",
-        year: 2021,
-        type: "kv",
-        dataRoot: "../data/kv/2021/",
-        detailUrl: "/kommunalvalg/2021/"
-      },
+{
+  key: "kv2021",
+  label: "Kommunalvalg",
+  year: 2021,
+  type: "kv",
+  dataRoot: "../data/kv/2021/",
+  detailUrl: "/kommunalvalg/2021/",
+  // NYT felt: hvor admin-siden henter kandidatdata for dette valg
+  candidateSource: "/data/candidate-sources/kv2021.json"
+},
+
       {
         key: "kv2017",
         label: "Kommunalvalg",
