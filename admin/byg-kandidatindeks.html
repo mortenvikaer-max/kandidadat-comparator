@@ -3,29 +3,375 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Valgbar – Byg kandidatindeks</title>
+  <title>Valgbar – Admin – Kandidatindeks</title>
 
-  <!-- Tailwind (valgfrit, mest for at gøre det pænt) -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-900">
-  <main class="max-w-4xl mx-auto p-4 space-y-4">
-    <h1 class="text-2xl font-bold">Byg kandidatindeks</h1>
-    <p class="text-sm text-gray-600">
-      Denne side er kun til intern brug. Når du åbner den i browseren, vil den senere kunne læse alle valgdatafiler
-      og bygge én samlet <code>candidates-index.json</code>, som forsiden kan bruge til kandidatsøgning.
-    </p>
 
-    <div class="border rounded-xl bg-white p-4 space-y-3">
-      <p class="text-sm text-gray-700">
-        Lige nu er denne side kun et skelet. I de næste skridt tilføjer vi JavaScript, der:
-      </p>
-      <ul class="list-disc list-inside text-sm text-gray-700">
-        <li>henter dine eksisterende valgdata (CSV/XLSX)</li>
-        <li>samler kandidater på tværs af valg</li>
-        <li>giver dig en færdig <code>candidates-index.json</code></li>
-      </ul>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .vb-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .vb-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      border: 1px solid #0f172a;
+      background: #0f172a;
+      color: #f9fafb;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .vb-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    code {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 0.1rem 0.3rem;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+  <header class="border-b bg-white">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-2">
+          <!-- Juster evt. sti til logoet -->
+          <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
+        </a>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            Admin
+          </span>
+          <span class="text-lg font-semibold text-slate-900">
+            Kandidatindeks – opbygning
+          </span>
+        </div>
+      </div>
+      <span class="text-xs text-slate-500">
+        Denne side er kun til internt brug (ingen login – gem URL'en).
+      </span>
     </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <!-- Intro -->
+    <section class="vb-card p-4 md:p-5 space-y-3">
+      <h1 class="text-xl md:text-2xl font-semibold">
+        Byg globalt kandidatindeks
+      </h1>
+      <p class="text-sm md:text-base text-slate-700">
+        Denne admin-side er kun til dig. Idéen er:
+      </p>
+      <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
+        <li>Læs kandidater ind fra alle valg (folketingsvalg, kommunalvalg, regionsrådsvalg, EP-valg).</li>
+        <li>Lav ét samlet indeks over kandidater (inkl. varianter af navne).</li>
+        <li>Gem indekset som en JSON-fil, som forsiden kan bruge til søgning.</li>
+      </ol>
+      <p class="text-xs text-slate-500">
+        <strong>Vigtigt:</strong> Ingen data ændres på serveren. Denne side læser kun filer
+        og viser et JSON-output, som du selv lægger op (fx via FTP eller CMS).
+      </p>
+    </section>
+
+    <!-- Liste over valg / konfiguration -->
+    <section class="vb-card p-4 md:p-5 space-y-3">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-lg font-semibold">Valg i kandidatindekset</h2>
+        <span class="text-xs text-slate-500">
+          Konfiguration styres i JavaScript nederst i denne fil.
+        </span>
+      </div>
+      <p class="text-sm text-slate-700">
+        Nedenfor vises de valg, som vil blive inkluderet i kandidatindekset.
+        Du kan senere tilføje eller fjerne valg ved at redigere konfigurationen i <code>VB_ELECTION_SOURCES</code>.
+      </p>
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+          <thead class="bg-slate-100 text-slate-700">
+            <tr>
+              <th class="text-left px-3 py-2 border-b border-slate-200">Valg</th>
+              <th class="text-left px-3 py-2 border-b border-slate-200">År</th>
+              <th class="text-left px-3 py-2 border-b border-slate-200">Nøgle</th>
+              <th class="text-left px-3 py-2 border-b border-slate-200">Data-mappe</th>
+              <th class="text-left px-3 py-2 border-b border-slate-200">Detalje-side (URL)</th>
+            </tr>
+          </thead>
+          <tbody id="electionTableBody" class="divide-y divide-slate-100 bg-white">
+            <!-- udfyldes via JS -->
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-500">
+        Tjek især, at <code>dataRoot</code> og <code>detailUrl</code> matcher din faktiske mappestruktur.
+      </p>
+    </section>
+
+    <!-- Byg indeks (logik kommer senere) -->
+    <section class="vb-card p-4 md:p-5 space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold">Byg kandidatindeks (stub – logik kommer senere)</h2>
+        <button id="btnBuildIndex" class="vb-btn text-sm">
+          Byg kandidatindeks
+        </button>
+      </div>
+      <p class="text-sm text-slate-700">
+        Når vi har implementeret logikken, vil denne knap:
+      </p>
+      <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
+        <li>Gennemlæse alle valgs datafiler.</li>
+        <li>Lave en samlet liste over kandidater pr. valg, parti og stemmetal.</li>
+        <li>Generere en JSON-struktur, som du kan gemme som fx <code>/data/candidate-index.json</code>.</li>
+      </ul>
+      <p class="text-xs text-slate-500">
+        Lige nu er knappen kun en “stub” og viser en besked. Vi fylder den med rigtig logik i næste skridt.
+      </p>
+
+      <div class="space-y-2">
+        <label for="outputJson" class="text-sm font-medium text-slate-800">
+          Output (JSON – når logikken er implementeret)
+        </label>
+        <textarea id="outputJson"
+                  class="w-full h-64 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
+                  placeholder='Når vi har bygget logikken, vil det genererede JSON komme her...'
+                  spellcheck="false"></textarea>
+      </div>
+    </section>
   </main>
+
+  <footer class="border-t bg-slate-100 mt-8">
+    <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+      <span>Valgbar · Admin-værktøj (kandidatindeks)</span>
+      <span>Side genereres statisk – ingen server-side ændringer</span>
+    </div>
+  </footer>
+
+  <script>
+    // ============================================================
+    // KONFIGURATION: Hvilke valg skal med i kandidatindekset?
+    // ============================================================
+
+    const VB_ELECTION_SOURCES = [
+      // -----------------------------
+      // Folketingsvalg
+      // -----------------------------
+      {
+        key: "ft2022",
+        label: "Folketingsvalg",
+        year: 2022,
+        type: "ft",
+        dataRoot: "../data/ft/2022/",
+        // Tilpas til din faktiske URL
+        detailUrl: "/folketingsvalg/2022/"
+      },
+      {
+        key: "ft2019",
+        label: "Folketingsvalg",
+        year: 2019,
+        type: "ft",
+        dataRoot: "../data/ft/2019/",
+        detailUrl: "/folketingsvalg/2019/"
+      },
+      {
+        key: "ft2015",
+        label: "Folketingsvalg",
+        year: 2015,
+        type: "ft",
+        dataRoot: "../data/ft/2015/",
+        detailUrl: "/folketingsvalg/2015/"
+      },
+      {
+        key: "ft2011",
+        label: "Folketingsvalg",
+        year: 2011,
+        type: "ft",
+        dataRoot: "../data/ft/2011/",
+        detailUrl: "/folketingsvalg/2011/"
+      },
+      {
+        key: "ft2007",
+        label: "Folketingsvalg",
+        year: 2007,
+        type: "ft",
+        dataRoot: "../data/ft/2007/",
+        detailUrl: "/folketingsvalg/2007/"
+      },
+
+      // -----------------------------
+      // Kommunalvalg
+      // -----------------------------
+      {
+        key: "kv2021",
+        label: "Kommunalvalg",
+        year: 2021,
+        type: "kv",
+        dataRoot: "../data/kv/2021/",
+        detailUrl: "/kommunalvalg/2021/"
+      },
+      {
+        key: "kv2017",
+        label: "Kommunalvalg",
+        year: 2017,
+        type: "kv",
+        dataRoot: "../data/kv/2017/",
+        detailUrl: "/kommunalvalg/2017/"
+      },
+      {
+        key: "kv2013",
+        label: "Kommunalvalg",
+        year: 2013,
+        type: "kv",
+        dataRoot: "../data/kv/2013/",
+        detailUrl: "/kommunalvalg/2013/"
+      },
+      {
+        key: "kv2009",
+        label: "Kommunalvalg",
+        year: 2009,
+        type: "kv",
+        dataRoot: "../data/kv/2009/",
+        detailUrl: "/kommunalvalg/2009/"
+      },
+      {
+        key: "kv2005",
+        label: "Kommunalvalg",
+        year: 2005,
+        type: "kv",
+        dataRoot: "../data/kv/2005/",
+        detailUrl: "/kommunalvalg/2005/"
+      },
+
+      // -----------------------------
+      // Regionsrådsvalg
+      // -----------------------------
+      {
+        key: "rv2021",
+        label: "Regionsrådsvalg",
+        year: 2021,
+        type: "rv",
+        dataRoot: "../data/rv/2021/",
+        detailUrl: "/regionsraadsvalg/2021/"
+      },
+      {
+        key: "rv2017",
+        label: "Regionsrådsvalg",
+        year: 2017,        // rettet fra 20217 → 2017
+        type: "rv",
+        dataRoot: "../data/rv/2017/",
+        detailUrl: "/regionsraadsvalg/2017/"
+      },
+
+      // -----------------------------
+      // Europa-Parlamentsvalg
+      // -----------------------------
+      {
+        key: "ep2024",
+        label: "Europa-Parlamentsvalg",
+        year: 2024,
+        type: "ep",
+        dataRoot: "../data/ep/2024/",
+        detailUrl: "/europaparlamentsvalg/2024/"
+      },
+      {
+        key: "ep2019",
+        label: "Europa-Parlamentsvalg",
+        year: 2019,
+        type: "ep",
+        dataRoot: "../data/ep/2019/",
+        detailUrl: "/europaparlamentsvalg/2019/"
+      },
+      {
+        key: "ep2014",
+        label: "Europa-Parlamentsvalg",
+        year: 2014,
+        type: "ep",
+        dataRoot: "../data/ep/2014/",
+        detailUrl: "/europaparlamentsvalg/2014/"
+      },
+      {
+        key: "ep2009",
+        label: "Europa-Parlamentsvalg",
+        year: 2009,
+        type: "ep",
+        dataRoot: "../data/ep/2009/",
+        detailUrl: "/europaparlamentsvalg/2009/"
+      }
+    ];
+
+    // Mapping fra type-kode til læsevenligt label (bruges i tabellen)
+    const VB_TYPE_LABELS = {
+      ft: "Folketingsvalg",
+      kv: "Kommunalvalg",
+      rv: "Regionsrådsvalg",
+      ep: "Europa-Parlamentsvalg"
+    };
+
+    // Render konfigurationen som en tabel i UI'et
+    (function renderElectionTable() {
+      const tbody = document.getElementById("electionTableBody");
+      if (!tbody) return;
+
+      const rows = VB_ELECTION_SOURCES
+        .slice()
+        .sort((a, b) => {
+          // sortér først efter type-label, så efter år (nyeste først)
+          const ta = VB_TYPE_LABELS[a.type] || a.type;
+          const tb = VB_TYPE_LABELS[b.type] || b.type;
+          if (ta < tb) return -1;
+          if (ta > tb) return 1;
+          return b.year - a.year;
+        })
+        .map(src => {
+          const typeLabel = VB_TYPE_LABELS[src.type] || src.type;
+          return `
+            <tr>
+              <td class="px-3 py-2 align-top">${typeLabel}</td>
+              <td class="px-3 py-2 align-top">${src.year}</td>
+              <td class="px-3 py-2 align-top"><code>${src.key}</code></td>
+              <td class="px-3 py-2 align-top font-mono text-xs">${src.dataRoot}</td>
+              <td class="px-3 py-2 align-top font-mono text-xs">${src.detailUrl}</td>
+            </tr>
+          `;
+        });
+
+      tbody.innerHTML = rows.join("");
+    })();
+
+    // Midlertidig "stub" for knappen – logik kommer i næste skridt
+    document.getElementById("btnBuildIndex")?.addEventListener("click", () => {
+      const textarea = document.getElementById("outputJson");
+      if (textarea) {
+        textarea.value =
+`// TODO: Her skal vi implementere:
+ // 1) Læsning af datafiler under dataRoot for hvert valg.
+ // 2) Udtræk af kandidater (inkl. partier, stemmetal m.m.).
+ // 3) Samling til ét globalt kandidatindeks.
+ // 4) JSON-output, som du kan gemme som fx /data/candidate-index.json.
+
+{
+  "message": "Bygge-logik er endnu ikke implementeret. Konfigurationen af valg er dog på plads.",
+  "elections": ${JSON.stringify(VB_ELECTION_SOURCES.map(e => ({
+    key: e.key,
+    type: e.type,
+    year: e.year
+  })), null, 2)}
+}`;
+      }
+      alert("Stub: Vi har endnu ikke implementeret selve bygge-logikken – men valg-konfigurationen er klar.");
+    });
+  </script>
 </body>
 </html>
