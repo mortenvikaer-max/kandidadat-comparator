@@ -319,6 +319,58 @@
       ep: "Europa-Parlamentsvalg"
     };
 
+    // ===== Kandidat-indeks: version og navne-helpers =====
+    const CANDIDATE_INDEX_VERSION = 1;
+
+    /**
+     * Rydder pænt op i kandidatnavne til visning.
+     * - Fjerner dobbelte mellemrum
+     * - Trimmer
+     * (Vi bevarer evt. ", Nørrebro" i nameVariants – men kan vælge en pæn displayName senere)
+     */
+    function normalizeDisplayName(raw) {
+      if (!raw) return "";
+      // Erstat flere mellemrum med ét og trim
+      return raw.replace(/\s+/g, " ").trim();
+    }
+
+    /**
+     * Gør et navn søgbart:
+     * - små bogstaver
+     * - fjerner diakritiske tegn (æ/ø/å osv. → ae/oe/aa eller uden accent)
+     * - fjerner ekstra mellemrum
+     *
+     * Bruges til feltet "searchName" i kandidat-indekset,
+     * så "Line Barfod, Nørrebro" og "line barfod" matcher hinanden.
+     */
+    function toSearchName(raw) {
+      if (!raw) return "";
+      const s = raw
+        .toString()
+        .trim()
+        // NFD: split bogstav + diakritik
+        .normalize("NFD")
+        // fjern diakritiske tegn
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase();
+
+      // Erstat flere mellemrum med ét mellemrum
+      return s.replace(/\s+/g, " ");
+    }
+
+    /**
+     * Hjælp til at lave et samlet "searchName" ud fra alle navnevarianter.
+     * fx ["Line Barfod", "Line Barfod, Nørrebro"] -> "line barfod line barfod, norrebro"
+     */
+    function buildSearchNameFromVariants(nameVariants) {
+      if (!Array.isArray(nameVariants)) nameVariants = [];
+      const joined = nameVariants
+        .filter(Boolean)
+        .map(v => normalizeDisplayName(v))
+        .join(" ");
+      return toSearchName(joined);
+    }
+
     // Render konfigurationen som en tabel i UI'et
     (function renderElectionTable() {
       const tbody = document.getElementById("electionTableBody");
@@ -358,11 +410,12 @@
 `// TODO: Her skal vi implementere:
  // 1) Læsning af datafiler under dataRoot for hvert valg.
  // 2) Udtræk af kandidater (inkl. partier, stemmetal m.m.).
- // 3) Samling til ét globalt kandidatindeks.
+ // 3) Samling til ét globalt kandidatindeks (version ${CANDIDATE_INDEX_VERSION}).
  // 4) JSON-output, som du kan gemme som fx /data/candidate-index.json.
 
 {
   "message": "Bygge-logik er endnu ikke implementeret. Konfigurationen af valg er dog på plads.",
+  "indexVersion": ${CANDIDATE_INDEX_VERSION},
   "elections": ${JSON.stringify(VB_ELECTION_SOURCES.map(e => ({
     key: e.key,
     type: e.type,
@@ -370,7 +423,7 @@
   })), null, 2)}
 }`;
       }
-      alert("Stub: Vi har endnu ikke implementeret selve bygge-logikken – men valg-konfigurationen er klar.");
+      alert("Stub: Vi har endnu ikke implementeret selve bygge-logikken – men valg-konfigurationen og navne-helpers er klar.");
     });
   </script>
 </body>
