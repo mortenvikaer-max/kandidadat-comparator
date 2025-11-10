@@ -346,6 +346,20 @@
       "Æ":"#666666"
     };
 
+    // Hvis partyShort mangler, forsøg at slå bogstav op ud fra fuldt partinavn
+    const PARTY_LETTER_FROM_NAME = {
+      "Socialdemokratiet": "A",
+      "Radikale Venstre": "B",
+      "Det Konservative Folkeparti": "C",
+      "SF - Socialistisk Folkeparti": "F",
+      "Liberal Alliance": "I",
+      "Kristendemokraterne": "K",
+      "Dansk Folkeparti": "O",
+      "Venstre, Danmarks Liberale Parti": "V",
+      "Enhedslisten - De Rød-Grønne": "Ø",
+      "Alternativet": "Å"
+    };
+
     async function loadCandidateIndex(){
       if(candidateIndex) return;
       try{
@@ -397,10 +411,36 @@
         }
       }
 
-      results.sort((a,b)=> b.score - a.score ||
-        (a.c.displayName || '').localeCompare(b.c.displayName || '', 'da'));
+      // Tag de bedste 40 og sortér alfabetisk + nyeste valg øverst
+      const top = results
+        .sort((a,b)=> b.score - a.score)
+        .slice(0, 40)
+        .map(r => r.c);
 
-      return results.slice(0, 20).map(r => r.c);
+      const typePriority = { ep:4, ft:3, rv:2, kv:1 }; // brugt hvis samme år
+
+      top.sort((a,b)=>{
+        const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
+        const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
+        if(nameA < nameB) return -1;
+        if(nameA > nameB) return 1;
+
+        const yearA = a.electionYear || 0;
+        const yearB = b.electionYear || 0;
+        if(yearA !== yearB) return yearB - yearA; // nyeste først
+
+        const prioA = typePriority[a.electionType] || 0;
+        const prioB = typePriority[b.electionType] || 0;
+        if(prioA !== prioB) return prioB - prioA;
+
+        // fallback: kandidat-id
+        const idA = (a.candidateId || '').toString();
+        const idB = (b.candidateId || '').toString();
+        return idA.localeCompare(idB, 'da');
+      });
+
+      // Til sidst begrænser vi til 20 viste rækker
+      return top.slice(0, 20);
     }
 
     function renderResults(query){
@@ -422,9 +462,15 @@
       }
 
       resultsRoot.innerHTML = hits.map(hit => {
-        const name       = hit.displayName || '';
-        const party      = hit.party || '';
-        const partyShort = (hit.partyShort || '').trim();
+        let party      = (hit.party || '').trim();
+        let partyShort = (hit.partyShort || '').trim();
+
+        // fallback: slå bogstav op ud fra partinavn
+        if(!partyShort && party){
+          const mapped = PARTY_LETTER_FROM_NAME[party];
+          if(mapped) partyShort = mapped;
+        }
+
         const votes      = typeof hit.totalVotes === 'number'
                            ? hit.totalVotes.toLocaleString('da-DK')
                            : '?';
@@ -475,6 +521,8 @@
           }
           badgeText = partyShort;
         }
+
+        const name = hit.displayName || hit.name || '';
 
         return `
           <button type="button"
