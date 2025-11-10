@@ -46,10 +46,11 @@
     .vb-log {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 0.75rem;
-      max-height: 220px;
+      line-height: 1.4;
+      max-height: 260px;
       overflow-y: auto;
       background: #f9fafb;
-      border-radius: 0.75rem;
+      border-radius: 8px;
       padding: 0.5rem 0.75rem;
       border: 1px solid #e5e7eb;
     }
@@ -60,21 +61,20 @@
 <header class="border-b bg-white">
   <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <a href="../" class="flex items-center gap-2">
-        <!-- vi er i /admin/, derfor ../ -->
-        <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
+      <a href="/" class="flex items-center gap-2">
+        <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
       </a>
       <div class="flex flex-col">
         <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
           Admin
         </span>
         <span class="text-lg font-semibold text-slate-900">
-          Kommunalvalg – kandidat-kildefiler
+          Kommunalvalg – generér kandidat-kildefil
         </span>
       </div>
     </div>
     <span class="text-xs text-slate-500">
-      Generér <code>kvYYYY.json</code> til <code>/data/candidate-sources/</code>
+      Denne side er kun til internt brug (ingen login – gem URL'en).
     </span>
   </div>
 </header>
@@ -83,259 +83,293 @@
   <!-- Intro -->
   <section class="vb-card p-4 md:p-5 space-y-3">
     <h1 class="text-xl md:text-2xl font-semibold">
-      Generér kandidat-liste for kommunalvalg
+      Generér kandidat-kildefil til kommunalvalg
     </h1>
     <p class="text-sm md:text-base text-slate-700">
-      Denne side læser alle kommuners CSV-data for et valgt år og laver én samlet JSON-liste
-      over kandidater til det kommunalvalg. JSON-filen bruges af
-      <code>byg-kandidatindeks.html</code> til forsiden.
+      Denne side læser dine CSV-filer for kommunalvalg og laver en samlet liste
+      af kandidater pr. kommune, der kan bruges i kandidatindekset på forsiden.
     </p>
     <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
-      <li>Vælg år for kommunalvalget.</li>
-      <li>Klik <strong>“Generér kandidat-liste”</strong>.</li>
-      <li>Kopiér JSON-output og gem det som <code>/data/candidate-sources/kvYYYY.json</code>.</li>
-      <li>Kør derefter <code>admin/byg-kandidatindeks.html</code> igen.</li>
+      <li>Vælg kommunalvalg (år).</li>
+      <li>Tryk på <em>Generér kandidat-fil</em>.</li>
+      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/kvYYYY.json</code>.</li>
     </ol>
     <p class="text-xs text-slate-500">
-      Ingen filer skrives automatisk – du kopierer selv outputtet ind i den rigtige fil (fx via FTP eller CMS).
+      <strong>Vigtigt:</strong> Denne side skriver ikke på serveren – du kopierer selv JSON’en op.
     </p>
   </section>
 
-  <!-- Valg-år / konfiguration -->
-  <section class="vb-card p-4 md:p-5 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-semibold">Vælg kommunalvalg-år</h2>
-        <p class="text-xs text-slate-600">
-          Denne generator virker for 2021, 2017, 2013, 2009 og 2005.
-          Den forventer CSV-filer under <code>/data/kv/&lt;år&gt;/</code>.
-        </p>
-      </div>
+  <!-- Valg / konfiguration -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-lg font-semibold">Vælg kommunalvalg</h2>
       <div class="flex items-center gap-2">
-        <label for="yearSelect" class="text-sm text-slate-700">År:</label>
-        <select id="yearSelect"
-                class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm">
-          <option value="2021" selected>Kommunalvalg 2021</option>
-          <option value="2017">Kommunalvalg 2017</option>
-          <option value="2013">Kommunalvalg 2013</option>
-          <option value="2009">Kommunalvalg 2009</option>
-          <option value="2005">Kommunalvalg 2005</option>
+        <label for="kvElectionSelect" class="text-xs text-slate-600">
+          Kommunalvalg:
+        </label>
+        <select id="kvElectionSelect"
+                class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
         </select>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm text-slate-700">
-      <div>
-        <div><span class="font-semibold">Data-mappe:</span> <span id="dataPathLabel"></span></div>
-        <div><span class="font-semibold">Output-fil:</span> <code id="outputFileLabel"></code></div>
-      </div>
-      <div class="text-xs text-slate-500">
-        CSV-navne forventes at være på formen:
-        <ul class="list-disc list-inside mt-1">
-          <li><code>&lt;kommune&gt;_allepartier.csv</code> eller</li>
-          <li><code>&lt;kommune&gt;.csv</code></li>
-        </ul>
-        Der forsøges begge varianter pr. kommune.
-      </div>
-    </div>
+    <p class="text-sm text-slate-700">
+      Konfiguration for det valgte valg:
+    </p>
+    <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+      <tbody id="kvConfigTableBody" class="bg-white divide-y divide-slate-100">
+      <!-- udfyldes via JS -->
+      </tbody>
+    </table>
+    <p class="text-xs text-slate-500">
+      Bemærk: For 2017, 2013 og 2009 ligger CSV’erne i undermapper med region,
+      fx <code>../data/kv/2017/Region Hovedstaden/Albertslund.csv</code>.
+      For 2021 og 2005 ligger de direkte under <code>../data/kv/ÅR/</code>.
+    </p>
   </section>
 
-  <!-- Byg indeks -->
+  <!-- Generér kandidat-fil -->
   <section class="vb-card p-4 md:p-5 space-y-3">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-semibold">Generér kandidat-liste for valgt år</h2>
+        <h2 class="text-lg font-semibold">Generér kandidat-kildefil</h2>
         <p class="text-xs text-slate-600">
-          Kører i din browser. Læser CSV'er for alle kommuner og samler kandidater.
+          Resultatet er en liste af kandidater, grupperet pr. kommune, med total stemmetal for kommunen.
         </p>
       </div>
-      <button id="btnBuildKv" class="vb-btn text-sm">
-        Generér kandidat-liste
+      <button id="btnGenerate" class="vb-btn text-sm">
+        Generér kandidat-fil
       </button>
     </div>
 
-    <div id="buildStatus" class="vb-log space-y-1"></div>
+    <div id="log" class="vb-log" aria-live="polite"></div>
 
     <div class="space-y-2">
       <label for="outputJson" class="text-sm font-medium text-slate-800">
-        Output (JSON til <code>/data/candidate-sources/kvYYYY.json</code>)
+        Output (JSON – gem som <code>/data/candidate-sources/kvYYYY.json</code>)
       </label>
       <textarea id="outputJson"
                 class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-                placeholder='Tryk på "Generér kandidat-liste" for at lave JSON...'
+                placeholder='Tryk på "Generér kandidat-fil" for at se JSON…'
                 spellcheck="false"></textarea>
-      <p class="text-xs text-slate-500">
-        JSON-strukturen er et <strong>array af kandidater</strong>. Hver kandidat har bl.a.
-        <code>candidateId</code>, <code>name</code>, <code>party</code>,
-        <code>partyShort</code>, <code>totalVotes</code>, <code>region</code>, <code>kommune</code> og <code>area</code>.
-      </p>
     </div>
   </section>
 </main>
 
 <footer class="border-t bg-slate-100 mt-8">
   <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
-    <span>Valgbar · Admin-værktøj (kommunalvalg – kandidat-kildefiler)</span>
+    <span>Valgbar · Admin-værktøj (kommunalvalg kandidater)</span>
     <span>Side genereres statisk – ingen server-side ændringer</span>
   </div>
 </footer>
 
 <script>
-  // ============================
-  // KONFIG: hvilke år / sti-info
-  // ============================
-  const KV_GENERATOR_CONFIG = {
-    2021: { key: "kv2021", dataRoot: "../data/kv/2021/", outputFile: "kv2021.json" },
-    2017: { key: "kv2017", dataRoot: "../data/kv/2017/", outputFile: "kv2017.json" },
-    2013: { key: "kv2013", dataRoot: "../data/kv/2013/", outputFile: "kv2013.json" },
-    2009: { key: "kv2009", dataRoot: "../data/kv/2009/", outputFile: "kv2009.json" },
-    2005: { key: "kv2005", dataRoot: "../data/kv/2005/", outputFile: "kv2005.json" }
-  };
-
+  // ============================================================
+  // REGIONS – samme struktur som på KV2021-siden
+  // ============================================================
   const REGIONS = {
-    "Region Hovedstaden": ["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
-    "Region Sjælland": ["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
-    "Region Syddanmark": ["Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev","Kerteminde","Kolding","Langeland","Middelfart","Nordfyns","Nyborg","Odense","Svendborg","Tønder","Varde","Vejen","Vejle","Ærø","Aabenraa","Sønderborg"],
-    "Region Midtjylland": ["Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig","Norddjurs","Odder","Randers","Ringkøbing-Skjern","Samsø","Silkeborg","Skanderborg","Skive","Struer","Syddjurs","Viborg","Aarhus"],
-    "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
+    "Region Hovedstaden": [
+      "Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg",
+      "Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov",
+      "Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm",
+      "Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"
+    ],
+    "Region Sjælland": [
+      "Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved",
+      "Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"
+    ],
+    "Region Syddanmark": [
+      "Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev",
+      "Kerteminde","Kolding","Langeland","Middelfart","Nordfyns","Nyborg","Odense",
+      "Svendborg","Tønder","Varde","Vejen","Vejle","Ærø","Aabenraa","Sønderborg"
+    ],
+    "Region Midtjylland": [
+      "Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig",
+      "Norddjurs","Odder","Randers","Ringkøbing-Skjern","Samsø","Silkeborg","Skanderborg",
+      "Skive","Struer","Syddjurs","Viborg","Aarhus"
+    ],
+    "Region Nordjylland": [
+      "Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord",
+      "Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"
+    ]
   };
 
-  // Partinavn-fixes m.m. (samme logik som på KV2021-siden)
-  const PARTY_NAME_FIX = {
-    "Venstre, Danmarks Liberale Part": "Venstre, Danmarks Liberale Parti",
-    "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
-  };
-  const LOCAL_MULTI_COMMUNE_PARTIES = new Set([
-    "Lokallisten",
-    "Fælleslisten",
-    "Borgerlisten",
-    "Beboerlisten"
-  ]);
-  const NO_LETTER_PARTIES = new Set([
-    "Frihedslisten",
-    "Bornholmerlisten",
-    "Fælleslisten",
-    "SocialKonservative",
-    "Feministisk Initiativ",
-    "Ærøs Fremtid",
-    "Bæredygtigt Samfund",
-    "Deltagerlisten",
-    "Det Demokratiske Parti",
-    "Bydelenes Stemmer",
-    "Egalitært Folkeparti",
-    "Frigængerne",
-    "Partiet Samfundssind",
-    "Sten i Skoen"
-  ]);
-  const LETTER_PARTIES = new Set([
-    "Socialdemokratiet",
-    "Venstre, Danmarks Liberale Parti",
-    "Det Konservative Folkeparti",
-    "SF - Socialistisk Folkeparti",
-    "Enhedslisten - De Rød-Grønne",
-    "Radikale Venstre",
-    "Dansk Folkeparti",
-    "Nye Borgerlige",
-    "Liberal Alliance",
-    "Kristendemokraterne",
-    "Alternativet"
-  ]);
-
-  const canon = (s) => (s || "").toString().trim();
-
-  const isListestemmer = (name) => {
-    const t = canon(name).toLowerCase();
-    return t === "partiliste" || t === "listestemmer" || t === "liste";
-  };
-
-  const normalizeCandidateName = (name) => (name || "").replace(/,(\S)/g, ", $1");
+  const ALL_KOMMUNER = Array.from(
+    new Set(Object.values(REGIONS).flat())
+  ).sort((a,b)=>a.localeCompare(b,'da'));
 
   function findRegionForKommune(kommune){
-    for (const [reg, kommuner] of Object.entries(REGIONS)) {
-      if (kommuner.includes(kommune)) return reg;
+    for(const [reg, kommuner] of Object.entries(REGIONS)){
+      if(kommuner.includes(kommune)) return reg;
     }
     return "";
   }
 
-  // UI
-  const elStatus = document.getElementById("buildStatus");
-  const elOutput = document.getElementById("outputJson");
-  const yearSelect = document.getElementById("yearSelect");
-  const dataPathLabel = document.getElementById("dataPathLabel");
-  const outputFileLabel = document.getElementById("outputFileLabel");
+  // ============================================================
+  // KONFIG: Kommunalvalg-setup
+  // ============================================================
+  const KV_CONFIG = [
+    {
+      key: "kv2021",
+      year: 2021,
+      label: "Kommunalvalg 2021",
+      dataRoot: "../data/kv/2021/",
+      regionSubfolders: false   // Albertslund_allepartier.csv eller Albertslund.csv
+    },
+    {
+      key: "kv2017",
+      year: 2017,
+      label: "Kommunalvalg 2017",
+      dataRoot: "../data/kv/2017/",
+      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+    },
+    {
+      key: "kv2013",
+      year: 2013,
+      label: "Kommunalvalg 2013",
+      dataRoot: "../data/kv/2013/",
+      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+    },
+    {
+      key: "kv2009",
+      year: 2009,
+      label: "Kommunalvalg 2009",
+      dataRoot: "../data/kv/2009/",
+      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+    },
+    {
+      key: "kv2005",
+      year: 2005,
+      label: "Kommunalvalg 2005",
+      dataRoot: "../data/kv/2005/",
+      regionSubfolders: false   // Albertslund.csv (ingen regions-undermapper)
+    }
+  ];
 
-  function logLine(msg) {
-    if (!elStatus) return;
+  const el = id => document.getElementById(id);
+  const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+
+  const logEl = el("log");
+  const outEl = el("outputJson");
+  const selectEl = el("kvElectionSelect");
+  const cfgTableBody = el("kvConfigTableBody");
+
+  function logLine(msg){
     const time = new Date().toLocaleTimeString("da-DK");
     const div = document.createElement("div");
     div.textContent = `[${time}] ${msg}`;
-    elStatus.appendChild(div);
-    elStatus.scrollTop = elStatus.scrollHeight;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
   }
 
-  function updateYearInfo(){
-    const year = yearSelect.value;
-    const cfg = KV_GENERATOR_CONFIG[year];
-    if(!cfg) return;
-    dataPathLabel.textContent = cfg.dataRoot;
-    outputFileLabel.textContent = cfg.outputFile;
-  }
+  // ============================================================
+  // UI: udfyld dropdown og config-tabel
+  // ============================================================
+  (function initUI(){
+    // dropdown
+    KV_CONFIG
+      .slice()
+      .sort((a,b)=>b.year-a.year)
+      .forEach(cfg=>{
+        const opt = document.createElement("option");
+        opt.value = cfg.key;
+        opt.textContent = `${cfg.label}`;
+        selectEl.appendChild(opt);
+      });
+    selectEl.value = "kv2021";
 
-  updateYearInfo();
-  yearSelect.addEventListener("change", () => {
-    updateYearInfo();
-    if(elOutput) elOutput.value = "";
-    if(elStatus) elStatus.innerHTML = "";
-  });
+    function renderCfgTable(){
+      const cfg = KV_CONFIG.find(c=>c.key===selectEl.value) || KV_CONFIG[0];
+      cfgTableBody.innerHTML = `
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Valg</td>
+          <td class="px-3 py-2">${cfg.label}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">År</td>
+          <td class="px-3 py-2">${cfg.year}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Nøgle</td>
+          <td class="px-3 py-2"><code>${cfg.key}</code></td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Data-mappe</td>
+          <td class="px-3 py-2 font-mono text-xs">${cfg.dataRoot}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Regions-undermapper</td>
+          <td class="px-3 py-2 text-xs">
+            ${cfg.regionSubfolders
+              ? "Ja – fx <code>Region Hovedstaden/Albertslund.csv</code>"
+              : "Nej – CSV-filer ligger direkte i data-mappen"}
+          </td>
+        </tr>
+      `;
+    }
 
-  // ===== CSV helpers =====
+    renderCfgTable();
+    selectEl.addEventListener("change", ()=>{
+      logEl.innerHTML = "";
+      outEl.value = "";
+      renderCfgTable();
+    });
+  })();
+
+  // ============================================================
+  // CSV helpers
+  // ============================================================
   async function fetchCsvText(url){
     const res = await fetch(url, { cache: "no-store" });
-    if(!res.ok) throw new Error("HTTP " + res.status);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.text();
   }
 
   function parseCsvTextToRows(text){
-    const res = Papa.parse(text, {
+    const parsed = Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: h => canon(h.toLowerCase())
+      transformHeader: h => (h || "").toString().trim().toLowerCase()
     });
-
-    return res.data.map(r => {
-      const regionRaw  = canon(r.region || "");
-      const kommuneRaw = canon(r.kommune || "");
-
-      let partiRaw = canon(r.parti);
-      const fixedName = PARTY_NAME_FIX[partiRaw] || partiRaw;
-      let parti = fixedName;
-
-      if (LOCAL_MULTI_COMMUNE_PARTIES.has(parti) && kommuneRaw) {
-        parti = `${parti} (${kommuneRaw})`;
-      }
-
-      const noLetter = NO_LETTER_PARTIES.has(parti);
-      const parti_bogstav = noLetter ? "" : canon(r.parti_bogstav || r.listebogstav || "");
+    return parsed.data.map(r => {
+      const region  = (r.region || "").toString().trim();
+      const kommune = (r.kommune || "").toString().trim();
+      const kandidatId = (r.kandidat_id || r.kandidatid || r.kandidat_navn || r.kandidatnavn || "").toString().trim();
+      const kandidatNavn = (r.kandidat_navn || r.kandidatnavn || "").toString().trim();
+      const parti = (r.parti || "").toString().trim();
+      const partiBogstav = (r.parti_bogstav || r.listebogstav || "").toString().trim();
+      const stemmer = Number(r.stemmer || r.personlige_stemmer || 0) || 0;
 
       return {
-        region: regionRaw,
-        kommune: kommuneRaw,
-        kandidat_id: canon(r.kandidat_id || r.kandidat_navn),
-        kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn)),
+        region,
+        kommune,
+        kandidat_id: kandidatId,
+        kandidat_navn: kandidatNavn,
         parti,
-        parti_bogstav,
-        stemmer: Number(r.stemmer || 0) || 0
+        parti_bogstav: partiBogstav,
+        stemmer
       };
     });
   }
 
   async function loadRowsForKommune(kommune, cfg){
     const base = cfg.dataRoot;
-    const safe = encodeURIComponent(kommune);
-    const candidates = [
-      `${base}${safe}_allepartier.csv`,
-      `${base}${safe}.csv`
-    ];
+    const safeKommune = encodeURIComponent(kommune);
+    const regionName = findRegionForKommune(kommune);
+    const safeRegion = regionName ? encodeURIComponent(regionName) : null;
+
+    const candidates = [];
+
+    if(cfg.regionSubfolders && safeRegion){
+      // Struktur: data/kv/YYYY/Region Hovedstaden/Albertslund.csv
+      candidates.push(`${base}${safeRegion}/${safeKommune}_allepartier.csv`);
+      candidates.push(`${base}${safeRegion}/${safeKommune}.csv`);
+    }else{
+      // Struktur: data/kv/YYYY/Albertslund_allepartier.csv / Albertslund.csv
+      candidates.push(`${base}${safeKommune}_allepartier.csv`);
+      candidates.push(`${base}${safeKommune}.csv`);
+    }
+
     for(const url of candidates){
       try{
         const text = await fetchCsvText(url);
@@ -346,87 +380,81 @@
         logLine(`… Kunne ikke læse ${url} (${err.message || err}) – prøver næste variant`);
       }
     }
+
     logLine(`⚠ Fandt ingen CSV-fil for ${kommune}`);
     return [];
   }
 
-  async function loadAllRowsForYear(cfg){
-    const allKommuner = Array.from(
-      new Set(Object.values(REGIONS).flat())
-    );
-    logLine(`Indlæser data for ${allKommuner.length} kommuner…`);
-
-    const chunks = await Promise.all(
-      allKommuner.map(k => loadRowsForKommune(k, cfg).catch(()=>[]))
-    );
-
-    const rows = chunks.flat();
-    logLine(`Færdig med CSV-indlæsning – i alt ${rows.length} rækker.`);
-    return rows;
-  }
-
-  function buildCandidateRecords(rows, cfg){
-    const byId = new Map();
-
-    for(const r of rows){
+  function buildCandidateRecords(allRows, cfg){
+    const map = new Map();
+    for(const r of allRows){
       if(!r.kandidat_id) continue;
-      if(isListestemmer(r.kandidat_navn)) continue;
-
-      const id = r.kandidat_id;
-      let rec = byId.get(id);
-      if(!rec){
-        const regionFinal = r.region || findRegionForKommune(r.kommune);
-        rec = {
-          candidateId: id,
-          name: normalizeCandidateName(r.kandidat_navn),
+      const komm = r.kommune || "";
+      const key = `${komm}::${r.kandidat_id}`;
+      if(!map.has(key)){
+        const reg = r.region || findRegionForKommune(komm) || "";
+        map.set(key, {
+          candidateId: r.kandidat_id,
+          name: r.kandidat_navn,
           party: r.parti,
           partyShort: r.parti_bogstav || "",
           totalVotes: 0,
-          region: regionFinal || "",
-          kommune: r.kommune || "",
-          area: r.kommune || ""
-        };
-        byId.set(id, rec);
+          area: komm,
+          region: reg,
+          kommune: komm
+        });
       }
-      rec.totalVotes += r.stemmer || 0;
+      map.get(key).totalVotes += r.stemmer || 0;
     }
 
-    const list = Array.from(byId.values());
-    list.sort((a,b) => (a.name || "").localeCompare(b.name || "", "da"));
+    const list = Array.from(map.values());
+    list.sort((a,b)=> (a.name || "").localeCompare(b.name || "", "da"));
     return list;
   }
 
-  async function buildKvCandidateSource(){
-    if(elStatus) elStatus.innerHTML = "";
-    if(elOutput) elOutput.value = "";
+  async function generateForElection(cfg){
+    logEl.innerHTML = "";
+    outEl.value = "";
 
-    const year = yearSelect.value;
-    const cfg = KV_GENERATOR_CONFIG[year];
-    if(!cfg){
-      logLine("Ukendt år – kan ikke bygge.");
-      return;
-    }
-
-    logLine(`Starter generering for Kommunalvalg ${year} (${cfg.key})…`);
+    logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
     logLine(`Data-mappe: ${cfg.dataRoot}`);
+    logLine(`Indlæser data for ${ALL_KOMMUNER.length} kommuner…`);
 
-    try{
-      const rows = await loadAllRowsForYear(cfg);
-      const candidates = buildCandidateRecords(rows, cfg);
-      logLine(`Byggede kandidat-liste med ${candidates.length} kandidater.`);
-
-      const jsonText = JSON.stringify(candidates, null, 2);
-      if(elOutput) elOutput.value = jsonText;
-
-      logLine(`FÆRDIG. Kopiér JSON til /data/candidate-sources/${cfg.outputFile}`);
-    }catch(err){
-      console.error(err);
-      logLine(`FEJL under generering: ${err.message || err}`);
+    const allRows = [];
+    for(const kommune of ALL_KOMMUNER){
+      const rows = await loadRowsForKommune(kommune, cfg);
+      allRows.push(...rows);
     }
+
+    logLine(`Færdig med at læse CSV – totalt ${fmt(allRows.length)} rækker.`);
+
+    const candidates = buildCandidateRecords(allRows, cfg);
+    logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × kommune).`);
+
+    const output = {
+      electionKey: cfg.key,
+      electionYear: cfg.year,
+      electionLabel: cfg.label,
+      type: "kv",
+      candidates
+    };
+
+    outEl.value = JSON.stringify(candidates, null, 2);
+    logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
+    logLine(`Fx: /data/candidate-sources/${cfg.key}.json (kun selve array'et "candidates").`);
   }
 
-  document.getElementById("btnBuildKv")?.addEventListener("click", () => {
-    buildKvCandidateSource();
+  // ============================================================
+  // Event handlers
+  // ============================================================
+  el("btnGenerate").addEventListener("click", async ()=>{
+    const cfg = KV_CONFIG.find(c=>c.key===selectEl.value) || KV_CONFIG[0];
+    try{
+      await generateForElection(cfg);
+    }catch(err){
+      console.error(err);
+      logLine(`❌ FEJL: ${err.message || err}`);
+    }
   });
 </script>
 </body>
