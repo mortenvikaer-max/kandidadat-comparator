@@ -5,292 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Valgbar – Admin – Kandidatkilde KV2017</title>
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- PapaParse -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+    .vb-card{
+      background:#fff;border:1px solid #e5e7eb;border-radius:16px;
+      box-shadow:0 1px 2px rgba(15,23,42,0.05);
     }
-    .vb-card {
-      background: #fff;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    .vb-btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      gap:.5rem;padding:.6rem 1rem;border-radius:999px;
+      border:1px solid #0f172a;background:#0f172a;color:#f9fafb;
+      font-weight:500;cursor:pointer;
     }
-    .vb-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1rem;
-      border-radius: 999px;
-      border: 1px solid #0f172a;
-      background: #0f172a;
-      color: #f9fafb;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .vb-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .vb-log {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.8rem;
-      max-height: 260px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
+    .vb-btn:disabled{opacity:.6;cursor:not-allowed;}
+    .vb-log{font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+    textarea{font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
   </style>
 </head>
-
 <body class="bg-slate-50 text-slate-900">
+
 <header class="border-b bg-white">
   <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <a href="../forside-test.html" class="flex items-center gap-2">
+      <a href="/" class="flex items-center gap-2">
         <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
       </a>
-      <div class="flex flex-col">
-        <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-          Admin
-        </span>
-        <span class="text-lg font-semibold text-slate-900">
-          Kandidatkilde – Kommunalvalg 2017
-        </span>
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-slate-600">Admin</div>
+        <div class="text-lg font-semibold">Kandidatkilde – Kommunalvalg 2017</div>
       </div>
     </div>
-    <span class="text-xs text-slate-500">
-      Bygger <code>kv2017.json</code> ud fra CSV-data.
-    </span>
+    <div class="text-xs text-slate-500 max-w-xs">
+      Læser CSV-data fra <code>/data/kv/2017/&lt;Region&gt;/&lt;Kommune&gt;.csv</code> og
+      laver én samlet <code>kv2017.json</code> til kandidatindekset.
+    </div>
   </div>
 </header>
 
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <!-- Intro -->
   <section class="vb-card p-4 md:p-5 space-y-3">
-    <h1 class="text-xl md:text-2xl font-semibold">
-      Byg kandidat-kildefil for Kommunalvalg 2017
-    </h1>
-    <p class="text-sm md:text-base text-slate-700">
-      Denne side læser alle kommuners CSV-filer for KV2017 og laver én samlet liste
-      over kandidater, som kan bruges til kandidatindekset
-      (<code>/data/candidate-sources/kv2017.json</code>).
-    </p>
-    <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
-      <li>CSV-struktur (2017) antages at være: <code>Afstemningsområde;Bogstavbetegnelse;Listenavn;Navn;Stemmetal</code></li>
-      <li>Vi ignorerer rækken <code>Navn = "Listestemmer"</code>.</li>
-      <li><strong>TotalVotes</strong> er summen af <code>Stemmetal</code> for kandidaten på tværs af alle afstemningsområder i kommunen.</li>
-    </ul>
-    <p class="text-xs text-slate-500">
-      Efter generering: Kopiér JSON-outputtet nedenfor til
-      <code>/data/candidate-sources/kv2017.json</code> på serveren.
-    </p>
-  </section>
-
-  <!-- Konfiguration/oversigt -->
-  <section class="vb-card p-4 md:p-5 space-y-3">
-    <h2 class="text-lg font-semibold">Konfiguration for KV2017</h2>
+    <h1 class="text-xl font-semibold">Byg kandidatliste for Kommunalvalg 2017</h1>
     <p class="text-sm text-slate-700">
-      Vi antager, at data ligger her:
-      <code>../data/kv/2017/&lt;region&gt;/&lt;kommune&gt;.csv</code>,
-      fx <code>../data/kv/2017/Region Hovedstaden/København.csv</code>.
+      Denne side læser alle kommunale CSV-filer for KV2017 og summerer personlige stemmer pr. kandidat
+      (ingen listestemmer). Resultatet er en JSON-liste, som skal gemmes som
+      <code>/data/candidate-sources/kv2017.json</code>.
     </p>
-
-    <div class="text-xs text-slate-600">
-      <p class="font-semibold mb-1">Regioner og kommuner:</p>
-      <pre id="regionOverview"></pre>
-    </div>
+    <ol class="list-decimal list-inside text-sm text-slate-700 space-y-1">
+      <li>Tryk på <strong>Byg kandidater</strong>.</li>
+      <li>Vent til loggen siger <em>FÆRDIG</em>.</li>
+      <li>Kopiér JSON-output til <code>/data/candidate-sources/kv2017.json</code>.</li>
+      <li>Gå til <code>admin/byg-kandidatindeks.html</code> og byg hele kandidatindekset igen.</li>
+    </ol>
   </section>
 
-  <!-- Byg knap + log + output -->
-  <section class="vb-card p-4 md:p-5 space-y-3">
+  <section class="vb-card p-4 md:p-5 space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-semibold">Generér kv2017.json</h2>
+        <h2 class="text-lg font-semibold">Kør generator</h2>
         <p class="text-xs text-slate-600">
-          Kører i din browser. Ingen filer skrives automatisk – du kopierer selv JSON-outputtet.
+          CSV-format forventes som <code>Afstemningsområde;Bogstavbetegnelse;Listenavn;Navn;Stemmetal</code>.
         </p>
       </div>
-      <button id="btnBuild" class="vb-btn text-sm">
-        Byg kandidat-kilde (KV2017)
-      </button>
+      <button id="btnBuild" class="vb-btn text-sm">Byg kandidater (KV2017)</button>
     </div>
 
-    <div id="log" class="vb-log bg-slate-900 text-slate-100 rounded-lg p-2"></div>
+    <div id="log" class="vb-log text-xs text-slate-700 space-y-0.5"></div>
 
-    <div class="space-y-2">
-      <label for="outputJson" class="text-sm font-medium text-slate-800">
-        Output – JSON til <code>/data/candidate-sources/kv2017.json</code>
+    <div>
+      <label for="output" class="block text-sm font-medium mb-1">
+        Output JSON til <code>/data/candidate-sources/kv2017.json</code>
       </label>
-      <textarea id="outputJson"
-                class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-                placeholder="Tryk på &quot;Byg kandidat-kilde (KV2017)&quot; for at generere JSON..."
+      <textarea id="output" rows="18"
+                class="w-full border border-slate-200 rounded-lg p-2 text-xs bg-slate-50"
                 spellcheck="false"></textarea>
     </div>
   </section>
 </main>
 
-<footer class="border-t bg-slate-100 mt-8">
-  <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
-    <span>Valgbar · Admin-værktøj (kandidatkilde KV2017)</span>
-    <span>Side genereres statisk – ingen server-side ændringer</span>
-  </div>
-</footer>
-
 <script>
-  // ==============================
-  // KONFIG: Regioner & kommuner
-  // ==============================
-
-  const KV2017_DATA_ROOT = "../data/kv/2017/"; // relativt til /admin/
-
-  const REGIONS_2017 = {
-    "Region Hovedstaden": [
-      "Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg",
-      "Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs",
-      "Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København",
-      "Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"
-    ],
-    "Region Sjælland": [
-      "Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved",
-      "Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"
-    ],
-    "Region Syddanmark": [
-      "Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev","Kerteminde",
-      "Kolding","Langeland","Middelfart","Nordfyns","Nyborg","Odense","Svendborg","Tønder","Varde",
-      "Vejen","Vejle","Ærø","Aabenraa","Sønderborg"
-    ],
-    "Region Midtjylland": [
-      "Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig","Norddjurs",
-      "Odder","Randers","Ringkøbing-Skjern","Samsø","Silkeborg","Skanderborg","Skive","Struer",
-      "Syddjurs","Viborg","Aarhus"
-    ],
-    "Region Nordjylland": [
-      "Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild",
-      "Thisted","Vesthimmerlands","Aalborg"
-    ]
+  // Samme regions-setup som på kommunesiderne
+  const REGIONS = {
+    "Region Hovedstaden": ["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
+    "Region Sjælland": ["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
+    "Region Syddanmark": ["Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev","Kerteminde","Kolding","Langeland","Middelfart","Nordfyns","Nyborg","Odense","Svendborg","Tønder","Varde","Vejen","Vejle","Ærø","Aabenraa","Sønderborg"],
+    "Region Midtjylland": ["Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig","Norddjurs","Odder","Randers","Ringkøbing-Skjern","Samsø","Silkeborg","Skanderborg","Skive","Struer","Syddjurs","Viborg","Aarhus"],
+    "Region Nordjylland": ["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
-  // simple helpers
-  const el = id => document.getElementById(id);
-  const canon = s => (s || "").toString().trim();
-  const escapeHtml = (s) => (s || "").replace(/[&<>"]/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"
-  }[c] || c));
+  const DATA_ROOT = "../data/kv/2017/";
+  const logEl = document.getElementById('log');
+  const outEl = document.getElementById('output');
+  const btn = document.getElementById('btnBuild');
 
-  function log(msg) {
-    const logEl = el("log");
-    if (!logEl) return;
-    const time = new Date().toLocaleTimeString("da-DK");
-    logEl.textContent += `[${time}] ${msg}\n`;
+  function log(msg){
+    const t = new Date().toLocaleTimeString("da-DK");
+    const div = document.createElement("div");
+    div.textContent = `[${t}] ${msg}`;
+    logEl.appendChild(div);
     logEl.scrollTop = logEl.scrollHeight;
   }
 
-  // Vis et lille overblik over regioner
-  (function renderRegionOverview() {
-    const out = [];
-    for (const [region, kommuner] of Object.entries(REGIONS_2017)) {
-      out.push(`${region}: ${kommuner.length} kommuner`);
-    }
-    el("regionOverview").textContent = out.join("\n");
-  })();
-
-  async function fetchCsvText(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status);
-    }
+  async function fetchCsvFor(kommune, region){
+    const safeRegion = encodeURIComponent(region);
+    const safeK     = encodeURIComponent(kommune);
+    const url = `${DATA_ROOT}${safeRegion}/${safeK}.csv`;
+    log(`… læser ${url}`);
+    const res = await fetch(url, { cache:"no-store" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.text();
   }
 
-  function parseCsv(text) {
-    // Semikolon-separeret, med danske kolonnenavne
-    const res = Papa.parse(text, {
+  function parseKv2017Csv(text, kommune, region){
+    const results = Papa.parse(text, {
       header: true,
-      skipEmptyLines: true,
       delimiter: ";",
-      transformHeader: (h) => canon(h.toLowerCase())
+      skipEmptyLines: true,
+      transformHeader: h => (h || "").toString().trim()
     });
-    return res.data;
+    const rows = results.data || [];
+
+    const map = new Map(); // key: kommune||navn
+    for(const row of rows){
+      const name = (row["Navn"] || "").toString().trim();
+      if(!name) continue;
+      if(name.toLowerCase() === "listestemmer") continue; // vi vil kun have kandidater
+
+      const party = (row["Listenavn"] || "").toString().trim();          // fuldt partinavn
+      const letter = (row["Bogstavbetegnelse"] || "").toString().trim(); // partibogstav
+      const rawVotes = (row["Stemmetal"] || "").toString().trim();
+      const votes = Number(rawVotes.replace(/\./g,"").replace(",", ".")) || 0;
+
+      const key = `${kommune}||${name}`;
+      if(!map.has(key)){
+        map.set(key, {
+          candidateId: name,   // KV2017 bruger navn som kandidat-id
+          name,
+          party,
+          partyShort: letter,
+          totalVotes: 0,
+          area: kommune,
+          region,
+          kommune
+        });
+      }
+      const rec = map.get(key);
+      rec.totalVotes += votes;
+    }
+    return Array.from(map.values());
   }
 
-  async function buildKv2017CandidateSource() {
-    el("log").textContent = "";
-    el("outputJson").value = "";
+  async function buildKv2017(){
+    if(!btn) return;
+    btn.disabled = true;
+    logEl.innerHTML = "";
+    outEl.value = "";
+    log("Starter generering for Kommunalvalg 2017 …");
+    log(`Data-mappe: ${DATA_ROOT}`);
 
-    log("Starter generering for Kommunalvalg 2017 (kv2017)...");
-    log("Data-mappe: " + KV2017_DATA_ROOT);
+    const allCandidates = [];
+    let totalRows = 0;
 
-    const candidateMap = new Map(); // key: kommune|name|letter
-
-    let kommunerTalt = 0;
-    let rækkertalt = 0;
-
-    for (const [regionName, kommuner] of Object.entries(REGIONS_2017)) {
-      for (const kommune of kommuner) {
-        const csvPath = KV2017_DATA_ROOT + encodeURIComponent(regionName) + "/" + encodeURIComponent(kommune) + ".csv";
-        log(`Læs ${csvPath} ...`);
-
-        let text;
-        try {
-          text = await fetchCsvText(csvPath);
-        } catch (err) {
-          log(`⚠ Kunne ikke læse ${csvPath} (${err.message || err}). Springer kommunen over.`);
-          continue;
-        }
-
-        const rows = parseCsv(text);
-        log(`… Indlæste ${rows.length} rækker fra ${kommune} (${regionName}).`);
-        kommunerTalt++;
-        rækkertalt += rows.length;
-
-        for (const r of rows) {
-          const name = canon(r["navn"]);
-          const partijbrev = canon(r["bogstavbetegnelse"]);
-          const listenavn = canon(r["listenavn"]);
-          const stemmer = Number((r["stemmetal"] || "").toString().replace(",", ".")) || 0;
-
-          // Skip listestemmer-række
-          if (!name || name.toLowerCase() === "listestemmer") continue;
-
-          // Byg nøgle per kommune + kandidat + bogstav, så samme person i to kommuner behandles separat
-          const key = `${kommune}|${name}|${partijbrev}`;
-
-          if (!candidateMap.has(key)) {
-            candidateMap.set(key, {
-              candidateId: name,      // vi bruger navn som id for 2017
-              name: name,
-              party: listenavn,
-              partyShort: partijbrev,
-              totalVotes: 0,
-              area: kommune,
-              region: regionName,
-              kommune: kommune
-            });
-          }
-          candidateMap.get(key).totalVotes += stemmer;
+    for(const [region, kommuner] of Object.entries(REGIONS)){
+      for(const k of kommuner){
+        try{
+          const txt = await fetchCsvFor(k, region);
+          const candList = parseKv2017Csv(txt, k, region);
+          allCandidates.push(...candList);
+          totalRows += candList.length;
+          log(`OK: ${region} / ${k} – ${candList.length} kandidater`);
+        }catch(err){
+          log(`⚠ Kunne ikke læse data for ${region} / ${k}: ${err.message || err}`);
         }
       }
     }
 
-    const candidates = Array.from(candidateMap.values())
-      .sort((a, b) => a.name.localeCompare(b.name, "da"));
+    // sortér alfabetisk
+    allCandidates.sort((a,b)=> a.name.localeCompare(b.name,"da"));
 
-    log("");
-    log(`FÆRDIG: Læste ${kommunerTalt} kommuner og ${rækkertalt} rå rækker.`);
-    log(`Fandt i alt ${candidates.length} unikke kandidater i KV2017.`);
-    log(`Kopiér JSON nedenfor til /data/candidate-sources/kv2017.json`);
-
-    el("outputJson").value = JSON.stringify(candidates, null, 2);
+    outEl.value = JSON.stringify(allCandidates, null, 2);
+    log(`FÆRDIG: ${allCandidates.length} kandidater i alt (KV2017).`);
+    btn.disabled = false;
   }
 
-  el("btnBuild")?.addEventListener("click", () => {
-    buildKv2017CandidateSource();
-  });
+  btn.addEventListener('click', ()=>{ buildKv2017(); });
 </script>
 </body>
 </html>
