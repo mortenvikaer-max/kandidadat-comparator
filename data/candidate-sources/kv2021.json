@@ -1,14 +1,14 @@
-{
-  "candidateId": "Ø_Line_Barfod,_Nørrebro",
-  "name": "Line Barfod, Nørrebro",
-  "party": "Enhedslisten",
-  "partyShort": "Ø",
-  "totalVotes": 5169,
-  "region": "Region Hovedstaden",
-  "kommune": "København",
-  "area": "København"
-}
-
+[
+  {
+    "candidateId": "Ø_Line_Barfod,_Nørrebro",
+    "name": "Line Barfod, Nørrebro",
+    "party": "Enhedslisten",
+    "partyShort": "Ø",
+    "totalVotes": 5169,
+    "region": "Region Hovedstaden",
+    "kommune": "København",
+    "area": "København"
+  },
   {
     "candidateId": "kv2021-anna-andersen-odense",
     "name": "Anna Andersen",
