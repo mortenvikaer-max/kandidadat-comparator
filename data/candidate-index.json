@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2025-11-09T21:05:22.787Z",
+  "builtAt": "2025-11-10T07:13:55.476Z",
   "elections": [
     {
       "key": "ft2022",
@@ -52,34 +52,45 @@
       "type": "kv",
       "typeLabel": "Kommunalvalg",
       "year": 2021,
-      "label": "Kommunalvalg 2021",
+      "label": "Kommunalvalg",
       "detailUrl": "/kommunalvalg/2021/",
       "candidates": [
         {
-          "id": "LINE_BARFOD_ID",
+          "candidateId": "kv2021-line-barfod-kbh",
           "displayName": "Line Barfod",
-          "searchName": "line barfod",
-          "aliases": [
-            "line barfod, nørrebro"
+          "normalizedName": "line barfod",
+          "nameVariants": [
+            "Line Barfod, Nørrebro",
+            "Line Barfod"
           ],
           "party": "Enhedslisten",
-          "partyLetter": "Ø",
-          "areaType": "kommune",
-          "areaName": "København",
-          "votes": 0,
-          "detailUrl": "/kommunalvalg/2021/?cand=LINE_BARFOD_ID"
+          "partyShort": "Ø",
+          "totalVotes": 5169,
+          "area": "København",
+          "electionKey": "kv2021",
+          "electionLabel": "Kommunalvalg",
+          "electionYear": 2021,
+          "electionType": "kv",
+          "electionTypeLabel": "Kommunalvalg",
+          "electionDetailUrl": "/kommunalvalg/2021/"
         },
         {
-          "id": "ANNA_ANDERSEN_ID",
+          "candidateId": "kv2021-anna-andersen-odense",
           "displayName": "Anna Andersen",
-          "searchName": "anna andersen",
-          "aliases": [],
+          "normalizedName": "anna andersen",
+          "nameVariants": [
+            "Anna Andersen"
+          ],
           "party": "Socialdemokratiet",
-          "partyLetter": "A",
-          "areaType": "kommune",
-          "areaName": "Aarhus",
-          "votes": 0,
-          "detailUrl": "/kommunalvalg/2021/?cand=ANNA_ANDERSEN_ID"
+          "partyShort": "A",
+          "totalVotes": 1234,
+          "area": "Odense",
+          "electionKey": "kv2021",
+          "electionLabel": "Kommunalvalg",
+          "electionYear": 2021,
+          "electionType": "kv",
+          "electionTypeLabel": "Kommunalvalg",
+          "electionDetailUrl": "/kommunalvalg/2021/"
         }
       ]
     },
