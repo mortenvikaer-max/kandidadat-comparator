@@ -80,7 +80,7 @@
   <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
 
-    <!-- KANDIDATSØGNING (NY) -->
+    <!-- KANDIDATSØGNING -->
     <section class="vb-row p-4 md:p-5 space-y-3">
       <div class="flex flex-col gap-1">
         <label for="candidateSearch"
@@ -106,7 +106,7 @@
       </div>
     </section>
 
-    <!-- LISTE OVER VALG (som før) -->
+    <!-- LISTE OVER VALG -->
     <section id="list" class="space-y-3">
       <!-- Rækker indsprøjtes af JS -->
     </section>
@@ -134,15 +134,10 @@
   <script>
     /* ====== KONFIG: ÅR & DESTINATIONER ====== */
     const YEARS = {
-      // FT: 2007, 2011, 2015, 2019, 2022 (2005 fjernet)
       ft: [2022, 2019, 2015, 2011, 2007],
-      // KV: 2021, 2017, 2013, 2009, 2005 (2001 fjernet)
       kv: [2021, 2017, 2013, 2009, 2005],
-      // RV: 2021, 2017 (2013 fjernet)
       rv: [2021, 2017],
-      // EP: 2009, 2014, 2019, 2024 (2004 fjernet)
       ep: [2024, 2019, 2014, 2009],
-      // FA: Folkeafstemning
       fa: [2022, 2015, 2014]
     };
 
@@ -150,6 +145,7 @@
       // tom – alle synlige år er aktive
     };
 
+    // Vi er i /admin/, derfor ../ foran alle destinations-URLs
     const DEST = {
       kv: { perYear: {
         2021: '../kv/2021/',
@@ -299,6 +295,7 @@
       try{
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
+        // vi er i /admin/, så '../data/...'
         const res = await fetch('../data/candidate-index.json?ts=' + Date.now(), { cache: 'no-store' });
         if(!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
@@ -309,7 +306,6 @@
           (el.candidates || []).forEach(c => {
             flatCandidates.push({
               ...c
-              // vi bruger c.electionDetailUrl + '?cand=' + c.candidateId ved klik
             });
           });
         });
@@ -354,6 +350,18 @@
       return results.slice(0, 20).map(r => r.c);
     }
 
+    function goToCandidateFromButton(btn){
+      const cid = btn.getAttribute('data-cand-id');
+      const baseUrl = btn.getAttribute('data-detail-url') || '/';
+      if(!cid){
+        window.location.href = baseUrl;
+        return;
+      }
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const url = baseUrl + sep + 'cand=' + encodeURIComponent(cid);
+      window.location.href = url;
+    }
+
     function renderResults(query){
       const q = query.trim();
       if(!q || !flatCandidates.length){
@@ -391,7 +399,7 @@
         return `
           <button type="button"
                   class="w-full text-left vb-hit"
-                  data-cand-id="${encodeURIComponent(hit.candidateId)}"
+                  data-cand-id="${hit.candidateId || ''}"
                   data-detail-url="${hit.electionDetailUrl || '/'}">
             <div class="font-medium text-sm text-slate-900">${name}</div>
             <div class="text-xs text-slate-600">${meta}</div>
@@ -401,13 +409,9 @@
 
       resultsRoot.classList.remove('hidden');
 
-      // klik-håndtering
       resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const cid = btn.getAttribute('data-cand-id');
-          const baseUrl = btn.getAttribute('data-detail-url') || '/';
-          const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'cand=' + cid;
-          window.location.href = url;
+          goToCandidateFromButton(btn);
         });
       });
     }
@@ -431,7 +435,6 @@
         return;
       }
       if(!candidateIndex){
-        // hvis vi stadig loader, vis kort besked
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
       }
