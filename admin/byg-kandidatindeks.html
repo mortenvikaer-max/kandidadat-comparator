@@ -186,7 +186,7 @@
       year: 2022,
       type: "ft",
       dataRoot: "../data/ft/2022/",
-      detailUrl: "/folketingsvalg/2022/",
+      detailUrl: "/ft/2022/",
       candidateSource: "../data/candidate-sources/ft2022.json"
     },
     {
@@ -195,7 +195,7 @@
       year: 2019,
       type: "ft",
       dataRoot: "../data/ft/2019/",
-      detailUrl: "/folketingsvalg/2019/",
+      detailUrl: "/ft/2019/",
       candidateSource: "../data/candidate-sources/ft2019.json"
     },
     {
@@ -204,7 +204,7 @@
       year: 2015,
       type: "ft",
       dataRoot: "../data/ft/2015/",
-      detailUrl: "/folketingsvalg/2015/",
+      detailUrl: "/ft/2015/",
       candidateSource: "../data/candidate-sources/ft2015.json"
     },
     {
@@ -213,7 +213,7 @@
       year: 2011,
       type: "ft",
       dataRoot: "../data/ft/2011/",
-      detailUrl: "/folketingsvalg/2011/",
+      detailUrl: "/ft/2011/",
       candidateSource: "../data/candidate-sources/ft2011.json"
     },
     {
@@ -222,7 +222,7 @@
       year: 2007,
       type: "ft",
       dataRoot: "../data/ft/2007/",
-      detailUrl: "/folketingsvalg/2007/",
+      detailUrl: "/ft/2007/",
       candidateSource: "../data/candidate-sources/ft2007.json"
     },
 
@@ -235,7 +235,7 @@
       year: 2021,
       type: "kv",
       dataRoot: "../data/kv/2021/",
-      detailUrl: "/kommunalvalg/2021/",
+      detailUrl: "/kv/2021/",
       candidateSource: "../data/candidate-sources/kv2021.json"
     },
     {
@@ -244,7 +244,7 @@
       year: 2017,
       type: "kv",
       dataRoot: "../data/kv/2017/",
-      detailUrl: "/kommunalvalg/2017/",
+      detailUrl: "/kv/2017/",
       candidateSource: "../data/candidate-sources/kv2017.json"
     },
     {
@@ -253,7 +253,7 @@
       year: 2013,
       type: "kv",
       dataRoot: "../data/kv/2013/",
-      detailUrl: "/kommunalvalg/2013/",
+      detailUrl: "/kv/2013/",
       candidateSource: "../data/candidate-sources/kv2013.json"
     },
     {
@@ -262,7 +262,7 @@
       year: 2009,
       type: "kv",
       dataRoot: "../data/kv/2009/",
-      detailUrl: "/kommunalvalg/2009/",
+      detailUrl: "/kv/2009/",
       candidateSource: "../data/candidate-sources/kv2009.json"
     },
     {
@@ -271,7 +271,7 @@
       year: 2005,
       type: "kv",
       dataRoot: "../data/kv/2005/",
-      detailUrl: "/kommunalvalg/2005/",
+      detailUrl: "/kv/2005/",
       candidateSource: "../data/candidate-sources/kv2005.json"
     },
 
@@ -284,7 +284,7 @@
       year: 2021,
       type: "rv",
       dataRoot: "../data/rv/2021/",
-      detailUrl: "/regionsraadsvalg/2021/",
+      detailUrl: "/rv/2021/",
       candidateSource: "../data/candidate-sources/rv2021.json"
     },
     {
@@ -293,7 +293,7 @@
       year: 2017,
       type: "rv",
       dataRoot: "../data/rv/2017/",
-      detailUrl: "/regionsraadsvalg/2017/",
+      detailUrl: "/rv/2017/",
       candidateSource: "../data/candidate-sources/rv2017.json"
     },
 
@@ -306,7 +306,7 @@
       year: 2024,
       type: "ep",
       dataRoot: "../data/ep/2024/",
-      detailUrl: "/europaparlamentsvalg/2024/",
+      detailUrl: "/ep/2024/",
       candidateSource: "../data/candidate-sources/ep2024.json"
     },
     {
@@ -315,7 +315,7 @@
       year: 2019,
       type: "ep",
       dataRoot: "../data/ep/2019/",
-      detailUrl: "/europaparlamentsvalg/2019/",
+      detailUrl: "/ep/2019/",
       candidateSource: "../data/candidate-sources/ep2019.json"
     },
     {
@@ -324,7 +324,7 @@
       year: 2014,
       type: "ep",
       dataRoot: "../data/ep/2014/",
-      detailUrl: "/europaparlamentsvalg/2014/",
+      detailUrl: "/ep/2014/",
       candidateSource: "../data/candidate-sources/ep2014.json"
     },
     {
@@ -333,7 +333,7 @@
       year: 2009,
       type: "ep",
       dataRoot: "../data/ep/2009/",
-      detailUrl: "/europaparlamentsvalg/2009/",
+      detailUrl: "/ep/2009/",
       candidateSource: "../data/candidate-sources/ep2009.json"
     }
   ];
@@ -482,13 +482,6 @@
   }
 
   function mapCandidateRecord(raw, src) {
-    // rå format fra candidateSource:
-    // Vi forventer felter som:
-    // - candidateId (eller id / kandidat_id)
-    // - name (eller displayName / kandidat_navn)
-    // - party, partyShort
-    // - totalVotes (eller votes)
-    // - area (kommune, kreds, region ...)
     const nameRaw = raw.name || raw.displayName || raw.kandidat_navn || raw.candidateName || "";
     const nameRec = VB_NameHelpers.buildNameRecord(nameRaw);
 
@@ -533,7 +526,7 @@
       const rawCandidates = await loadCandidateSourceForElection(src);
       const mapped = rawCandidates
         .map(c => mapCandidateRecord(c, src))
-        .filter(c => c.candidateId); // kræver id
+        .filter(c => c.candidateId);
 
       const electionObj = {
         key: src.key,
