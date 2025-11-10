@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2025-11-10T08:17:17.619Z",
+  "builtAt": "2025-11-10T08:44:56.307Z",
   "elections": [
     {
       "key": "ft2022",
@@ -67,6 +67,8 @@
           "partyShort": "Ø",
           "totalVotes": 5169,
           "area": "København",
+          "region": "Region Hovedstaden",
+          "kommune": "København",
           "electionKey": "kv2021",
           "electionLabel": "Kommunalvalg",
           "electionYear": 2021,
@@ -85,6 +87,8 @@
           "partyShort": "A",
           "totalVotes": 1234,
           "area": "Odense",
+          "region": "Region Syddanmark",
+          "kommune": "Odense",
           "electionKey": "kv2021",
           "electionLabel": "Kommunalvalg",
           "electionYear": 2021,
