@@ -69,7 +69,7 @@
   <header class="vb-hero">
     <div class="mx-auto max-w-6xl px-4 pt-8 pb-3">
       <a href="../" aria-label="Valgbar" class="inline-block">
-        <!-- bemærk: vi er i /admin/, derfor ../ -->
+        <!-- vi er i /admin/, derfor ../ -->
         <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-28 md:h-32 w-auto" />
       </a>
     </div>
@@ -80,7 +80,7 @@
   <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
 
-    <!-- KANDIDATSØGNING (NY) -->
+    <!-- KANDIDATSØGNING -->
     <section class="vb-row p-4 md:p-5 space-y-3">
       <div class="flex flex-col gap-1">
         <label for="candidateSearch"
@@ -106,7 +106,7 @@
       </div>
     </section>
 
-    <!-- LISTE OVER VALG (som før) -->
+    <!-- LISTE OVER VALG -->
     <section id="list" class="space-y-3">
       <!-- Rækker indsprøjtes af JS -->
     </section>
@@ -116,7 +116,6 @@
     <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
                 flex flex-col md:flex-row items-center justify-between
                 gap-3 md:gap-6 text-sm md:text-base text-gray-700">
-      
       <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
         hej@valgbar.dk
       </a>
@@ -270,7 +269,7 @@
     });
 
     /* =====================================================
-       KANDIDATSØGNING – bruger /data/candidate-index.json
+       KANDIDATSØGNING – bruger ../data/candidate-index.json
        ===================================================== */
     const searchInput   = document.getElementById('candidateSearch');
     const resultsRoot   = document.getElementById('candidateResults');
@@ -367,7 +366,7 @@
       resultsRoot.innerHTML = hits.map(hit => {
         const name       = hit.displayName || '';
         const party      = hit.party || '';
-        const partyShort = hit.partyShort ? \` (\${hit.partyShort})\` : '';
+        const partyShort = hit.partyShort ? ' (' + hit.partyShort + ')' : '';
         const votes      = typeof hit.totalVotes === 'number'
                            ? hit.totalVotes.toLocaleString('da-DK')
                            : '?';
@@ -376,16 +375,12 @@
         const year       = hit.electionYear || '';
 
         const metaParts = [];
-        if(typeLabel && year) metaParts.push(\`\${typeLabel} \${year}\`);
-        if(party)             metaParts.push(\`\${party}\${partyShort}\`);
-        if(votes !== '?')     metaParts.push(\`\${votes} stemmer\`);
+        if(typeLabel && year) metaParts.push(typeLabel + ' ' + year);
+        if(party)             metaParts.push(party + partyShort);
+        if(votes !== '?')     metaParts.push(votes + ' stemmer');
         if(area)              metaParts.push(area);
         const meta = metaParts.join(' · ');
 
-        // NB: vi forventer at candidate-index.json (fra admin-siden) har evt.:
-        //   region: "Region Hovedstaden"
-        //   kommune: "København"
-        // for kommunal/regionalvalg.
         return `
           <button type="button"
                   class="w-full text-left vb-hit"
@@ -401,7 +396,7 @@
 
       resultsRoot.classList.remove('hidden');
 
-      // klik-håndtering – bygger URL med region + kommune + cand hvis muligt
+      // Klik-håndtering – bygger URL med region + kommune + cand, hvis muligt
       resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
         btn.addEventListener('click', () => {
           const cid     = btn.getAttribute('data-cand-id') || '';
@@ -410,7 +405,6 @@
           const kommune = btn.getAttribute('data-kommune') || '';
 
           const params = new URLSearchParams();
-
           if(region && kommune){
             params.set('region', region);
             params.set('kommune', kommune);
@@ -443,7 +437,6 @@
         return;
       }
       if(!candidateIndex){
-        // hvis vi stadig loader, vis kort besked
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
       }
