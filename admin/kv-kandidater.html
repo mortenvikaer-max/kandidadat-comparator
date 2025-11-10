@@ -157,7 +157,7 @@
   </section>
 </main>
 
-<footer class="border-t bg-slate-100 mt-8">
+<footer class="mt-8 border-t bg-slate-100">
   <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
     <span>Valgbar · Admin-værktøj (kommunalvalg kandidater)</span>
     <span>Side genereres statisk – ingen server-side ændringer</span>
@@ -245,9 +245,9 @@
   const el  = id => document.getElementById(id);
   const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
 
-  const logEl      = el("log");
-  const outEl      = el("outputJson");
-  const selectEl   = el("kvElectionSelect");
+  const logEl        = el("log");
+  const outEl        = el("outputJson");
+  const selectEl     = el("kvElectionSelect");
   const cfgTableBody = el("kvConfigTableBody");
 
   function logLine(msg){
@@ -312,20 +312,77 @@
     return await res.text();
   }
 
-  function parseCsvTextToRows(text){
+  /**
+   * Parser CSV-tekst til rækker, og “hælder” den korrekte kommune på
+   * ud fra filnavnet (kommuneHint). På den måde er vi ligeglade med,
+   * om CSV'en har en "kommune"-kolonne eller ej.
+   */
+  function parseCsvTextToRows(text, kommuneHint){
     const parsed = Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       transformHeader: h => (h || "").toString().trim().toLowerCase()
     });
-    return parsed.data.map(r => {
-      const region  = (r.region  || "").toString().trim();
-      const kommune = (r.kommune || "").toString().trim();
-      const kandidatId = (r.kandidat_id || r.kandidatid || r.kandidat_navn || r.kandidatnavn || "").toString().trim();
-      const kandidatNavn = (r.kandidat_navn || r.kandidatnavn || "").toString().trim();
-      const parti = (r.parti || "").toString().trim();
-      const partiBogstav = (r.parti_bogstav || r.listebogstav || "").toString().trim();
-      const stemmer = Number(r.stemmer || r.personlige_stemmer || 0) || 0;
+
+    return parsed.data.map(raw => {
+      const r = raw; // efter lowercasing af headers
+
+      // Kommune: brug hint (fra filstien) som primær kilde
+      const kommune =
+        (kommuneHint ||
+         r.kommune ||
+         r.kommunenavn ||
+         r["kommune navn"] ||
+         "").toString().trim();
+
+      // Region: prøv CSV, ellers fallback via REGIONS
+      const regionFromRow =
+        (r.region ||
+         r.regionsnavn ||
+         "").toString().trim();
+      const region = regionFromRow || findRegionForKommune(kommune) || "";
+
+      // Kandidatnavn
+      const kandidatNavn =
+        (r.kandidat_navn ||
+         r.kandidatnavn ||
+         r["navn"] ||
+         r["kandidat"] ||
+         "").toString().trim();
+
+      // Kandidat-ID: prøv en masse mulige felter, fallback til navn
+      const kandidatId =
+        (r.kandidat_id ||
+         r.kandidatid ||
+         r["kandidat id"] ||
+         r["kandidat-id"] ||
+         r["kandidat nr"] ||
+         r["kandidat_nr"] ||
+         r["kandidat nr."] ||
+         r["kandidatnummer"] ||
+         r["kandidat"] ||
+         kandidatNavn ||
+         "").toString().trim();
+
+      // Parti + bogstav
+      const parti =
+        (r.parti ||
+         r.partinavn ||
+         "").toString().trim();
+      const partiBogstav =
+        (r.parti_bogstav ||
+         r.listebogstav ||
+         r["parti bogstav"] ||
+         "").toString().trim();
+
+      // Stemmer
+      const stemmer =
+        Number(
+          r.stemmer ||
+          r.personlige_stemmer ||
+          r["personlige stemmer"] ||
+          0
+        ) || 0;
 
       return {
         region,
@@ -360,7 +417,7 @@
     for(const url of paths){
       try{
         const text = await fetchCsvText(url);
-        const rows = parseCsvTextToRows(text);
+        const rows = parseCsvTextToRows(text, kommune);
         logLine(`✔ Indlæste ${rows.length} rækker for ${kommune} fra ${url}`);
         return rows;
       }catch(err){
@@ -374,10 +431,13 @@
 
   function buildCandidateRecords(allRows, cfg){
     const map = new Map();
+
     for(const r of allRows){
-      if(!r.kandidat_id) continue;
+      if(!r.kandidat_id) continue; // hvis vi stadig ikke har nogen id overhovedet
+
       const komm = r.kommune || "";
       const key = `${komm}::${r.kandidat_id}`;
+
       if(!map.has(key)){
         const reg = r.region || findRegionForKommune(komm) || "";
         map.set(key, {
