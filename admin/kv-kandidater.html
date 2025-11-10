@@ -314,8 +314,8 @@
 
   /**
    * Parser CSV-tekst til rækker, og “hælder” den korrekte kommune på
-   * ud fra filnavnet (kommuneHint). På den måde er vi ligeglade med,
-   * om CSV'en har en "kommune"-kolonne eller ej.
+   * ud fra filnavnet (kommuneHint). Desuden prøver vi ret aggressivt
+   * at gætte felter for kandidatnavn, parti og stemmer.
    */
   function parseCsvTextToRows(text, kommuneHint){
     const parsed = Papa.parse(text, {
@@ -324,8 +324,10 @@
       transformHeader: h => (h || "").toString().trim().toLowerCase()
     });
 
-    return parsed.data.map(raw => {
-      const r = raw; // efter lowercasing af headers
+    const rows = parsed.data;
+
+    return rows.map(raw => {
+      const r = raw;
 
       // Kommune: brug hint (fra filstien) som primær kilde
       const kommune =
@@ -342,16 +344,26 @@
          "").toString().trim();
       const region = regionFromRow || findRegionForKommune(kommune) || "";
 
-      // Kandidatnavn
-      const kandidatNavn =
+      // Kandidatnavn – først nogle faste navne, ellers "enhver kolonne med 'navn'"
+      let kandidatNavn =
         (r.kandidat_navn ||
          r.kandidatnavn ||
          r["navn"] ||
          r["kandidat"] ||
          "").toString().trim();
 
-      // Kandidat-ID: prøv en masse mulige felter, fallback til navn
-      const kandidatId =
+      if(!kandidatNavn){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/navn/.test(lk) && !/parti|kommune|region/.test(lk)){
+            kandidatNavn = String(val || "").trim();
+            if(kandidatNavn) break;
+          }
+        }
+      }
+
+      // Kandidat-ID: prøv diverse kolonnenavne, fallback til navn
+      let kandidatId =
         (r.kandidat_id ||
          r.kandidatid ||
          r["kandidat id"] ||
@@ -364,25 +376,78 @@
          kandidatNavn ||
          "").toString().trim();
 
-      // Parti + bogstav
-      const parti =
+      // Partinavn – først klassiske, derefter enhver kolonne med "parti" i navnet
+      let parti =
         (r.parti ||
          r.partinavn ||
          "").toString().trim();
-      const partiBogstav =
+
+      if(!parti){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
+            parti = String(val || "").trim();
+            if(parti) break;
+          }
+        }
+      }
+
+      // Partibogstav – klassiske, derefter kolonner med "bogstav" / "listebogstav"
+      let partiBogstav =
         (r.parti_bogstav ||
          r.listebogstav ||
-         r["parti bogstav"] ||
          "").toString().trim();
 
-      // Stemmer
-      const stemmer =
-        Number(
-          r.stemmer ||
-          r.personlige_stemmer ||
-          r["personlige stemmer"] ||
-          0
-        ) || 0;
+      if(!partiBogstav){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/bogstav/.test(lk) || /listebogstav/.test(lk)){
+            partiBogstav = String(val || "").trim();
+            if(partiBogstav) break;
+          }
+        }
+      }
+
+      // Stemmer – prøv først en håndfuld kendte feltnavne,
+      // derefter "alle felter hvor kolonnenavn matcher /stem/".
+      function toNum(v){
+        if(v == null || v === "") return 0;
+        const s = String(v)
+          .trim()
+          .replace(/\./g, "")   // fjern tusindtals-punktum
+          .replace(",", ".");   // dansk komma -> punktum
+        const n = Number(s);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      let stemmer = 0;
+
+      const voteFields = [
+        "stemmer",
+        "personlige_stemmer",
+        "personlige stemmer",
+        "personlige stemmer i alt",
+        "pers_stemmer",
+        "pers. stemmer",
+        "persstemmer",
+        "antal stemmer",
+        "stemmer i alt"
+      ];
+
+      for(const f of voteFields){
+        if(r[f] != null && r[f] !== ""){
+          stemmer += toNum(r[f]);
+        }
+      }
+
+      if(stemmer === 0){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/stem/.test(lk) && val !== ""){
+            stemmer += toNum(val);
+          }
+        }
+      }
 
       return {
         region,
