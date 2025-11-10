@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Valgbar – Vælg valg</title>
+  <title>Valgbar – Forside (test med kandidatsøgning)</title>
 
   <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -36,64 +36,30 @@
     .vb-yearbtn:hover{ background:#f3f4f6; }
     .vb-yearbtn[aria-disabled="true"]{ opacity:.6; cursor:not-allowed; }
 
-    /* Kandidatsøgning – input i samme stil som årsknapperne */
+    /* Kandidatsøgning */
     .vb-search-input{
       width:100%;
-      border:1px solid #e5e7eb;
-      border-radius:10px;
       padding:.8rem 1rem;
-      background:#fff;
-      font-weight:500;
-      font-size:0.95rem;
-    }
-    .vb-search-input::placeholder{
-      color:#9ca3af;
-      font-weight:400;
-    }
-
-    .vb-search-panel{
-      background: linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+      border-radius:10px;
       border:1px solid #e5e7eb;
-      border-radius:12px;
-      box-shadow:0 1px 2px rgba(16,24,40,.04);
-    }
-
-    .vb-search-results{
-      position:absolute;
-      z-index:30;
-      margin-top:.25rem;
-      width:100%;
-      max-height:18rem;
-      overflow:auto;
       background:#fff;
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      box-shadow:0 10px 25px rgba(15,23,42,.15);
+      font-size:1rem;
     }
-    .vb-search-item{
-      padding:.5rem .75rem;
-      cursor:pointer;
+    .vb-search-input:focus{
+      outline:none;
+      border-color:#0f172a;
+      box-shadow:0 0 0 1px #0f172a11;
+    }
+    .vb-hit{
       display:flex;
       flex-direction:column;
-      gap:0.1rem;
+      gap:2px;
+      padding:.55rem .8rem;
+      border-radius:8px;
+      cursor:pointer;
     }
-    .vb-search-item:hover,
-    .vb-search-item[aria-selected="true"]{
+    .vb-hit:hover{
       background:#f3f4f6;
-    }
-    .vb-search-item-title{
-      font-size:0.9rem;
-      font-weight:600;
-      color:#111827;
-    }
-    .vb-search-item-meta{
-      font-size:0.8rem;
-      color:#6b7280;
-    }
-    .vb-search-status{
-      font-size:0.8rem;
-      color:#6b7280;
-      padding:.5rem .75rem;
     }
   </style>
 </head>
@@ -102,8 +68,9 @@
   <!-- HEADER -->
   <header class="vb-hero">
     <div class="mx-auto max-w-6xl px-4 pt-8 pb-3">
-      <a href="./" aria-label="Valgbar" class="inline-block">
-        <img src="Valgbar-transparent3.png" alt="Valgbar" class="h-28 md:h-32 w-auto" />
+      <a href="../" aria-label="Valgbar" class="inline-block">
+        <!-- bemærk: vi er i /admin/, derfor ../ -->
+        <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-28 md:h-32 w-auto" />
       </a>
     </div>
 
@@ -113,29 +80,33 @@
   <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
 
-    <!-- KANDIDATSØGNING -->
-    <section class="space-y-2">
-      <div class="vb-search-panel px-4 md:px-5 py-4">
-        <label for="candidateSearchInput" class="block text-sm font-medium text-slate-800 mb-2">
+    <!-- KANDIDATSØGNING (NY) -->
+    <section class="vb-row p-4 md:p-5 space-y-3">
+      <div class="flex flex-col gap-1">
+        <label for="candidateSearch"
+               class="text-sm font-semibold text-slate-800">
           Søg efter en kandidat
         </label>
-        <div class="relative">
-          <input
-            id="candidateSearchInput"
-            type="text"
-            class="vb-search-input"
-            placeholder="Søg efter en kandidat..."
-            autocomplete="off"
-          />
-          <div id="candidateSearchResults" class="vb-search-results hidden" role="listbox" aria-label="Kandidater"></div>
-        </div>
-        <p class="mt-2 text-xs text-slate-500">
-          Tip: Skriv fx <strong>Line</strong>, og få vist alle kandidater med navnet Line på tværs af valg.
+        <input id="candidateSearch"
+               type="text"
+               class="vb-search-input"
+               placeholder="Søg efter en kandidat..."
+               autocomplete="off" />
+        <p class="text-xs text-slate-500">
+          Begynd at skrive fx <em>Line</em>, så foreslås kandidater på tværs af alle valg.
         </p>
+      </div>
+
+      <div id="candidateSearchStatus"
+           class="text-xs text-slate-500 hidden"></div>
+
+      <div id="candidateResults"
+           class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden">
+        <!-- søgeresultater ind her -->
       </div>
     </section>
 
-    <!-- LISTE OVER VALG -->
+    <!-- LISTE OVER VALG (som før) -->
     <section id="list" class="space-y-3">
       <!-- Rækker indsprøjtes af JS -->
     </section>
@@ -161,7 +132,7 @@
   </footer>
 
   <script>
-    /* ====== KONFIG FOR VALGLISTE ====== */
+    /* ====== KONFIG: ÅR & DESTINATIONER ====== */
     const YEARS = {
       // FT: 2007, 2011, 2015, 2019, 2022 (2005 fjernet)
       ft: [2022, 2019, 2015, 2011, 2007],
@@ -175,46 +146,43 @@
       fa: [2022, 2015, 2014]
     };
 
-    // Ingen år er pt. deaktiveret
     const DISABLED = {
-      // tom
+      // tom – alle synlige år er aktive
     };
 
-    // Brug relative stier så de virker i undermapper
     const DEST = {
       kv: { perYear: {
-        2021: 'kv/2021/',
-        2017: 'kv/2017/',
-        2013: 'kv/2013/',
-        2009: 'kv/2009/',
-        2005: 'kv/2005/',
-        2001: 'kv/2001/'   // må gerne blive, selv om 2001 ikke vises i YEARS
+        2021: '../kv/2021/',
+        2017: '../kv/2017/',
+        2013: '../kv/2013/',
+        2009: '../kv/2009/',
+        2005: '../kv/2005/',
+        2001: '../kv/2001/'
       }},
       ft: { perYear: {
-        2022: 'ft/2022/',
-        2019: 'ft/2019/',
-        2015: 'ft/2015/',
-        2011: 'ft/2011/',
-        2007: 'ft/2007/',
-        2005: 'ft/2005/'
+        2022: '../ft/2022/',
+        2019: '../ft/2019/',
+        2015: '../ft/2015/',
+        2011: '../ft/2011/',
+        2007: '../ft/2007/',
+        2005: '../ft/2005/'
       }},
       rv: { perYear: {
-        2021: 'rv/2021/',
-        2017: 'rv/2017/',
-        2013: 'rv/2013/'
+        2021: '../rv/2021/',
+        2017: '../rv/2017/',
+        2013: '../rv/2013/'
       }},
       ep: { perYear: {
-        2024: 'ep/2024/',
-        2019: 'ep/2019/',
-        2014: 'ep/2014/',
-        2009: 'ep/2009/',
-        2004: 'ep/2004/'
+        2024: '../ep/2024/',
+        2019: '../ep/2019/',
+        2014: '../ep/2014/',
+        2009: '../ep/2009/',
+        2004: '../ep/2004/'
       }},
-      // Folkeafstemning – aktiveret med dine stier
       fa: { perYear: {
-        2022: 'fa/2022/',
-        2015: 'fa/2015/',
-        2014: 'fa/2014/'
+        2022: '../fa/2022/',
+        2015: '../fa/2015/',
+        2014: '../fa/2014/'
       }}
     };
 
@@ -226,10 +194,9 @@
       fa:'Folkeafstemning'
     };
 
-    // rækkefølge på forsiden
     const ORDER = ['ft','kv','rv','ep','fa'];
 
-    /* ====== RENDER VALGLISTE ====== */
+    /* ====== RENDER: VALG-LISTEN ====== */
     const root = document.getElementById('list');
 
     ORDER.forEach(type=>{
@@ -270,7 +237,7 @@
       root.appendChild(article);
     });
 
-    /* ====== INTERAKTION FOR VALGLISTE ====== */
+    /* ====== INTERAKTION: ACCORDION ====== */
     root.addEventListener('click', (e)=>{
       const btn = e.target.closest('[data-acc]');
       if(btn){
@@ -307,253 +274,168 @@
       }
     });
 
-    /* ==========================================================
-       KANDIDATSØGNING (bruger /data/candidate-index.json)
-       ========================================================== */
+    /* =====================================================
+       KANDIDATSØGNING – bruger /data/candidate-index.json
+       ===================================================== */
+    const searchInput = document.getElementById('candidateSearch');
+    const resultsRoot = document.getElementById('candidateResults');
+    const statusEl = document.getElementById('candidateSearchStatus');
 
-    // Simple helper til at fjerne æøå-variationer osv.
-    function foldStr(s){
-      return (s || "")
+    let candidateIndex = null;
+    let flatCandidates = [];
+    let lastQuery = '';
+
+    function normalizeName(str){
+      return (str || '')
         .toString()
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu,"")
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu,'')
         .toLowerCase()
         .trim();
     }
 
-    const candidateInput   = document.getElementById('candidateSearchInput');
-    const candidateResults = document.getElementById('candidateSearchResults');
-
-    let candidateIndexData = null;      // rå JSON fra /data/candidate-index.json
-    let candidateFlatList  = [];        // fladet liste (kandidat + valg)
-    let activeSuggestion   = -1;
-    let lastQuery          = "";
-
-    function fmtNumber(n){
-      return new Intl.NumberFormat('da-DK').format(n);
-    }
-
-    function stemmerLabel(n){
-      return n === 1 ? 'stemme' : 'stemmer';
-    }
-
-    async function loadCandidateIndexOnce(){
-      if(candidateIndexData || candidateIndexData === false) return;
+    async function loadCandidateIndex(){
+      if(candidateIndex) return;
       try{
-        const res = await fetch('/data/candidate-index.json',{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
+        statusEl.classList.remove('hidden');
+        statusEl.textContent = 'Indlæser kandidatindeks…';
+        const res = await fetch('../data/candidate-index.json?ts=' + Date.now(), { cache: 'no-store' });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
-        candidateIndexData = json;
+        candidateIndex = json;
 
-        const flat = [];
-        (json.elections || []).forEach(e=>{
-          const candidates = e.candidates || [];
-          candidates.forEach(c=>{
-            flat.push({
-              electionKey: e.key,
-              electionType: e.type,
-              electionYear: e.year,
-              electionLabel: e.typeLabel || e.label || '',
-              electionDetailUrl: e.detailUrl || '#',
-              record: c
+        flatCandidates = [];
+        (json.elections || []).forEach(el => {
+          (el.candidates || []).forEach(c => {
+            flatCandidates.push({
+              ...c
+              // vi bruger c.electionDetailUrl + '?cand=' + c.candidateId ved klik
             });
           });
         });
-        candidateFlatList = flat;
-      }catch(err){
-        console.error('Kunne ikke hente kandidatindeks', err);
-        candidateIndexData = false; // marker fejl
-      }
-    }
 
-    function buildSearchText(rec){
-      const r = rec || {};
-      const name = r.displayName || r.name || r.canonicalName || r.rawName || r.kandidat_navn || "";
-      const alias = Array.isArray(r.aliases) ? r.aliases.join(" ") : (r.rawName || "");
-      const party = r.party || r.parti || r.partyName || r.party_label || "";
-      const extra = r.searchText || "";
-      return [name, alias, party, extra].join(" ");
+        statusEl.textContent = `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder.`;
+      }catch(err){
+        console.error(err);
+        statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
+      }
     }
 
     function searchCandidates(query){
-      const q = foldStr(query);
+      const q = normalizeName(query);
       if(!q) return [];
 
-      const scored = candidateFlatList.map(item=>{
-        const r = item.record || {};
-        const name = r.displayName || r.name || r.canonicalName || r.rawName || r.kandidat_navn || "";
-        const foldedName = foldStr(name);
-        const fullSearch = foldStr(buildSearchText(r));
+      const results = [];
+      for(const c of flatCandidates){
+        const base = normalizeName(c.displayName || '');
+        const variants = (c.nameVariants || []).map(normalizeName);
 
         let score = -Infinity;
-        if(foldedName.startsWith(q)) score = 300 - (foldedName.length - q.length);
-        else{
-          const parts = foldedName.split(/\s+/).filter(Boolean);
-          if(parts.some(p=>p.startsWith(q))) score = 220 - fullSearch.indexOf(q);
-          else if(fullSearch.includes(q)) score = 140 - fullSearch.indexOf(q);
+
+        if(base.startsWith(q)) score = 300 - (base.length - q.length);
+        else if(base.includes(q)) score = 200 - base.indexOf(q);
+
+        if(score === -Infinity){
+          const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
+          if(hitVariant){
+            if(hitVariant.startsWith(q)) score = 250 - (hitVariant.length - q.length);
+            else score = 180 - hitVariant.indexOf(q);
+          }
         }
 
-        // let "partinavn" give lidt ekstra hvis man skriver fx "enhedslisten"
-        const partyFold = foldStr(r.party || r.parti || "");
-        if(partyFold && (partyFold.startsWith(q) || partyFold.includes(q))){
-          score += 20;
+        if(score > -Infinity){
+          results.push({ c, score });
         }
+      }
 
-        return { item, score, sortName: name };
-      })
-      .filter(x=>x.score > -Infinity)
-      .sort((a,b)=> b.score - a.score || a.sortName.localeCompare(b.sortName,'da'))
-      .slice(0,20);
+      results.sort((a,b)=> b.score - a.score ||
+        (a.c.displayName || '').localeCompare(b.c.displayName || '', 'da'));
 
-      return scored.map(x=>x.item);
+      return results.slice(0, 20).map(r => r.c);
     }
 
-    function renderSearchResults(list, query){
-      candidateResults.innerHTML = "";
-      activeSuggestion = -1;
-
-      if(candidateIndexData === false){
-        candidateResults.innerHTML =
-          `<div class="vb-search-status">Kunne ikke hente kandidatindekset. Tjek at <code>/data/candidate-index.json</code> findes.</div>`;
-        candidateResults.classList.remove('hidden');
+    function renderResults(query){
+      const q = query.trim();
+      if(!q || !flatCandidates.length){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
         return;
       }
 
-      if(!query){
-        candidateResults.classList.add('hidden');
+      const hits = searchCandidates(q);
+      if(!hits.length){
+        resultsRoot.innerHTML = `
+          <div class="px-3 py-2 text-xs text-slate-500">
+            Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
+          </div>`;
+        resultsRoot.classList.remove('hidden');
         return;
       }
 
-      if(!candidateIndexData){
-        candidateResults.innerHTML =
-          `<div class="vb-search-status">Indlæser kandidatindeks…</div>`;
-        candidateResults.classList.remove('hidden');
-        return;
-      }
+      resultsRoot.innerHTML = hits.map(hit => {
+        const name = hit.displayName || '';
+        const party = hit.party || '';
+        const partyShort = hit.partyShort ? ` (${hit.partyShort})` : '';
+        const votes = typeof hit.totalVotes === 'number' ? hit.totalVotes.toLocaleString('da-DK') : '?';
+        const area = hit.area || '';
+        const typeLabel = hit.electionTypeLabel || hit.electionLabel || '';
+        const year = hit.electionYear || '';
 
-      if(!list.length){
-        candidateResults.innerHTML =
-          `<div class="vb-search-status">Ingen kandidater matchede "<strong>${query}</strong>".</div>`;
-        candidateResults.classList.remove('hidden');
-        return;
-      }
-
-      const html = list.map((item, idx)=>{
-        const r = item.record || {};
-        const name = r.displayName || r.name || r.canonicalName || r.rawName || r.kandidat_navn || "Ukendt navn";
-        const party = r.party || r.parti || r.partyName || "";
-        const votes = (typeof r.votes === "number" ? r.votes : (typeof r.stemmer === "number" ? r.stemmer : null));
-
-        const electionText = `${item.electionLabel || 'Valg'} ${item.electionYear || ''}`.trim();
-        const votesText = votes != null ? `${fmtNumber(votes)} ${stemmerLabel(votes)}` : "";
-        const metaParts = [electionText, party, votesText].filter(Boolean);
-        const meta = metaParts.join(" · ");
+        const metaParts = [];
+        if(typeLabel && year) metaParts.push(`${typeLabel} ${year}`);
+        if(party) metaParts.push(`${party}${partyShort}`);
+        if(votes !== '?') metaParts.push(`${votes} stemmer`);
+        if(area) metaParts.push(area);
+        const meta = metaParts.join(' · ');
 
         return `
-          <div class="vb-search-item"
-               role="option"
-               data-index="${idx}"
-               aria-selected="false">
-            <div class="vb-search-item-title">${name}</div>
-            <div class="vb-search-item-meta">${meta}</div>
-          </div>
+          <button type="button"
+                  class="w-full text-left vb-hit"
+                  data-cand-id="${encodeURIComponent(hit.candidateId)}"
+                  data-detail-url="${hit.electionDetailUrl || '/'}">
+            <div class="font-medium text-sm text-slate-900">${name}</div>
+            <div class="text-xs text-slate-600">${meta}</div>
+          </button>
         `;
-      }).join("");
+      }).join('');
 
-      candidateResults.innerHTML = html;
-      candidateResults.classList.remove('hidden');
+      resultsRoot.classList.remove('hidden');
 
-      candidateResults.querySelectorAll('.vb-search-item').forEach(el=>{
-        el.addEventListener('click', ()=>{
-          const idx = Number(el.getAttribute('data-index') || 0);
-          const chosen = list[idx];
-          if(chosen) goToCandidate(chosen);
+      // klik-håndtering
+      resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cid = btn.getAttribute('data-cand-id');
+          const baseUrl = btn.getAttribute('data-detail-url') || '/';
+          const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'cand=' + cid;
+          window.location.href = url;
         });
       });
     }
 
-    function goToCandidate(item){
-      const r = item.record || {};
-      const base = item.electionDetailUrl || '#';
+    // Lazy-load kandidatindeks ved fokus / første input
+    let indexLoadingTriggered = false;
 
-      // prøv at finde et kandidat-id, vi kan sende videre som ?cand=
-      const candId = r.candidateId || r.kandidat_id || r.id || null;
-      let url = base;
-      if(candId){
-        const hasQuery = base.includes('?');
-        const sep = hasQuery ? '&' : '?';
-        url = `${base}${sep}cand=${encodeURIComponent(candId)}`;
-      }
-
-      window.location.href = url;
-    }
-
-    let searchDebounce = null;
-
-    function handleSearchInput(){
-      const q = candidateInput.value || "";
-      lastQuery = q;
-      if(searchDebounce) clearTimeout(searchDebounce);
-
-      searchDebounce = setTimeout(async ()=>{
-        await loadCandidateIndexOnce();
-        const matches = candidateIndexData ? searchCandidates(q) : [];
-        renderSearchResults(matches, q);
-      }, 120);
-    }
-
-    candidateInput?.addEventListener('input', handleSearchInput);
-    candidateInput?.addEventListener('focus', handleSearchInput);
-
-    candidateInput?.addEventListener('keydown', (e)=>{
-      const items = candidateResults.querySelectorAll('.vb-search-item');
-      const max = items.length;
-
-      if(e.key === 'ArrowDown' && max){
-        e.preventDefault();
-        activeSuggestion = (activeSuggestion + 1) % max;
-        updateActiveSuggestion(items);
-      }else if(e.key === 'ArrowUp' && max){
-        e.preventDefault();
-        activeSuggestion = (activeSuggestion <= 0 ? max-1 : activeSuggestion-1);
-        updateActiveSuggestion(items);
-      }else if(e.key === 'Enter'){
-        if(!candidateResults.classList.contains('hidden') && activeSuggestion >= 0 && activeSuggestion < max){
-          e.preventDefault();
-          const idx = activeSuggestion;
-          const q = lastQuery;
-          const matches = candidateIndexData ? searchCandidates(q) : [];
-          const chosen = matches[idx];
-          if(chosen) goToCandidate(chosen);
-        }
-      }else if(e.key === 'Escape'){
-        candidateResults.classList.add('hidden');
-        activeSuggestion = -1;
+    searchInput.addEventListener('focus', () => {
+      if(!indexLoadingTriggered){
+        indexLoadingTriggered = true;
+        loadCandidateIndex();
       }
     });
 
-    function updateActiveSuggestion(items){
-      items.forEach((el,i)=>{
-        const active = i === activeSuggestion;
-        el.setAttribute('aria-selected', active ? 'true' : 'false');
-        if(active){
-          const rect = el.getBoundingClientRect();
-          const parentRect = candidateResults.getBoundingClientRect();
-          if(rect.top < parentRect.top){
-            el.scrollIntoView({block:'nearest'});
-          }else if(rect.bottom > parentRect.bottom){
-            el.scrollIntoView({block:'nearest'});
-          }
-        }
-      });
-    }
-
-    // Klik udenfor lukker listen
-    document.addEventListener('click',(e)=>{
-      if(!candidateResults.contains(e.target) && e.target !== candidateInput){
-        candidateResults.classList.add('hidden');
-        activeSuggestion = -1;
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value || '';
+      lastQuery = val;
+      if(!val.trim()){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
+        return;
       }
+      if(!candidateIndex){
+        // hvis vi stadig loader, vis kort besked
+        statusEl.classList.remove('hidden');
+        statusEl.textContent = 'Indlæser kandidatindeks…';
+      }
+      renderResults(val);
     });
   </script>
 </body>
