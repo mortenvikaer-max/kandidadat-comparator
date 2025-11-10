@@ -454,9 +454,9 @@
     }
     // parti
     if(state.activeParty) u.searchParams.set("parti", state.activeParty); else u.searchParams.delete("parti");
-    // kandidater
+    // kandidater – brug '|' som separator så selve id'et gerne må indeholde komma
     const candList = getSelectedIds();
-    if(candList.length) u.searchParams.set("cand", candList.join(",")); else u.searchParams.delete("cand");
+    if(candList.length) u.searchParams.set("cand", candList.join("|")); else u.searchParams.delete("cand");
     // view (kun hvis ikke standard = top10)
     if(state.topListMode !== "top10") u.searchParams.set("view", "top50"); else u.searchParams.delete("view");
     // sort (kun hvis ikke standard = alpha)
@@ -469,7 +469,13 @@
   async function hydrateFromUrl(){
     const p=new URLSearchParams(location.search);
     const r=p.get("region"); const k=p.get("kommune"); const parti=p.get("parti");
-    const cand=(p.get("cand")||"").split(",").map(s=>s.trim()).filter(Boolean);
+    // cand kan være ét kandidat-id eller flere adskilt med '|'
+    const candParam = (p.get("cand") || "").trim();
+    const cand = candParam
+      ? (candParam.includes('|')
+          ? candParam.split('|').map(s=>s.trim()).filter(Boolean)
+          : [candParam])
+      : [];
     const view=p.get("view"); // top50 | (mangler => top10)
     const sort=p.get("sort"); // votes | (mangler => alpha)
     const vsted=p.get("valgsted");
@@ -1244,7 +1250,7 @@
         persistUrl(true); // først scope
         // opdatér cand separat (så param kommer med i samme entry)
         const u=new URL(location.href);
-        if(nextCand.length) u.searchParams.set("cand", nextCand.join(",")); else u.searchParams.delete("cand");
+        if(nextCand.length) u.searchParams.set("cand", nextCand.join("|")); else u.searchParams.delete("cand");
         history.replaceState({}, "", u);
 
         loadKommuneData(target.kommune);
