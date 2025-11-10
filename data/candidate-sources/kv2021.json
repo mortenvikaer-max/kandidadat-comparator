@@ -1,33 +1,18 @@
-{
-  "electionKey": "kv2021",
-  "electionLabel": "Kommunalvalg 2021",
-  "year": 2021,
-  "candidates": [
-    {
-      "id": "LINE_BARFOD_ID",
-      "displayName": "Line Barfod",
-      "searchName": "line barfod",
-      "aliases": [
-        "line barfod, nørrebro"
-      ],
-      "party": "Enhedslisten",
-      "partyLetter": "Ø",
-      "areaType": "kommune",
-      "areaName": "København",
-      "votes": 0,
-      "detailUrl": "/kommunalvalg/2021/?cand=LINE_BARFOD_ID"
-    },
-    {
-      "id": "ANNA_ANDERSEN_ID",
-      "displayName": "Anna Andersen",
-      "searchName": "anna andersen",
-      "aliases": [],
-      "party": "Socialdemokratiet",
-      "partyLetter": "A",
-      "areaType": "kommune",
-      "areaName": "Aarhus",
-      "votes": 0,
-      "detailUrl": "/kommunalvalg/2021/?cand=ANNA_ANDERSEN_ID"
-    }
-  ]
-}
+[
+  {
+    "candidateId": "kv2021-line-barfod-kbh",
+    "name": "Line Barfod, Nørrebro",
+    "party": "Enhedslisten",
+    "partyShort": "Ø",
+    "totalVotes": 5169,
+    "area": "København"
+  },
+  {
+    "candidateId": "kv2021-anna-andersen-odense",
+    "name": "Anna Andersen",
+    "party": "Socialdemokratiet",
+    "partyShort": "A",
+    "totalVotes": 1234,
+    "area": "Odense"
+  }
+]
