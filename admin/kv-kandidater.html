@@ -122,9 +122,10 @@
       </tbody>
     </table>
     <p class="text-xs text-slate-500">
-      Bemærk: For 2017, 2013 og 2009 ligger CSV’erne i undermapper med region,
-      fx <code>../data/kv/2017/Region Hovedstaden/Albertslund.csv</code>.
-      For 2021 og 2005 ligger de direkte under <code>../data/kv/ÅR/</code>.
+      Vi prøver automatisk både uden region-mappe
+      (<code>../data/kv/ÅR/Albertslund.csv</code>) og med region-mappe
+      (<code>../data/kv/ÅR/Region Hovedstaden/Albertslund.csv</code>).
+      Det burde passe til både 2021, 2017, 2013, 2009 og 2005.
     </p>
   </section>
 
@@ -213,45 +214,40 @@
       key: "kv2021",
       year: 2021,
       label: "Kommunalvalg 2021",
-      dataRoot: "../data/kv/2021/",
-      regionSubfolders: false   // Albertslund_allepartier.csv eller Albertslund.csv
+      dataRoot: "../data/kv/2021/"
     },
     {
       key: "kv2017",
       year: 2017,
       label: "Kommunalvalg 2017",
-      dataRoot: "../data/kv/2017/",
-      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+      dataRoot: "../data/kv/2017/"
     },
     {
       key: "kv2013",
       year: 2013,
       label: "Kommunalvalg 2013",
-      dataRoot: "../data/kv/2013/",
-      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+      dataRoot: "../data/kv/2013/"
     },
     {
       key: "kv2009",
       year: 2009,
       label: "Kommunalvalg 2009",
-      dataRoot: "../data/kv/2009/",
-      regionSubfolders: true    // Region Hovedstaden/Albertslund.csv
+      dataRoot: "../data/kv/2009/"
     },
     {
       key: "kv2005",
       year: 2005,
       label: "Kommunalvalg 2005",
-      dataRoot: "../data/kv/2005/",
-      regionSubfolders: false   // Albertslund.csv (ingen regions-undermapper)
+      dataRoot: "../data/kv/2005/"
     }
   ];
 
-  const el = id => document.getElementById(id);
-  const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+  const el  = id => document.getElementById(id);
+  const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
 
-  const logEl = el("log");
-  const outEl = el("outputJson");
-  const selectEl = el("kvElectionSelect");
+  const logEl      = el("log");
+  const outEl      = el("outputJson");
+  const selectEl   = el("kvElectionSelect");
   const cfgTableBody = el("kvConfigTableBody");
 
   function logLine(msg){
@@ -266,14 +262,13 @@
   // UI: udfyld dropdown og config-tabel
   // ============================================================
   (function initUI(){
-    // dropdown
     KV_CONFIG
       .slice()
       .sort((a,b)=>b.year-a.year)
       .forEach(cfg=>{
         const opt = document.createElement("option");
         opt.value = cfg.key;
-        opt.textContent = `${cfg.label}`;
+        opt.textContent = cfg.label;
         selectEl.appendChild(opt);
       });
     selectEl.value = "kv2021";
@@ -296,14 +291,6 @@
         <tr>
           <td class="px-3 py-2 font-medium text-slate-600">Data-mappe</td>
           <td class="px-3 py-2 font-mono text-xs">${cfg.dataRoot}</td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Regions-undermapper</td>
-          <td class="px-3 py-2 text-xs">
-            ${cfg.regionSubfolders
-              ? "Ja – fx <code>Region Hovedstaden/Albertslund.csv</code>"
-              : "Nej – CSV-filer ligger direkte i data-mappen"}
-          </td>
         </tr>
       `;
     }
@@ -332,7 +319,7 @@
       transformHeader: h => (h || "").toString().trim().toLowerCase()
     });
     return parsed.data.map(r => {
-      const region  = (r.region || "").toString().trim();
+      const region  = (r.region  || "").toString().trim();
       const kommune = (r.kommune || "").toString().trim();
       const kandidatId = (r.kandidat_id || r.kandidatid || r.kandidat_navn || r.kandidatnavn || "").toString().trim();
       const kandidatNavn = (r.kandidat_navn || r.kandidatnavn || "").toString().trim();
@@ -355,22 +342,22 @@
   async function loadRowsForKommune(kommune, cfg){
     const base = cfg.dataRoot;
     const safeKommune = encodeURIComponent(kommune);
-    const regionName = findRegionForKommune(kommune);
-    const safeRegion = regionName ? encodeURIComponent(regionName) : null;
 
-    const candidates = [];
+    // Vi prøver både uden og med regions-undermapper for ALLE år
+    const paths = [];
 
-    if(cfg.regionSubfolders && safeRegion){
-      // Struktur: data/kv/YYYY/Region Hovedstaden/Albertslund.csv
-      candidates.push(`${base}${safeRegion}/${safeKommune}_allepartier.csv`);
-      candidates.push(`${base}${safeRegion}/${safeKommune}.csv`);
-    }else{
-      // Struktur: data/kv/YYYY/Albertslund_allepartier.csv / Albertslund.csv
-      candidates.push(`${base}${safeKommune}_allepartier.csv`);
-      candidates.push(`${base}${safeKommune}.csv`);
+    // Uden regions-mappe
+    paths.push(`${base}${safeKommune}_allepartier.csv`);
+    paths.push(`${base}${safeKommune}.csv`);
+
+    // Med alle mulige regioner som undermappe
+    for(const region of Object.keys(REGIONS)){
+      const safeRegion = encodeURIComponent(region);
+      paths.push(`${base}${safeRegion}/${safeKommune}_allepartier.csv`);
+      paths.push(`${base}${safeRegion}/${safeKommune}.csv`);
     }
 
-    for(const url of candidates){
+    for(const url of paths){
       try{
         const text = await fetchCsvText(url);
         const rows = parseCsvTextToRows(text);
@@ -431,17 +418,8 @@
     const candidates = buildCandidateRecords(allRows, cfg);
     logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × kommune).`);
 
-    const output = {
-      electionKey: cfg.key,
-      electionYear: cfg.year,
-      electionLabel: cfg.label,
-      type: "kv",
-      candidates
-    };
-
     outEl.value = JSON.stringify(candidates, null, 2);
     logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
-    logLine(`Fx: /data/candidate-sources/${cfg.key}.json (kun selve array'et "candidates").`);
   }
 
   // ============================================================
