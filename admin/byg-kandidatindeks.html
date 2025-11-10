@@ -63,7 +63,6 @@
   <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <a href="/" class="flex items-center gap-2">
-        <!-- Juster evt. sti til logoet -->
         <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
       </a>
       <div class="flex flex-col">
@@ -346,7 +345,7 @@
   };
 
   // ============================================================
-  // Navne-helpers til kandidatindeks (for at matche fx "Line Barfod" / "Line Barfod, Nørrebro")
+  // Navne-helpers til kandidatindeks
   // ============================================================
   const VB_NameHelpers = (() => {
     const stripPlaceSuffix = (name) => {
@@ -491,7 +490,12 @@
 
     const party = raw.party || raw.parti || "";
     const partyShort = raw.partyShort || raw.partyLetter || raw.parti_bogstav || "";
+
     const totalVotes = Number(raw.totalVotes ?? raw.votes ?? raw.stemmer ?? 0) || 0;
+
+    const region  = raw.region  || "";
+    const kommune = raw.kommune || raw.area || "";
+
     const area = raw.area || raw.kommune || raw.kreds || raw.region || "";
 
     return {
@@ -503,6 +507,8 @@
       partyShort,
       totalVotes,
       area,
+      region,
+      kommune,
       electionKey: src.key,
       electionLabel: src.label,
       electionYear: src.year,
