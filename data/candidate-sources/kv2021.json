@@ -5,7 +5,9 @@
     "party": "Enhedslisten",
     "partyShort": "Ø",
     "totalVotes": 5169,
-    "area": "København"
+    "area": "København",
+    "region": "Region Hovedstaden",
+    "kommune": "København"
   },
 
   {
@@ -14,6 +16,8 @@
     "party": "Socialdemokratiet",
     "partyShort": "A",
     "totalVotes": 1234,
-    "area": "Odense"
+    "area": "Odense",
+    "region": "Region Syddanmark",
+    "kommune": "Odense"
   }
 ]
