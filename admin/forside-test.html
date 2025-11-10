@@ -50,16 +50,55 @@
       border-color:#0f172a;
       box-shadow:0 0 0 1px #0f172a11;
     }
+
+    /* Søgeresultater – ny stil */
     .vb-hit{
       display:flex;
-      flex-direction:column;
-      gap:2px;
-      padding:.55rem .8rem;
-      border-radius:8px;
+      align-items:flex-start;
+      gap:0.75rem;
+      padding:0.65rem 0.85rem;
+      border-radius:10px;
       cursor:pointer;
     }
     .vb-hit:hover{
       background:#f3f4f6;
+    }
+    .vb-hit-main{
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .vb-hit-name{
+      font-size:0.98rem;
+      font-weight:600;
+      color:#0f172a;
+    }
+    .vb-hit-meta-top{
+      margin-top:0.1rem;
+      font-size:0.8rem;
+      font-weight:600;
+      color:#4b5563;
+    }
+    .vb-hit-meta-bottom{
+      margin-top:0.1rem;
+      font-size:0.78rem;
+      color:#6b7280;
+    }
+    .vb-hit-badge{
+      flex:0 0 auto;
+      margin-top:0.1rem;
+    }
+    .vb-badge{
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.8rem;
+      font-weight:600;
+      border:1px solid #d1d5db;
+      background:#e5e7eb;
+      color:#111827;
     }
   </style>
 </head>
@@ -69,7 +108,7 @@
   <header class="vb-hero">
     <div class="mx-auto max-w-6xl px-4 pt-8 pb-3">
       <a href="../" aria-label="Valgbar" class="inline-block">
-        <!-- vi er i /admin/, derfor ../ -->
+        <!-- bemærk: vi er i /admin/, derfor ../ -->
         <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-28 md:h-32 w-auto" />
       </a>
     </div>
@@ -80,7 +119,7 @@
   <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
 
-    <!-- KANDIDATSØGNING -->
+    <!-- KANDIDATSØGNING (NY) -->
     <section class="vb-row p-4 md:p-5 space-y-3">
       <div class="flex flex-col gap-1">
         <label for="candidateSearch"
@@ -106,7 +145,7 @@
       </div>
     </section>
 
-    <!-- LISTE OVER VALG -->
+    <!-- LISTE OVER VALG (som før) -->
     <section id="list" class="space-y-3">
       <!-- Rækker indsprøjtes af JS -->
     </section>
@@ -116,6 +155,7 @@
     <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
                 flex flex-col md:flex-row items-center justify-between
                 gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+      
       <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
         hej@valgbar.dk
       </a>
@@ -269,7 +309,7 @@
     });
 
     /* =====================================================
-       KANDIDATSØGNING – bruger ../data/candidate-index.json
+       KANDIDATSØGNING – bruger /data/candidate-index.json
        ===================================================== */
     const searchInput   = document.getElementById('candidateSearch');
     const resultsRoot   = document.getElementById('candidateResults');
@@ -287,6 +327,23 @@
         .toLowerCase()
         .trim();
     }
+
+    // Farver til partibogstav – samme logik som på kommunesiderne
+    const PARTY_COLORS = {
+      "A":"#e03a3e",
+      "B":"#712082",
+      "C":"#2e7d32",
+      "D":"#0f766e",
+      "F":"#e5003d",
+      "I":"#00a0e3",
+      "K":"#ff9800",
+      "O":"#0044aa",
+      "V":"#1b5eaa",
+      "Ø":"#c8102e",
+      "Å":"#3aaa35",
+      "Q":"#ff4fa3",
+      "Æ":"#666666"
+    };
 
     async function loadCandidateIndex(){
       if(candidateIndex) return;
@@ -366,20 +423,52 @@
       resultsRoot.innerHTML = hits.map(hit => {
         const name       = hit.displayName || '';
         const party      = hit.party || '';
-        const partyShort = hit.partyShort ? ' (' + hit.partyShort + ')' : '';
+        const partyShort = (hit.partyShort || '').trim();
         const votes      = typeof hit.totalVotes === 'number'
                            ? hit.totalVotes.toLocaleString('da-DK')
                            : '?';
-        const area       = hit.area || hit.kommune || '';
+
+        // område: kommune/region/storkreds afhængigt af valget
+        let area = '';
+        if (hit.electionType === 'kv' || hit.electionType === 'rv') {
+          area = hit.kommune || hit.area || '';
+        } else if (hit.electionType === 'ft') {
+          area = hit.storkreds || hit.area || '';
+        } else {
+          area = ''; // EP mv. – ingen område-tekst
+        }
+
         const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
         const year       = hit.electionYear || '';
 
-        const metaParts = [];
-        if(typeLabel && year) metaParts.push(typeLabel + ' ' + year);
-        if(party)             metaParts.push(party + partyShort);
-        if(votes !== '?')     metaParts.push(votes + ' stemmer');
-        if(area)              metaParts.push(area);
-        const meta = metaParts.join(' · ');
+        const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
+
+        let partyLabel = '';
+        if (party) {
+          partyLabel = partyShort ? `${party} (${partyShort})` : party;
+        } else if (partyShort) {
+          // fallback hvis vi kun har bogstav (fx KV2017 lige nu)
+          partyLabel = `Parti ${partyShort}`;
+        }
+
+        const bottomParts = [];
+        if (partyLabel) bottomParts.push(partyLabel);
+        if (votes !== '?') bottomParts.push(`${votes} stemmer`);
+        if (area) bottomParts.push(area);
+        const bottomMeta = bottomParts.join(' · ');
+
+        // badge-stil
+        let badgeStyle = '';
+        let badgeText  = '';
+        if (partyShort) {
+          const color = PARTY_COLORS[partyShort] || null;
+          if (color) {
+            badgeStyle = `background:${color};color:#fff;border-color:${color}`;
+          } else {
+            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+          }
+          badgeText = partyShort;
+        }
 
         return `
           <button type="button"
@@ -388,15 +477,22 @@
                   data-detail-url="${hit.electionDetailUrl || '/'}"
                   data-region="${hit.region || ''}"
                   data-kommune="${hit.kommune || hit.area || ''}">
-            <div class="font-medium text-sm text-slate-900">${name}</div>
-            <div class="text-xs text-slate-600">${meta}</div>
+            ${partyShort ? `
+              <span class="vb-hit-badge">
+                <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
+              </span>` : ''}
+            <div class="vb-hit-main">
+              <div class="vb-hit-name">${name}</div>
+              ${electionLabel ? `<div class="vb-hit-meta-top">${electionLabel}</div>` : ''}
+              ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
+            </div>
           </button>
         `;
       }).join('');
 
       resultsRoot.classList.remove('hidden');
 
-      // Klik-håndtering – bygger URL med region + kommune + cand, hvis muligt
+      // klik-håndtering – bygger URL med region + kommune + cand hvis muligt
       resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
         btn.addEventListener('click', () => {
           const cid     = btn.getAttribute('data-cand-id') || '';
@@ -405,6 +501,7 @@
           const kommune = btn.getAttribute('data-kommune') || '';
 
           const params = new URLSearchParams();
+
           if(region && kommune){
             params.set('region', region);
             params.set('kommune', kommune);
@@ -437,6 +534,7 @@
         return;
       }
       if(!candidateIndex){
+        // hvis vi stadig loader, vis kort besked
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
       }
