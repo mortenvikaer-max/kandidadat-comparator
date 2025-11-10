@@ -51,7 +51,7 @@
       box-shadow:0 0 0 1px #0f172a11;
     }
 
-    /* Søgeresultater – ny stil */
+    /* Søgeresultater */
     .vb-hit{
       display:flex;
       align-items:flex-start;
@@ -75,8 +75,11 @@
     .vb-hit-meta-top{
       margin-top:0.1rem;
       font-size:0.8rem;
-      font-weight:600;
+      font-weight:500;
       color:#4b5563;
+    }
+    .vb-hit-meta-top span.font-semibold{
+      font-weight:700;
     }
     .vb-hit-meta-bottom{
       margin-top:0.1rem;
@@ -180,9 +183,7 @@
       fa: [2022, 2015, 2014]
     };
 
-    const DISABLED = {
-      // tom – alle synlige år er aktive
-    };
+    const DISABLED = {};
 
     const DEST = {
       kv: { perYear: {
@@ -328,7 +329,7 @@
         .trim();
     }
 
-    // Farver til partibogstav – samme logik som på kommunesiderne
+    // Farver til partibogstav
     const PARTY_COLORS = {
       "A":"#e03a3e",
       "B":"#712082",
@@ -428,14 +429,14 @@
                            ? hit.totalVotes.toLocaleString('da-DK')
                            : '?';
 
-        // område: kommune/region/storkreds afhængigt af valget
+        // område
         let area = '';
         if (hit.electionType === 'kv' || hit.electionType === 'rv') {
           area = hit.kommune || hit.area || '';
         } else if (hit.electionType === 'ft') {
           area = hit.storkreds || hit.area || '';
         } else {
-          area = ''; // EP mv. – ingen område-tekst
+          area = '';
         }
 
         const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
@@ -447,13 +448,18 @@
         if (party) {
           partyLabel = partyShort ? `${party} (${partyShort})` : party;
         } else if (partyShort) {
-          // fallback hvis vi kun har bogstav (fx KV2017 lige nu)
           partyLabel = `Parti ${partyShort}`;
         }
 
+        // ØVERSTE LINJE: valg + stemmer (stemmer med fed)
+        const topParts = [];
+        if (electionLabel) topParts.push(electionLabel);
+        if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
+        const topMeta = topParts.join(' · ');
+
+        // NEDERSTE LINJE: parti + område
         const bottomParts = [];
         if (partyLabel) bottomParts.push(partyLabel);
-        if (votes !== '?') bottomParts.push(`${votes} stemmer`);
         if (area) bottomParts.push(area);
         const bottomMeta = bottomParts.join(' · ');
 
@@ -483,7 +489,7 @@
               </span>` : ''}
             <div class="vb-hit-main">
               <div class="vb-hit-name">${name}</div>
-              ${electionLabel ? `<div class="vb-hit-meta-top">${electionLabel}</div>` : ''}
+              ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
               ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
             </div>
           </button>
@@ -534,7 +540,6 @@
         return;
       }
       if(!candidateIndex){
-        // hvis vi stadig loader, vis kort besked
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
       }
