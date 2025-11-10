@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2025-11-10T07:50:21.680Z",
+  "builtAt": "2025-11-10T08:03:37.337Z",
   "elections": [
     {
       "key": "ft2022",
@@ -8,7 +8,7 @@
       "typeLabel": "Folketingsvalg",
       "year": 2022,
       "label": "Folketingsvalg",
-      "detailUrl": "/folketingsvalg/2022/",
+      "detailUrl": "/ft/2022/",
       "candidates": []
     },
     {
@@ -17,7 +17,7 @@
       "typeLabel": "Folketingsvalg",
       "year": 2019,
       "label": "Folketingsvalg",
-      "detailUrl": "/folketingsvalg/2019/",
+      "detailUrl": "/ft/2019/",
       "candidates": []
     },
     {
@@ -26,7 +26,7 @@
       "typeLabel": "Folketingsvalg",
       "year": 2015,
       "label": "Folketingsvalg",
-      "detailUrl": "/folketingsvalg/2015/",
+      "detailUrl": "/ft/2015/",
       "candidates": []
     },
     {
@@ -35,7 +35,7 @@
       "typeLabel": "Folketingsvalg",
       "year": 2011,
       "label": "Folketingsvalg",
-      "detailUrl": "/folketingsvalg/2011/",
+      "detailUrl": "/ft/2011/",
       "candidates": []
     },
     {
@@ -44,7 +44,7 @@
       "typeLabel": "Folketingsvalg",
       "year": 2007,
       "label": "Folketingsvalg",
-      "detailUrl": "/folketingsvalg/2007/",
+      "detailUrl": "/ft/2007/",
       "candidates": []
     },
     {
@@ -53,10 +53,10 @@
       "typeLabel": "Kommunalvalg",
       "year": 2021,
       "label": "Kommunalvalg",
-      "detailUrl": "/kommunalvalg/2021/",
+      "detailUrl": "/kv/2021/",
       "candidates": [
         {
-          "candidateId": "kv2021-line-barfod-kbh",
+          "candidateId": "Ø_Line_Barfod,_Nørrebro",
           "displayName": "Line Barfod",
           "normalizedName": "line barfod",
           "nameVariants": [
@@ -72,7 +72,7 @@
           "electionYear": 2021,
           "electionType": "kv",
           "electionTypeLabel": "Kommunalvalg",
-          "electionDetailUrl": "/kommunalvalg/2021/"
+          "electionDetailUrl": "/kv/2021/"
         },
         {
           "candidateId": "kv2021-anna-andersen-odense",
@@ -90,7 +90,7 @@
           "electionYear": 2021,
           "electionType": "kv",
           "electionTypeLabel": "Kommunalvalg",
-          "electionDetailUrl": "/kommunalvalg/2021/"
+          "electionDetailUrl": "/kv/2021/"
         }
       ]
     },
@@ -100,7 +100,7 @@
       "typeLabel": "Kommunalvalg",
       "year": 2017,
       "label": "Kommunalvalg",
-      "detailUrl": "/kommunalvalg/2017/",
+      "detailUrl": "/kv/2017/",
       "candidates": []
     },
     {
@@ -109,7 +109,7 @@
       "typeLabel": "Kommunalvalg",
       "year": 2013,
       "label": "Kommunalvalg",
-      "detailUrl": "/kommunalvalg/2013/",
+      "detailUrl": "/kv/2013/",
       "candidates": []
     },
     {
@@ -118,7 +118,7 @@
       "typeLabel": "Kommunalvalg",
       "year": 2009,
       "label": "Kommunalvalg",
-      "detailUrl": "/kommunalvalg/2009/",
+      "detailUrl": "/kv/2009/",
       "candidates": []
     },
     {
@@ -127,7 +127,7 @@
       "typeLabel": "Kommunalvalg",
       "year": 2005,
       "label": "Kommunalvalg",
-      "detailUrl": "/kommunalvalg/2005/",
+      "detailUrl": "/kv/2005/",
       "candidates": []
     },
     {
@@ -136,7 +136,7 @@
       "typeLabel": "Regionsrådsvalg",
       "year": 2021,
       "label": "Regionsrådsvalg",
-      "detailUrl": "/regionsraadsvalg/2021/",
+      "detailUrl": "/rv/2021/",
       "candidates": []
     },
     {
@@ -145,7 +145,7 @@
       "typeLabel": "Regionsrådsvalg",
       "year": 2017,
       "label": "Regionsrådsvalg",
-      "detailUrl": "/regionsraadsvalg/2017/",
+      "detailUrl": "/rv/2017/",
       "candidates": []
     },
     {
@@ -154,7 +154,7 @@
       "typeLabel": "Europa-Parlamentsvalg",
       "year": 2024,
       "label": "Europa-Parlamentsvalg",
-      "detailUrl": "/europaparlamentsvalg/2024/",
+      "detailUrl": "/ep/2024/",
       "candidates": []
     },
     {
@@ -163,7 +163,7 @@
       "typeLabel": "Europa-Parlamentsvalg",
       "year": 2019,
       "label": "Europa-Parlamentsvalg",
-      "detailUrl": "/europaparlamentsvalg/2019/",
+      "detailUrl": "/ep/2019/",
       "candidates": []
     },
     {
@@ -172,7 +172,7 @@
       "typeLabel": "Europa-Parlamentsvalg",
       "year": 2014,
       "label": "Europa-Parlamentsvalg",
-      "detailUrl": "/europaparlamentsvalg/2014/",
+      "detailUrl": "/ep/2014/",
       "candidates": []
     },
     {
@@ -181,7 +181,7 @@
       "typeLabel": "Europa-Parlamentsvalg",
       "year": 2009,
       "label": "Europa-Parlamentsvalg",
-      "detailUrl": "/europaparlamentsvalg/2009/",
+      "detailUrl": "/ep/2009/",
       "candidates": []
     }
   ]
