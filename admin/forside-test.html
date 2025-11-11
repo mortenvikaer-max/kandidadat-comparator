@@ -310,7 +310,7 @@
     });
 
     /* =====================================================
-       KANDIDATSØGNING – nu via manifest + candidate-sources
+       KANDIDATSØGNING – via manifest + candidate-sources
        ===================================================== */
     const searchInput   = document.getElementById('candidateSearch');
     const resultsRoot   = document.getElementById('candidateResults');
@@ -361,61 +361,79 @@
     };
 
     async function loadCandidateIndex(){
-      if(candidateIndex) return;
-      try{
+      if (candidateIndex) return;
+      try {
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks (manifest)…';
 
         // 1) Hent manifestet
         const res = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
-        if(!res.ok) throw new Error('Manifest HTTP ' + res.status);
+        if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
         const manifest = await res.json();
 
         const electionsFromManifest = manifest.elections || [];
         candidateIndex = { elections: [] };
         flatCandidates = [];
 
+        console.log('Manifest indlæst, valg:', electionsFromManifest);
+
         // 2) Hent kandidat-filer pr. valg
-        for(const el of electionsFromManifest){
+        for (const el of electionsFromManifest) {
           const electionMeta = { ...el };
-          const candidateFile = el.candidateFile || el.candidatesFile || '';
+          const electionKey  = el.key || el.electionKey || '';
+          const electionYear = el.year || el.electionYear || '';
+
+          // Gør det robust over for forskellige feltnavne
+          const candidatePath =
+            el.candidateFile ||
+            el.candidatesFile ||
+            el.candidateSource ||
+            el.source ||
+            '';
+
+          if (!candidatePath) {
+            console.warn('Manifest: intet candidateFile/candidateSource for', electionKey || electionYear);
+            electionMeta.candidates = [];
+            candidateIndex.elections.push(electionMeta);
+            continue;
+          }
 
           let fileData = null;
-          if(candidateFile){
-            // gør stien relativ fra /admin/ hvis nødvendigt
-            let url = candidateFile;
-            if(!url.startsWith('http') && !url.startsWith('/')){
-              url = '../' + url.replace(/^\.?\//,'');
-            }
-            if(url.startsWith('/data/')){
-              // vi er i /admin/, så /data/... er fint som absolut
-            }
-            const withTs = url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now();
 
-            try{
-              const resFile = await fetch(withTs, { cache: 'no-store' });
-              if(!resFile.ok) throw new Error('HTTP ' + resFile.status);
-              fileData = await resFile.json();
-            }catch(err){
-              console.error('Kunne ikke hente kandidatfil for', el.key || el.electionKey, err);
-            }
+          // byg URL relativt fra /admin/
+          let url = candidatePath;
+          if (!url.startsWith('http') && !url.startsWith('/')) {
+            // fx "data/candidate-sources/kv2021.json" → "../data/candidate-sources/kv2021.json"
+            url = '../' + url.replace(/^\.?\//, '');
+          }
+          const withTs = url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+
+          try {
+            const resFile = await fetch(withTs, { cache: 'no-store' });
+            if (!resFile.ok) throw new Error('HTTP ' + resFile.status);
+            fileData = await resFile.json();
+            console.log('Indlæst kandidatfil for', electionKey || electionYear, 'fra', withTs, fileData);
+          } catch (err) {
+            console.error('Kunne ikke hente kandidatfil for', electionKey || electionYear, candidatePath, err);
           }
 
           let candidates = [];
-          if(Array.isArray(fileData)){
+          if (Array.isArray(fileData)) {
             // gammel stil: ren liste af kandidater
             candidates = fileData;
-          }else if(fileData && Array.isArray(fileData.candidates)){
+          } else if (fileData && Array.isArray(fileData.candidates)) {
             // ny stil: wrapper med .candidates
             candidates = fileData.candidates;
 
             // lad metadata fra filen få lov at opdatere electionMeta, hvis til stede
-            if(fileData.electionKey)   electionMeta.key       = fileData.electionKey;
-            if(fileData.electionYear)  electionMeta.year      = fileData.electionYear;
-            if(fileData.electionType)  electionMeta.type      = fileData.electionType;
-            if(fileData.electionTypeLabel) electionMeta.typeLabel = fileData.electionTypeLabel;
-            if(fileData.electionLabel) electionMeta.label     = fileData.electionLabel;
-            if(fileData.detailUrl)     electionMeta.detailUrl = fileData.detailUrl;
+            if (fileData.electionKey)        electionMeta.key       = fileData.electionKey;
+            if (fileData.electionYear)       electionMeta.year      = fileData.electionYear;
+            if (fileData.electionType)       electionMeta.type      = fileData.electionType;
+            if (fileData.electionTypeLabel)  electionMeta.typeLabel = fileData.electionTypeLabel;
+            if (fileData.electionLabel)      electionMeta.label     = fileData.electionLabel;
+            if (fileData.detailUrl)          electionMeta.detailUrl = fileData.detailUrl;
+          } else {
+            console.warn('Kandidatfil for', electionKey || electionYear, 'har ikke forventet format');
           }
 
           // enrich kandidater med valgmetadata
@@ -423,6 +441,7 @@
             const type = c.electionType || electionMeta.type;
             const year = c.electionYear || electionMeta.year;
             const key  = c.electionKey  || electionMeta.key;
+
             const typeLabel =
               c.electionTypeLabel ||
               electionMeta.typeLabel ||
@@ -442,7 +461,7 @@
               electionMeta.detailUrl ||
               '';
 
-            if(!detailUrl && type && year){
+            if (!detailUrl && type && year) {
               detailUrl = `/${type}/${year}/`;
             }
 
@@ -461,11 +480,16 @@
           candidateIndex.elections.push(electionMeta);
 
           enriched.forEach(c => flatCandidates.push({ ...c }));
+
+          console.log(
+            'Valg', electionKey || electionYear,
+            ': tilføjede', enriched.length, 'kandidater. Total nu:', flatCandidates.length
+          );
         }
 
         statusEl.textContent =
           `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
-      }catch(err){
+      } catch (err) {
         console.error(err);
         statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
       }
@@ -563,7 +587,7 @@
         let party      = (hit.party || '').trim();
         let partyShort = (hit.partyShort || '').trim();
 
-        // fallback: slå bogstav op ud fra partinavn (gælder også KV2013)
+        // fallback: slå bogstav op ud fra partinavn (gælder også ældre KV)
         if (!partyShort && party) {
           const mapped = PARTY_LETTER_FROM_NAME[party];
           if (mapped) partyShort = mapped;
@@ -615,7 +639,7 @@
           if (color) {
             badgeStyle = `background:${color};color:#fff;border-color:${color}`;
           } else {
-            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db`;
           }
           badgeText = partyShort;
         }
