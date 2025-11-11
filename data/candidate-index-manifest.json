@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "builtAt": "2025-11-11T00:00:00.000Z",
+  "elections": [
+    {
+      "key": "ft2022",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2022,
+      "label": "Folketingsvalg",
+      "detailUrl": "/ft/2022/",
+      "candidateFile": "/data/ft2022.json"
+    },
+    {
+      "key": "ft2019",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2019,
+      "label": "Folketingsvalg",
+      "detailUrl": "/ft/2019/",
+      "candidateFile": "/data/ft2019.json"
+    },
+    {
+      "key": "ft2015",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2015,
+      "label": "Folketingsvalg",
+      "detailUrl": "/ft/2015/",
+      "candidateFile": "/data/ft2015.json"
+    },
+    {
+      "key": "ft2011",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2011,
+      "label": "Folketingsvalg",
+      "detailUrl": "/ft/2011/",
+      "candidateFile": "/data/ft2011.json"
+    },
+    {
+      "key": "ft2007",
+      "type": "ft",
+      "typeLabel": "Folketingsvalg",
+      "year": 2007,
+      "label": "Folketingsvalg",
+      "detailUrl": "/ft/2007/",
+      "candidateFile": "/data/ft2007.json"
+    },
+
+    {
+      "key": "kv2021",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2021,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kv/2021/",
+      "candidateFile": "/data/kv2021.json"
+    },
+    {
+      "key": "kv2017",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2017,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kv/2017/",
+      "candidateFile": "/data/kv2017.json"
+    },
+    {
+      "key": "kv2013",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2013,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kv/2013/",
+      "candidateFile": "/data/kv2013.json"
+    },
+    {
+      "key": "kv2009",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2009,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kv/2009/",
+      "candidateFile": "/data/kv2009.json"
+    },
+    {
+      "key": "kv2005",
+      "type": "kv",
+      "typeLabel": "Kommunalvalg",
+      "year": 2005,
+      "label": "Kommunalvalg",
+      "detailUrl": "/kv/2005/",
+      "candidateFile": "/data/kv2005.json"
+    },
+
+    {
+      "key": "rv2021",
+      "type": "rv",
+      "typeLabel": "Regionsrådsvalg",
+      "year": 2021,
+      "label": "Regionsrådsvalg",
+      "detailUrl": "/rv/2021/",
+      "candidateFile": "/data/rv2021.json"
+    },
+    {
+      "key": "rv2017",
+      "type": "rv",
+      "typeLabel": "Regionsrådsvalg",
+      "year": 2017,
+      "label": "Regionsrådsvalg",
+      "detailUrl": "/rv/2017/",
+      "candidateFile": "/data/rv2017.json"
+    },
+    {
+      "key": "rv2013",
+      "type": "rv",
+      "typeLabel": "Regionsrådsvalg",
+      "year": 2013,
+      "label": "Regionsrådsvalg",
+      "detailUrl": "/rv/2013/",
+      "candidateFile": "/data/rv2013.json"
+    },
+
+    {
+      "key": "ep2024",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2024,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/ep/2024/",
+      "candidateFile": "/data/ep2024.json"
+    },
+    {
+      "key": "ep2019",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2019,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/ep/2019/",
+      "candidateFile": "/data/ep2019.json"
+    },
+    {
+      "key": "ep2014",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2014,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/ep/2014/",
+      "candidateFile": "/data/ep2014.json"
+    },
+    {
+      "key": "ep2009",
+      "type": "ep",
+      "typeLabel": "Europa-Parlamentsvalg",
+      "year": 2009,
+      "label": "Europa-Parlamentsvalg",
+      "detailUrl": "/ep/2009/",
+      "candidateFile": "/data/ep2009.json"
+    }
+  ]
+}
