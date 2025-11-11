@@ -365,7 +365,7 @@
       try{
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks…';
-        const res = await fetch('../data/candidate-index.json?ts=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('../data/candidate-index.json.txt?ts=' + Date.now(), { cache: 'no-store' });
         if(!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         candidateIndex = json;
