@@ -416,18 +416,18 @@
        kandidatNavn ||
        "").toString().trim();
 
-    // Parti
-    let parti =
+    // Parti-navn
+    let partyName =
       (r.parti ||
        r.partinavn ||
        "").toString().trim();
 
-    if(!parti){
+    if(!partyName){
       for(const [key,val] of Object.entries(r)){
         const lk = key.toLowerCase();
         if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
-          parti = String(val || "").trim();
-          if(parti) break;
+          partyName = String(val || "").trim();
+          if(partyName) break;
         }
       }
     }
@@ -493,7 +493,7 @@
       displayName: name,
       normalizedName: normName,
       nameVariants: [ name ].filter(Boolean),
-      party,
+      party: partyName,
       partyShort: partiBogstav || "",
       totalVotes: stemmer,
       area,
@@ -557,11 +557,15 @@
             const rows = parseCsvText(text);
             logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
 
-            rows.forEach(r => {
-              allMapped.push(mapRowFt(r, {
-                areaName: kreds,
-                storkredsName: storkreds
-              }));
+            rows.forEach((r, idx) => {
+              try{
+                allMapped.push(mapRowFt(r, {
+                  areaName: kreds,
+                  storkredsName: storkreds
+                }));
+              }catch(e){
+                logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
+              }
             });
           }catch(err){
             logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
@@ -580,11 +584,15 @@
           const rows = parseCsvText(text);
           logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
 
-          rows.forEach(r => {
-            allMapped.push(mapRowFt(r, {
-              areaName: storkreds,
-              storkredsName: storkreds
-            }));
+          rows.forEach((r, idx) => {
+            try{
+              allMapped.push(mapRowFt(r, {
+                areaName: storkreds,
+                storkredsName: storkreds
+              }));
+            }catch(e){
+              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
+            }
           });
         }catch(err){
           logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
@@ -601,11 +609,15 @@
           const rows = parseCsvText(text);
           logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
 
-          rows.forEach(r => {
-            allMapped.push(mapRowFt(r, {
-              areaName: area,
-              storkredsName: area   // vi bruger området som “storkreds”-label
-            }));
+          rows.forEach((r, idx) => {
+            try{
+              allMapped.push(mapRowFt(r, {
+                areaName: area,
+                storkredsName: area   // vi bruger området som “storkreds”-label
+              }));
+            }catch(e){
+              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
+            }
           });
         }catch(err){
           logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
