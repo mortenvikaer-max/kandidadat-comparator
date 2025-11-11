@@ -310,7 +310,7 @@
     });
 
     /* =====================================================
-       KANDIDATSØGNING – bruger /data/candidate-index.json
+       KANDIDATSØGNING – bruger /data/candidate-index.json.txt
        ===================================================== */
     const searchInput   = document.getElementById('candidateSearch');
     const resultsRoot   = document.getElementById('candidateResults');
@@ -411,32 +411,43 @@
         }
       }
 
-      // Tag de bedste 40 og sortér alfabetisk + nyeste valg øverst
+      // Tag de bedste 40 og sortér:
+      // navn → år (nyeste) → flest stemmer → valgtype → candidateId
       const top = results
         .sort((a,b)=> b.score - a.score)
         .slice(0, 40)
         .map(r => r.c);
 
-      const typePriority = { ep:4, ft:3, rv:2, kv:1 }; // brugt hvis samme år
+      const typePriority = { ep:4, ft:3, rv:2, kv:1 };
 
       top.sort((a,b)=>{
         const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
         const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
-        if(nameA < nameB) return -1;
-        if(nameA > nameB) return 1;
+        if (nameA !== nameB) {
+          return nameA.localeCompare(nameB, 'da-DK');
+        }
 
         const yearA = a.electionYear || 0;
         const yearB = b.electionYear || 0;
-        if(yearA !== yearB) return yearB - yearA; // nyeste først
+        if (yearA !== yearB) {
+          return yearB - yearA; // nyeste først
+        }
+
+        const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
+        const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
+        if (votesA !== votesB) {
+          return votesB - votesA; // flest stemmer først
+        }
 
         const prioA = typePriority[a.electionType] || 0;
         const prioB = typePriority[b.electionType] || 0;
-        if(prioA !== prioB) return prioB - prioA;
+        if (prioA !== prioB) {
+          return prioB - prioA;
+        }
 
-        // fallback: kandidat-id
         const idA = (a.candidateId || '').toString();
         const idB = (b.candidateId || '').toString();
-        return idA.localeCompare(idB, 'da');
+        return idA.localeCompare(idB, 'da-DK');
       });
 
       // Til sidst begrænser vi til 20 viste rækker
@@ -471,6 +482,11 @@
           if(mapped) partyShort = mapped;
         }
 
+        // KV2013: vi vil ikke vise partibogstav/badge
+        if (hit.electionType === 'kv' && hit.electionYear === 2013) {
+          partyShort = '';
+        }
+
         const votes      = typeof hit.totalVotes === 'number'
                            ? hit.totalVotes.toLocaleString('da-DK')
                            : '?';
@@ -497,7 +513,7 @@
           partyLabel = `Parti ${partyShort}`;
         }
 
-        // ØVERSTE LINJE: valg + stemmer (stemmer med fed)
+        // ØVERSTE LINJE: valg + stemmer
         const topParts = [];
         if (electionLabel) topParts.push(electionLabel);
         if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
@@ -522,7 +538,18 @@
           badgeText = partyShort;
         }
 
-        const name = hit.displayName || hit.name || '';
+        // NAVN – for KV/RV tilføjer vi kommune i navnet, så man kan skelne
+        let name = hit.displayName || hit.name || '';
+        const isLocal = (hit.electionType === 'kv' || hit.electionType === 'rv');
+        const kommuneForName = hit.kommune || hit.area || '';
+
+        if (isLocal && kommuneForName) {
+          const lowerName = name.toLocaleLowerCase('da-DK');
+          const lowerKommune = kommuneForName.toLocaleLowerCase('da-DK');
+          if (!lowerName.includes(lowerKommune)) {
+            name = `${name} · ${kommuneForName}`;
+          }
+        }
 
         return `
           <button type="button"
