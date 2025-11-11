@@ -122,7 +122,7 @@
   <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
 
-    <!-- KANDIDATSØGNING (NY) -->
+    <!-- KANDIDATSØGNING -->
     <section class="vb-row p-4 md:p-5 space-y-3">
       <div class="flex flex-col gap-1">
         <label for="candidateSearch"
@@ -148,7 +148,7 @@
       </div>
     </section>
 
-    <!-- LISTE OVER VALG (som før) -->
+    <!-- LISTE OVER VALG -->
     <section id="list" class="space-y-3">
       <!-- Rækker indsprøjtes af JS -->
     </section>
@@ -482,8 +482,9 @@
           if(mapped) partyShort = mapped;
         }
 
-        // KV2013: vi vil ikke vise partibogstav/badge
-        if (hit.electionType === 'kv' && hit.electionYear === 2013) {
+        // KV2013: vi vil ikke vise partibogstav (hverken badge eller "(A)")
+        const suppressPartyShort = (hit.electionType === 'kv' && hit.electionYear === 2013);
+        if (suppressPartyShort) {
           partyShort = '';
         }
 
@@ -508,27 +509,29 @@
 
         let partyLabel = '';
         if (party) {
-          partyLabel = partyShort ? `${party} (${partyShort})` : party;
-        } else if (partyShort) {
+          partyLabel = suppressPartyShort
+            ? party
+            : (partyShort ? `${party} (${partyShort})` : party);
+        } else if (partyShort && !suppressPartyShort) {
           partyLabel = `Parti ${partyShort}`;
         }
 
-        // ØVERSTE LINJE: valg + stemmer
+        // ØVERSTE LINJE: valg + område + stemmer
         const topParts = [];
         if (electionLabel) topParts.push(electionLabel);
+        if (area) topParts.push(area);
         if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
         const topMeta = topParts.join(' · ');
 
-        // NEDERSTE LINJE: parti + område
+        // NEDERSTE LINJE: parti
         const bottomParts = [];
         if (partyLabel) bottomParts.push(partyLabel);
-        if (area) bottomParts.push(area);
         const bottomMeta = bottomParts.join(' · ');
 
         // badge-stil
         let badgeStyle = '';
         let badgeText  = '';
-        if (partyShort) {
+        if (partyShort && !suppressPartyShort) {
           const color = PARTY_COLORS[partyShort] || null;
           if (color) {
             badgeStyle = `background:${color};color:#fff;border-color:${color}`;
@@ -538,18 +541,8 @@
           badgeText = partyShort;
         }
 
-        // NAVN – for KV/RV tilføjer vi kommune i navnet, så man kan skelne
-        let name = hit.displayName || hit.name || '';
-        const isLocal = (hit.electionType === 'kv' || hit.electionType === 'rv');
-        const kommuneForName = hit.kommune || hit.area || '';
-
-        if (isLocal && kommuneForName) {
-          const lowerName = name.toLocaleLowerCase('da-DK');
-          const lowerKommune = kommuneForName.toLocaleLowerCase('da-DK');
-          if (!lowerName.includes(lowerKommune)) {
-            name = `${name} · ${kommuneForName}`;
-          }
-        }
+        // NAVN – nu uden kommune bagefter
+        const name = hit.displayName || hit.name || '';
 
         return `
           <button type="button"
@@ -558,7 +551,7 @@
                   data-detail-url="${hit.electionDetailUrl || '/'}"
                   data-region="${hit.region || ''}"
                   data-kommune="${hit.kommune || hit.area || ''}">
-            ${partyShort ? `
+            ${partyShort && !suppressPartyShort ? `
               <span class="vb-hit-badge">
                 <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
               </span>` : ''}
