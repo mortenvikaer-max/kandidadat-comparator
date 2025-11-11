@@ -310,7 +310,7 @@
     });
 
     /* =====================================================
-       KANDIDATSØGNING – bruger /data/candidate-index.json.txt
+       KANDIDATSØGNING – nu via manifest + candidate-sources
        ===================================================== */
     const searchInput   = document.getElementById('candidateSearch');
     const resultsRoot   = document.getElementById('candidateResults');
@@ -364,20 +364,107 @@
       if(candidateIndex) return;
       try{
         statusEl.classList.remove('hidden');
-        statusEl.textContent = 'Indlæser kandidatindeks…';
-        const res = await fetch('../data/candidate-index.json.txt?ts=' + Date.now(), { cache: 'no-store' });
-        if(!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        candidateIndex = json;
+        statusEl.textContent = 'Indlæser kandidatindeks (manifest)…';
 
+        // 1) Hent manifestet
+        const res = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
+        if(!res.ok) throw new Error('Manifest HTTP ' + res.status);
+        const manifest = await res.json();
+
+        const electionsFromManifest = manifest.elections || [];
+        candidateIndex = { elections: [] };
         flatCandidates = [];
-        (json.elections || []).forEach(el => {
-          (el.candidates || []).forEach(c => {
-            flatCandidates.push({ ...c });
-          });
-        });
 
-        statusEl.textContent = `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder.`;
+        // 2) Hent kandidat-filer pr. valg
+        for(const el of electionsFromManifest){
+          const electionMeta = { ...el };
+          const candidateFile = el.candidateFile || el.candidatesFile || '';
+
+          let fileData = null;
+          if(candidateFile){
+            // gør stien relativ fra /admin/ hvis nødvendigt
+            let url = candidateFile;
+            if(!url.startsWith('http') && !url.startsWith('/')){
+              url = '../' + url.replace(/^\.?\//,'');
+            }
+            if(url.startsWith('/data/')){
+              // vi er i /admin/, så /data/... er fint som absolut
+            }
+            const withTs = url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+
+            try{
+              const resFile = await fetch(withTs, { cache: 'no-store' });
+              if(!resFile.ok) throw new Error('HTTP ' + resFile.status);
+              fileData = await resFile.json();
+            }catch(err){
+              console.error('Kunne ikke hente kandidatfil for', el.key || el.electionKey, err);
+            }
+          }
+
+          let candidates = [];
+          if(Array.isArray(fileData)){
+            // gammel stil: ren liste af kandidater
+            candidates = fileData;
+          }else if(fileData && Array.isArray(fileData.candidates)){
+            // ny stil: wrapper med .candidates
+            candidates = fileData.candidates;
+
+            // lad metadata fra filen få lov at opdatere electionMeta, hvis til stede
+            if(fileData.electionKey)   electionMeta.key       = fileData.electionKey;
+            if(fileData.electionYear)  electionMeta.year      = fileData.electionYear;
+            if(fileData.electionType)  electionMeta.type      = fileData.electionType;
+            if(fileData.electionTypeLabel) electionMeta.typeLabel = fileData.electionTypeLabel;
+            if(fileData.electionLabel) electionMeta.label     = fileData.electionLabel;
+            if(fileData.detailUrl)     electionMeta.detailUrl = fileData.detailUrl;
+          }
+
+          // enrich kandidater med valgmetadata
+          const enriched = candidates.map(c => {
+            const type = c.electionType || electionMeta.type;
+            const year = c.electionYear || electionMeta.year;
+            const key  = c.electionKey  || electionMeta.key;
+            const typeLabel =
+              c.electionTypeLabel ||
+              electionMeta.typeLabel ||
+              (type === 'ft' ? 'Folketingsvalg' :
+               type === 'kv' ? 'Kommunalvalg' :
+               type === 'rv' ? 'Regionsrådsvalg' :
+               type === 'ep' ? 'Europa-Parlamentsvalg' :
+               electionMeta.label || '');
+
+            const label =
+              c.electionLabel ||
+              electionMeta.label ||
+              typeLabel;
+
+            let detailUrl =
+              c.electionDetailUrl ||
+              electionMeta.detailUrl ||
+              '';
+
+            if(!detailUrl && type && year){
+              detailUrl = `/${type}/${year}/`;
+            }
+
+            return {
+              ...c,
+              electionKey: key,
+              electionType: type,
+              electionTypeLabel: typeLabel,
+              electionLabel: label,
+              electionYear: year,
+              electionDetailUrl: detailUrl
+            };
+          });
+
+          electionMeta.candidates = enriched;
+          candidateIndex.elections.push(electionMeta);
+
+          enriched.forEach(c => flatCandidates.push({ ...c }));
+        }
+
+        statusEl.textContent =
+          `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
       }catch(err){
         console.error(err);
         statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
