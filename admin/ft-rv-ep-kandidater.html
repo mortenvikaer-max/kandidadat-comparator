@@ -69,7 +69,7 @@
           Admin
         </span>
         <span class="text-lg font-semibold text-slate-900">
-          FT / RV / EP – generér kandidat-kildefil
+          FT / RV / EP – generér kandidat-kildefil (fra eksisterende CSV)
         </span>
       </div>
     </div>
@@ -86,72 +86,65 @@
       Generér kandidat-kildefil til FT, RV og EP
     </h1>
     <p class="text-sm md:text-base text-slate-700">
-      Denne side læser en CSV-fil for et folketingsvalg, regionsrådsvalg eller Europa-Parlamentsvalg
-      og laver en JSON-fil, der matcher strukturen i <code>/data/candidate-sources/*.json</code>.
+      Denne side læser de CSV-filer for folketingsvalg, regionsrådsvalg og Europa-Parlamentsvalg,
+      som allerede ligger på serveren, og laver JSON-filer til
+      <code>/data/candidate-sources/&lt;key&gt;.json</code>.
     </p>
     <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
-      <li>Vælg valgtype og år.</li>
-      <li>Vælg CSV-filen (eksporteret fra KMD/DS osv.).</li>
+      <li>Vælg valg i dropdown.</li>
+      <li>Tjek at CSV-stien ser rigtig ud.</li>
       <li>Tryk på <em>Generér kandidat-fil</em>.</li>
-      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/&lt;key&gt;.json</code> (fx <code>ft2022.json</code>).</li>
+      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/&lt;key&gt;.json</code>, fx <code>ft2022.json</code>.</li>
     </ol>
     <p class="text-xs text-slate-500">
       <strong>Vigtigt:</strong> Denne side skriver ikke på serveren – du kopierer selv JSON’en op.
     </p>
   </section>
 
-  <!-- Konfiguration -->
+  <!-- Valg / konfiguration -->
   <section class="vb-card p-4 md:p-5 space-y-4">
-    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-      <div class="space-y-2">
-        <h2 class="text-lg font-semibold">Valg og CSV</h2>
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="flex flex-col text-sm">
-            <label for="electionType" class="text-xs text-slate-600">Valgtype</label>
-            <select id="electionType"
-                    class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
-              <option value="ft">Folketingsvalg</option>
-              <option value="rv">Regionsrådsvalg</option>
-              <option value="ep">Europa-Parlamentsvalg</option>
-            </select>
-          </div>
-
-          <div class="flex flex-col text-sm">
-            <label for="electionYear" class="text-xs text-slate-600">År</label>
-            <select id="electionYear"
-                    class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
-              <!-- udfyldes via JS -->
-            </select>
-          </div>
-
-          <div class="flex flex-col text-sm">
-            <label for="fileInput" class="text-xs text-slate-600">CSV-fil</label>
-            <input id="fileInput"
-                   type="file"
-                   accept=".csv,text/csv"
-                   class="text-xs" />
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <button id="btnGenerate" class="vb-btn text-sm">
-          Generér kandidat-fil
-        </button>
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-lg font-semibold">Vælg valg</h2>
+      <div class="flex items-center gap-2">
+        <label for="electionSelect" class="text-xs text-slate-600">
+          Valg:
+        </label>
+        <select id="electionSelect"
+                class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
+          <!-- udfyldes via JS -->
+        </select>
       </div>
     </div>
 
-    <div class="text-xs text-slate-600 space-y-1">
-      <p>
-        Vi prøver automatisk at finde kolonner for kandidatnavn, parti, partibogstav og stemmer
-        ud fra kolonnenavne i CSV’en (fx <code>kandidatnavn</code>, <code>parti</code>,
-        <code>listebogstav</code>, <code>personlige stemmer</code> osv.).
-      </p>
-      <p>
-        For FT prøver vi at bruge <code>storkreds</code> / <code>valgkreds</code> som område.
-        For RV bruger vi <code>region</code> som område. For EP lader vi område være tomt
-        (medmindre CSV’en har noget brugbart).
-      </p>
+    <p class="text-sm text-slate-700">
+      Konfiguration for det valgte valg (du kan rette CSV-stien direkte i koden, hvis dine filer hedder noget andet):
+    </p>
+
+    <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+      <tbody id="configTableBody" class="bg-white divide-y divide-slate-100">
+      <!-- udfyldes via JS -->
+      </tbody>
+    </table>
+
+    <p class="text-xs text-slate-500">
+      CSV-stien skal pege på den fil, du allerede har uploadet (fx fra KMDValg/DS).
+      Hvis du flytter CSV’en eller giver den nyt navn, så ret <code>csvUrl</code> i konfigurationen i denne fil.
+    </p>
+  </section>
+
+  <!-- Generér kandidat-fil -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">Generér kandidat-kildefil</h2>
+        <p class="text-xs text-slate-600">
+          Resultatet er en JSON-fil med <code>candidates</code>-liste og valg-metadata,
+          som svarer til det dine <code>/data/candidate-sources/*.json</code>-filer skal have.
+        </p>
+      </div>
+      <button id="btnGenerate" class="vb-btn text-sm">
+        Generér kandidat-fil
+      </button>
     </div>
 
     <div>
@@ -181,29 +174,137 @@
 
 <script>
   // ============================================================
-  // KONFIG: hvilke år pr. valgtype + labels
+  // KONFIG: hvilke valg findes, og hvor ligger CSV'erne?
+  //
+  // VIGTIGT:
+  //  - Ret csvUrl, så det matcher DINE rigtige filer.
+  //  - key skal matche candidateFile i manifestet (fx "ft2022").
   // ============================================================
-  const ELECTION_YEARS = {
-    ft: [2022, 2019, 2015, 2011, 2007],
-    rv: [2021, 2017, 2013],
-    ep: [2024, 2019, 2014, 2009]
-  };
+  const ELECTION_CONFIG = [
+    // FOLKETINGSVALG
+    {
+      key: "ft2022",
+      type: "ft",
+      year: 2022,
+      label: "Folketingsvalg 2022",
+      typeLabel: "Folketingsvalg",
+      detailUrl: "/ft/2022/",
+      // RET HER hvis din CSV ligger et andet sted / hedder noget andet:
+      csvUrl: "../data/ft/2022/kandidater-ft2022.csv"
+    },
+    {
+      key: "ft2019",
+      type: "ft",
+      year: 2019,
+      label: "Folketingsvalg 2019",
+      typeLabel: "Folketingsvalg",
+      detailUrl: "/ft/2019/",
+      csvUrl: "../data/ft/2019/kandidater-ft2019.csv"
+    },
+    {
+      key: "ft2015",
+      type: "ft",
+      year: 2015,
+      label: "Folketingsvalg 2015",
+      typeLabel: "Folketingsvalg",
+      detailUrl: "/ft/2015/",
+      csvUrl: "../data/ft/2015/kandidater-ft2015.csv"
+    },
+    {
+      key: "ft2011",
+      type: "ft",
+      year: 2011,
+      label: "Folketingsvalg 2011",
+      typeLabel: "Folketingsvalg",
+      detailUrl: "/ft/2011/",
+      csvUrl: "../data/ft/2011/kandidater-ft2011.csv"
+    },
+    {
+      key: "ft2007",
+      type: "ft",
+      year: 2007,
+      label: "Folketingsvalg 2007",
+      typeLabel: "Folketingsvalg",
+      detailUrl: "/ft/2007/",
+      csvUrl: "../data/ft/2007/kandidater-ft2007.csv"
+    },
 
-  const ELECTION_META = {
-    ft: { typeLabel: "Folketingsvalg",        prefix: "ft" },
-    rv: { typeLabel: "Regionsrådsvalg",      prefix: "rv" },
-    ep: { typeLabel: "Europa-Parlamentsvalg", prefix: "ep" }
-  };
+    // REGIONSRÅDSVALG
+    {
+      key: "rv2021",
+      type: "rv",
+      year: 2021,
+      label: "Regionsrådsvalg 2021",
+      typeLabel: "Regionsrådsvalg",
+      detailUrl: "/rv/2021/",
+      csvUrl: "../data/rv/2021/kandidater-rv2021.csv"
+    },
+    {
+      key: "rv2017",
+      type: "rv",
+      year: 2017,
+      label: "Regionsrådsvalg 2017",
+      typeLabel: "Regionsrådsvalg",
+      detailUrl: "/rv/2017/",
+      csvUrl: "../data/rv/2017/kandidater-rv2017.csv"
+    },
+    {
+      key: "rv2013",
+      type: "rv",
+      year: 2013,
+      label: "Regionsrådsvalg 2013",
+      typeLabel: "Regionsrådsvalg",
+      detailUrl: "/rv/2013/",
+      csvUrl: "../data/rv/2013/kandidater-rv2013.csv"
+    },
+
+    // EUROPA-PARLAMENTSVALG
+    {
+      key: "ep2024",
+      type: "ep",
+      year: 2024,
+      label: "Europa-Parlamentsvalg 2024",
+      typeLabel: "Europa-Parlamentsvalg",
+      detailUrl: "/ep/2024/",
+      csvUrl: "../data/ep/2024/kandidater-ep2024.csv"
+    },
+    {
+      key: "ep2019",
+      type: "ep",
+      year: 2019,
+      label: "Europa-Parlamentsvalg 2019",
+      typeLabel: "Europa-Parlamentsvalg",
+      detailUrl: "/ep/2019/",
+      csvUrl: "../data/ep/2019/kandidater-ep2019.csv"
+    },
+    {
+      key: "ep2014",
+      type: "ep",
+      year: 2014,
+      label: "Europa-Parlamentsvalg 2014",
+      typeLabel: "Europa-Parlamentsvalg",
+      detailUrl: "/ep/2014/",
+      csvUrl: "../data/ep/2014/kandidater-ep2014.csv"
+    },
+    {
+      key: "ep2009",
+      type: "ep",
+      year: 2009,
+      label: "Europa-Parlamentsvalg 2009",
+      typeLabel: "Europa-Parlamentsvalg",
+      detailUrl: "/ep/2009/",
+      csvUrl: "../data/ep/2009/kandidater-ep2009.csv"
+    }
+  ];
 
   const el  = id => document.getElementById(id);
   const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
 
+  const selectEl   = el("electionSelect");
+  const cfgTable   = el("configTableBody");
   const logEl      = el("log");
   const outEl      = el("outputJson");
   const hintEl     = el("outputHint");
-  const typeEl     = el("electionType");
-  const yearEl     = el("electionYear");
-  const fileInput  = el("fileInput");
   const btnGenerate= el("btnGenerate");
 
   function logLine(msg){
@@ -215,39 +316,74 @@
   }
 
   // ============================================================
-  // UI-init: udfyld år-dropdown baseret på valgtype
+  // UI-init: dropdown + config-tabel
   // ============================================================
-  function populateYears(){
-    const type = typeEl.value;
-    const years = ELECTION_YEARS[type] || [];
-    yearEl.innerHTML = "";
-    years.slice().sort((a,b)=>b-a).forEach(y => {
-      const opt = document.createElement("option");
-      opt.value = y;
-      opt.textContent = y;
-      yearEl.appendChild(opt);
-    });
+  (function initUI(){
+    ELECTION_CONFIG
+      .slice()
+      .sort((a,b)=> b.year - a.year || a.type.localeCompare(b.type))
+      .forEach(cfg => {
+        const opt = document.createElement("option");
+        opt.value = cfg.key;
+        opt.textContent = `${cfg.label} (${cfg.key})`;
+        selectEl.appendChild(opt);
+      });
+
+    selectEl.value = "ft2022";
+
+    function renderCfgTable(){
+      const cfg = ELECTION_CONFIG.find(c=>c.key===selectEl.value) || ELECTION_CONFIG[0];
+      cfgTable.innerHTML = `
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Valg</td>
+          <td class="px-3 py-2">${cfg.label}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Type</td>
+          <td class="px-3 py-2"><code>${cfg.type}</code> – ${cfg.typeLabel}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">År</td>
+          <td class="px-3 py-2">${cfg.year}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Nøgle</td>
+          <td class="px-3 py-2"><code>${cfg.key}</code></td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Detail-URL</td>
+          <td class="px-3 py-2 font-mono text-xs">${cfg.detailUrl}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">CSV-sti</td>
+          <td class="px-3 py-2 font-mono text-xs">${cfg.csvUrl}</td>
+        </tr>
+      `;
+      hintEl.textContent = "";
+      outEl.value = "";
+      logEl.innerHTML = "";
+    }
+
+    renderCfgTable();
+
+    selectEl.addEventListener("change", renderCfgTable);
+  })();
+
+  // ============================================================
+  // CSV helpers
+  // ============================================================
+  async function fetchCsvText(url){
+    const res = await fetch(url, { cache: "no-store" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
   }
 
-  typeEl.addEventListener("change", ()=>{
-    populateYears();
-    logEl.innerHTML = "";
-    outEl.value = "";
-    hintEl.textContent = "";
-  });
-
-  populateYears();
-
-  // ============================================================
-  // CSV-parsing helpers (generisk, til FT/RV/EP)
-  // ============================================================
   function parseCsvText(text){
     const parsed = Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       transformHeader: h => (h || "").toString().trim().toLowerCase()
     });
-
     return parsed.data;
   }
 
@@ -356,7 +492,7 @@
       }
     }
 
-    // Område/region/kommune afhænger af valgtype
+    // Område afhænger af valgtype
     let area   = "";
     let region = "";
     let kommune= "";
@@ -379,7 +515,7 @@
          "").toString().trim();
       area = region;
     } else if(type === "ep"){
-      // EP har typisk ingen område-geo vi vil bruge – men hvis der er noget oplagt, tag det
+      // EP har ikke naturligt område – men brug evt. en "område"-kolonne hvis den findes
       area =
         (r.omraade ||
          r["område"] ||
@@ -400,8 +536,8 @@
   }
 
   function buildCandidateRecords(allMapped){
-    // Her antager vi, at hver række i CSV er én kandidat (evt. per kreds).
-    // Hvis der er dubletter på candidateId+area kan vi aggregere på stemmer.
+    // Vi slår sammen på (area + candidateId), så en kandidat i flere rækker
+    // inden for samme område får summeret stemmerne.
     const map = new Map();
 
     for(const r of allMapped){
@@ -410,11 +546,18 @@
       const key = `${areaKey}::${r.candidateId}`;
 
       if(!map.has(key)){
+        const normName = (r.name || "")
+          .toString()
+          .normalize("NFD")
+          .replace(/\p{Diacritic}/gu,"")
+          .toLowerCase()
+          .trim();
+
         map.set(key, {
           candidateId: r.candidateId,
           name: r.name,
           displayName: r.name,
-          normalizedName: (r.name || "").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim(),
+          normalizedName: normName,
           nameVariants: [ r.name ].filter(Boolean),
           party: r.party,
           partyShort: r.partyShort || "",
@@ -433,75 +576,60 @@
   }
 
   // ============================================================
-  // Generér JSON for valgt FT/RV/EP
+  // Generér for valgt election
   // ============================================================
-  async function generateForCurrentSelection(){
+  async function generateForElection(cfg){
     logEl.innerHTML = "";
     outEl.value = "";
     hintEl.textContent = "";
 
-    const type = typeEl.value; // "ft", "rv", "ep"
-    const year = Number(yearEl.value);
-    const meta = ELECTION_META[type];
-    if(!meta){
-      logLine("Ukendt valgtype – afbryder.");
-      return;
-    }
+    logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
+    logLine(`CSV: ${cfg.csvUrl}`);
 
-    const prefix = meta.prefix; // fx "ft"
-    const typeLabel = meta.typeLabel;
-    const key = `${prefix}${year}`;
-
-    const file = fileInput.files[0];
-    if(!file){
-      logLine("⚠ Vælg en CSV-fil først.");
-      return;
-    }
-
-    logLine(`Starter generering for ${typeLabel} ${year} (${key})…`);
-    logLine(`CSV-fil: ${file.name}`);
-
-    const text = await file.text();
-    logLine("CSV indlæst, parser…");
+    const text = await fetchCsvText(cfg.csvUrl);
+    logLine("✔ CSV indlæst, parser…");
 
     const rows = parseCsvText(text);
     logLine(`Parser gav ${fmt(rows.length)} rækker.`);
 
-    const mapped = rows.map(r => mapRowGeneric(r, type));
+    const mapped = rows.map(r => mapRowGeneric(r, cfg.type));
     logLine("Mapper rækker til kandidat-struktur…");
 
     const candidates = buildCandidateRecords(mapped);
     logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder.`);
 
-    // Berig med valg-info på hver kandidat
     const candidatesWithElection = candidates.map(c => ({
       ...c,
-      electionKey: key,
-      electionLabel: typeLabel,
-      electionType: type,
-      electionTypeLabel: typeLabel,
-      electionYear: year,
-      electionDetailUrl: `/${prefix}/${year}/`
+      electionKey: cfg.key,
+      electionLabel: cfg.typeLabel,
+      electionType: cfg.type,
+      electionTypeLabel: cfg.typeLabel,
+      electionYear: cfg.year,
+      electionDetailUrl: cfg.detailUrl
     }));
 
     const wrapper = {
-      electionKey: key,
-      electionType: type,
-      electionLabel: typeLabel,
-      electionTypeLabel: typeLabel,
-      electionYear: year,
-      detailUrl: `/${prefix}/${year}/`,
+      electionKey: cfg.key,
+      electionType: cfg.type,
+      electionLabel: cfg.typeLabel,
+      electionTypeLabel: cfg.typeLabel,
+      electionYear: cfg.year,
+      detailUrl: cfg.detailUrl,
       candidates: candidatesWithElection
     };
 
     outEl.value = JSON.stringify(wrapper, null, 2);
-    hintEl.textContent = `Gem som /data/candidate-sources/${key}.json (matchende candidateFile i manifestet).`;
-    logLine(`KOPIÉR til /data/candidate-sources/${key}.json`);
+    hintEl.textContent = `Gem som /data/candidate-sources/${cfg.key}.json (matcher candidateFile i manifestet).`;
+    logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
   }
 
+  // ============================================================
+  // Event handlers
+  // ============================================================
   btnGenerate.addEventListener("click", async ()=>{
+    const cfg = ELECTION_CONFIG.find(c=>c.key===selectEl.value) || ELECTION_CONFIG[0];
     try{
-      await generateForCurrentSelection();
+      await generateForElection(cfg);
     }catch(err){
       console.error(err);
       logLine(`❌ FEJL: ${err.message || err}`);
