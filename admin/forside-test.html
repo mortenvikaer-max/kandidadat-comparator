@@ -346,7 +346,7 @@
       "Æ":"#666666"
     };
 
-    // Navn -> bogstav (bruges allerede andre steder)
+    // Navn -> bogstav
     const PARTY_LETTER_FROM_NAME = {
       "Socialdemokratiet": "A",
       "Radikale Venstre": "B",
@@ -360,7 +360,7 @@
       "Alternativet": "Å"
     };
 
-    // Bogstav -> navn (bruges især til ældre KV, hvor kun bogstav findes)
+    // Bogstav -> navn (især til ældre KV hvor kun bogstav findes)
     const PARTY_NAME_FROM_LETTER = {
       "A":"Socialdemokratiet",
       "B":"Radikale Venstre",
@@ -376,21 +376,34 @@
 
     // Finder bedste bud på stemmetal ud fra forskellige mulige felter
     function getBestVoteNumber(obj){
-      const fields = [
-        obj.totalVotes,
-        obj.votes,
-        obj.stemmer,
-        obj.personligeStemmer,
-        obj.personlige_stemmer,
-        obj.personlige_stemmer_i_alt
+      const fieldNames = [
+        "totalVotes",
+        "votes",
+        "stemmer",
+        "personligeStemmer",
+        "personlige_stemmer",
+        "personlige_stemmer_i_alt"
       ];
-      let best = null;
-      for(const v of fields){
-        if(typeof v === 'number' && Number.isFinite(v) && v > 0){
-          if(best === null || v > best) best = v;
-        }
+
+      let best = 0;
+
+      for (const name of fieldNames) {
+        if (!(name in obj)) continue;
+        const raw = obj[name];
+        if (raw == null || raw === "") continue;
+
+        const n = Number(
+          String(raw)
+            .trim()
+            .replace(/\./g, "")   // fjern tusindtals-punktum
+            .replace(",", ".")    // dansk komma -> punktum
+        );
+
+        if (!Number.isFinite(n) || n <= 0) continue;
+        if (n > best) best = n;
       }
-      return best || 0;
+
+      return best;
     }
 
     // ======= MANIFEST-LOADER m. DEDUP =======
@@ -410,7 +423,6 @@
 
         console.log('Manifest indlæst, valg:', electionsFromManifest);
 
-        // Midlertidig liste med ALLE kandidater (inkl. dubletter)
         const allCandidatesRaw = [];
 
         // 2) Hent kandidat-filer pr. valg
