@@ -3,712 +3,671 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Valgbar – Admin – Folketingsvalg kandidater</title>
+  <title>Valgbar – Forside (test med kandidatsøgning)</title>
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- PapaParse til CSV -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    :root { --vb-navy:#234a5a; --vb-navy-2:#1f4352; }
+    .vb-hero{
+      background: linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%);
+      color:#fff;
     }
-    .vb-card {
-      background: #fff;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    .vb-row{
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04);
     }
-    .vb-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1rem;
-      border-radius: 999px;
-      border: 1px solid #0f172a;
-      background: #0f172a;
-      color: #f9fafb;
-      font-weight: 500;
-      cursor: pointer;
+    .vb-row:hover{ box-shadow:0 4px 14px rgba(0,0,0,.06); }
+    .vb-chevron{ transition: transform .2s ease; }
+    .vb-open .vb-chevron{ transform: rotate(180deg); }
+    .vb-body{
+      overflow:hidden;
+      transition:grid-template-rows .25s ease, padding .2s ease;
+      display:grid;
+      grid-template-rows:0fr;
     }
-    .vb-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .vb-open .vb-body{ grid-template-rows:1fr; }
+    .vb-body > div{ min-height:0; }
+    .vb-yearbtn{
+      display:flex; align-items:center; justify-content:center;
+      padding:.8rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fff; font-weight:600;
     }
-    code {
-      background: #f3f4f6;
-      border-radius: 4px;
-      padding: 0.1rem 0.3rem;
-      font-size: 0.85em;
+    .vb-yearbtn:hover{ background:#f3f4f6; }
+    .vb-yearbtn[aria-disabled="true"]{ opacity:.6; cursor:not-allowed; }
+
+    /* Kandidatsøgning */
+    .vb-search-input{
+      width:100%;
+      padding:.8rem 1rem;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      font-size:1rem;
     }
-    .vb-log {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.75rem;
-      line-height: 1.4;
-      max-height: 260px;
-      overflow-y: auto;
-      background: #f9fafb;
-      border-radius: 8px;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #e5e7eb;
+    .vb-search-input:focus{
+      outline:none;
+      border-color:#0f172a;
+      box-shadow:0 0 0 1px #0f172a11;
+    }
+
+    /* Søgeresultater */
+    .vb-hit{
+      display:flex;
+      align-items:flex-start;
+      gap:0.75rem;
+      padding:0.65rem 0.85rem;
+      border-radius:10px;
+      cursor:pointer;
+    }
+    .vb-hit:hover{
+      background:#f3f4f6;
+    }
+    .vb-hit-main{
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .vb-hit-name{
+      font-size:0.98rem;
+      font-weight:600;
+      color:#0f172a;
+    }
+    .vb-hit-meta-top{
+      margin-top:0.1rem;
+      font-size:0.8rem;
+      font-weight:500;
+      color:#4b5563;
+    }
+    .vb-hit-meta-top span.font-semibold{
+      font-weight:700;
+    }
+    .vb-hit-meta-bottom{
+      margin-top:0.1rem;
+      font-size:0.78rem;
+      color:#6b7280;
+    }
+    .vb-hit-badge{
+      flex:0 0 auto;
+      margin-top:0.1rem;
+    }
+    .vb-badge{
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.8rem;
+      font-weight:600;
+      border:1px solid #d1d5db;
+      background:#e5e7eb;
+      color:#111827;
     }
   </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900">
-<header class="border-b bg-white">
-  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <a href="/" class="flex items-center gap-2">
-        <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
+<body class="bg-gray-50 text-gray-900">
+  <!-- HEADER -->
+  <header class="vb-hero">
+    <div class="mx-auto max-w-6xl px-4 pt-8 pb-3">
+      <a href="../" aria-label="Valgbar" class="inline-block">
+        <!-- bemærk: vi er i /admin/, derfor ../ -->
+        <img src="../Valgbar-transparent3.png" alt="Valgbar" class="h-28 md:h-32 w-auto" />
       </a>
-      <div class="flex flex-col">
-        <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-          Admin
-        </span>
-        <span class="text-lg font-semibold text-slate-900">
-          Folketingsvalg – generér kandidat-kildefil
-        </span>
-      </div>
     </div>
-    <span class="text-xs text-slate-500">
-      Denne side er kun til internt brug (ingen login – gem URL'en).
-    </span>
-  </div>
-</header>
 
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <!-- Intro -->
-  <section class="vb-card p-4 md:p-5 space-y-3">
-    <h1 class="text-xl md:text-2xl font-semibold">
-      Generér kandidat-kildefil til folketingsvalg
-    </h1>
-    <p class="text-sm md:text-base text-slate-700">
-      Denne side læser dine CSV-filer for Folketingsvalg og laver en samlet liste
-      af kandidater pr. område (valgkreds/storkreds/statsamt), der kan bruges i
-      kandidatindekset på forsiden.
-    </p>
-    <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
-      <li>Vælg folketingsvalg (år).</li>
-      <li>Tryk på <em>Generér kandidat-fil</em>.</li>
-      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/ftYYYY.json</code>.</li>
-    </ol>
-    <p class="text-xs text-slate-500">
-      <strong>Vigtigt:</strong> Denne side skriver ikke på serveren – du kopierer selv JSON’en op.
-    </p>
-  </section>
+    <div class="border-t border-white/20"></div>
+  </header>
 
-  <!-- Valg / konfiguration -->
-  <section class="vb-card p-4 md:p-5 space-y-3">
-    <div class="flex items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold">Vælg folketingsvalg</h2>
-      <div class="flex items-center gap-2">
-        <label for="ftElectionSelect" class="text-xs text-slate-600">
-          Folketingsvalg:
+  <!-- INDHOLD -->
+  <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
+
+    <!-- KANDIDATSØGNING -->
+    <section class="vb-row p-4 md:p-5 space-y-3">
+      <div class="flex flex-col gap-1">
+        <label for="candidateSearch"
+               class="text-sm font-semibold text-slate-800">
+          Søg efter en kandidat
         </label>
-        <select id="ftElectionSelect"
-                class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
-        </select>
-      </div>
-    </div>
-
-    <p class="text-sm text-slate-700">
-      Konfiguration for det valgte valg:
-    </p>
-    <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-      <tbody id="ftConfigTableBody" class="bg-white divide-y divide-slate-100">
-      <!-- udfyldes via JS -->
-      </tbody>
-    </table>
-
-    <p class="text-xs text-slate-500">
-      Stierne bygges automatisk som fx:
-      <br />
-      2022/2015: <code>/data/ft/ÅR/[Storkreds]/[Kreds]_allepartier.csv</code><br />
-      2019: <code>/data/ft/2019/[Storkreds]_allepartier.csv</code><br />
-      2011/2007: <code>/data/ft/ÅR/[Storkreds]/[Storkreds]_allepartier.csv</code><br />
-      2005: <code>/data/ft/2005/[Område]_allepartier.csv</code><br />
-      hvor filnavnene bruger underscores i stedet for mellemrum (fx <code>Herning_Sydkredsen_allepartier.csv</code>).
-    </p>
-  </section>
-
-  <!-- Generér kandidat-fil -->
-  <section class="vb-card p-4 md:p-5 space-y-3">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-semibold">Generér kandidat-kildefil</h2>
-        <p class="text-xs text-slate-600">
-          Resultatet er en liste af kandidater med stemmetal pr. område, klar til
-          <code>/data/candidate-sources/ftYYYY.json</code>.
+        <input id="candidateSearch"
+               type="text"
+               class="vb-search-input"
+               placeholder="Søg efter en kandidat..."
+               autocomplete="off" />
+        <p class="text-xs text-slate-500">
+          Begynd at skrive fx <em>Line</em>, så foreslås kandidater på tværs af alle valg.
         </p>
       </div>
-      <button id="btnGenerate" class="vb-btn text-sm">
-        Generér kandidat-fil
-      </button>
+
+      <div id="candidateSearchStatus"
+           class="text-xs text-slate-500 hidden"></div>
+
+      <div id="candidateResults"
+           class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden">
+        <!-- søgeresultater ind her -->
+      </div>
+    </section>
+
+    <!-- LISTE OVER VALG -->
+    <section id="list" class="space-y-3">
+      <!-- Rækker indsprøjtes af JS -->
+    </section>
+  </main>
+
+  <footer class="mt-10 border-t bg-gray-100">
+    <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
+                flex flex-col md:flex-row items-center justify-between
+                gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+      
+      <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
+        hej@valgbar.dk
+      </a>
+
+      <p class="text-center">
+        Data stammer fra KMDValg, Danmarks Statistik og valg.dk
+      </p>
+
+      <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">
+        Om Valgbar
+      </a>
     </div>
+  </footer>
 
-    <div>
-      <h3 class="text-sm font-semibold mb-1">Log</h3>
-      <div id="log" class="vb-log" aria-live="polite"></div>
-    </div>
-
-    <div class="space-y-2">
-      <label for="outputJson" class="text-sm font-medium text-slate-800">
-        Output (JSON – gem som <code>/data/candidate-sources/ftYYYY.json</code>)
-      </label>
-      <textarea id="outputJson"
-                class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-                placeholder='Tryk på "Generér kandidat-fil" for at se JSON…'
-                spellcheck="false"></textarea>
-      <p id="outputHint" class="text-xs text-slate-500"></p>
-    </div>
-  </section>
-</main>
-
-<footer class="mt-8 border-t bg-slate-100">
-  <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
-    <span>Valgbar · Admin-værktøj (Folketingsvalg kandidater)</span>
-    <span>Side genereres statisk – ingen server-side ændringer</span>
-  </div>
-</footer>
-
-<script>
-  // ============================================================
-  // KONFIG: FT-valg vi kan generere
-  // mode:
-  //  - "kreds":        storkreds + valgkredse (2015/2022)
-  //  - "storkredsFlat": én fil pr. storkreds i roden (2019)
-  //  - "storkreds":   kun storkredse med undermapper (2007/2011)
-  //  - "area2005":    statsamter/storkredse uden undermapper (2005)
-  // ============================================================
-  const FT_CONFIG = [
-    {
-      key: "ft2022",
-      year: 2022,
-      label: "Folketingsvalg 2022",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "kreds",
-      basePath: "../data/ft/2022/"
-    },
-    {
-      key: "ft2019",
-      year: 2019,
-      label: "Folketingsvalg 2019",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "storkredsFlat",
-      basePath: "../data/ft/2019/"
-    },
-    {
-      key: "ft2015",
-      year: 2015,
-      label: "Folketingsvalg 2015",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "kreds",
-      basePath: "../data/ft/2015/"
-    },
-    {
-      key: "ft2011",
-      year: 2011,
-      label: "Folketingsvalg 2011",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "storkreds",
-      basePath: "../data/ft/2011/"
-    },
-    {
-      key: "ft2007",
-      year: 2007,
-      label: "Folketingsvalg 2007",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "storkreds",
-      basePath: "../data/ft/2007/"
-    },
-    {
-      key: "ft2005",
-      year: 2005,
-      label: "Folketingsvalg 2005",
-      type: "ft",
-      typeLabel: "Folketingsvalg",
-      mode: "area2005",
-      basePath: "../data/ft/2005/"
-    }
-  ];
-
-  const el  = id => document.getElementById(id);
-  const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
-
-  const selectEl   = el("ftElectionSelect");
-  const cfgTable   = el("ftConfigTableBody");
-  const logEl      = el("log");
-  const outEl      = el("outputJson");
-  const hintEl     = el("outputHint");
-  const btnGenerate= el("btnGenerate");
-
-  function logLine(msg){
-    const time = new Date().toLocaleTimeString("da-DK");
-    const div = document.createElement("div");
-    div.textContent = `[${time}] ${msg}`;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  // ============================================================
-  // FT-struktur: storkredse, kredse, områder (fra dine sider)
-  // ============================================================
-  const STORKREDSE = [
-    "Bornholms Storkreds","Fyns Storkreds","Københavns Omegns Storkreds","Københavns Storkreds",
-    "Nordjyllands Storkreds","Nordsjællands Storkreds","Sjællands Storkreds","Sydjyllands Storkreds",
-    "Vestjyllands Storkreds","Østjyllands Storkreds"
-  ];
-
-  const KREDS_BY_STORKREDS = {
-    "Bornholms Storkreds": [ "Rønnekredsen","Aakirkebykredsen" ],
-    "Fyns Storkreds": [ "Assenskredsen","Faaborgkredsen","Middelfartkredsen","Nyborgkredsen","Odense Sydkredsen","Odense Vestkredsen","Odense Østkredsen","Svendborgkredsen" ],
-    "Københavns Omegns Storkreds": [
-      "Ballerupkredsen","Brøndbykredsen","Gentoftekredsen","Gladsaxekredsen",
-      "Hvidovrekredsen","Lyngbykredsen","Rødovrekredsen","Taastrupkredsen"
-    ],
-    "Københavns Storkreds": [ "Bispebjergkredsen","Brønshøjkredsen","Falkonerkredsen","Indre Bykredsen","Nørrebrokredsen","Slotskredsen","Sundbyvesterkredsen","Sundbyøsterkredsen","Tårnbykredsen","Valbykredsen","Vesterbrokredsen","Østerbrokredsen" ],
-    "Nordjyllands Storkreds": [ "Brønderslevkredsen","Frederikshavnkredsen","Himmerlandkredsen","Hjørringkredsen","Mariagerfjordkredsen","Thistedkredsen","Aalborg Nordkredsen","Aalborg Vestkredsen","Aalborg Østkredsen" ],
-    "Nordsjællands Storkreds": [ "Egedalkredsen","Fredensborgkredsen","Frederikssundkredsen","Helsingørkredsen","Hillerødkredsen","Rudersdalkredsen" ],
-    "Sjællands Storkreds": [ "Faxekredsen","Grevekredsen","Guldborgsundkredsen","Holbækkredsen","Kalundborgkredsen","Køgekredsen","Lollandkredsen","Næstvedkredsen","Ringstedkredsen","Roskildekredsen","Slagelsekredsen","Vordingborgkredsen" ],
-    "Sydjyllands Storkreds": [ "Esbjerg Bykredsen","Esbjerg Omegnskredsen","Fredericiakredsen","Haderslevkredsen","Kolding Nordkredsen","Kolding Sydkredsen","Sønderborgkredsen","Tønderkredsen","Vardekredsen","Vejenkredsen","Vejle Nordkredsen","Vejle Sydkredsen","Aabenraakredsen" ],
-    "Vestjyllands Storkreds": [ "Herning Nordkredsen","Herning Sydkredsen","Holstebrokredsen","Ikastkredsen","Ringkøbingkredsen","Silkeborg Nordkredsen","Silkeborg Sydkredsen","Skivekredsen","Struerkredsen","Viborg Vestkredsen","Viborg Østkredsen" ],
-    "Østjyllands Storkreds": [ "Djurskredsen","Favrskovkredsen","Hedenstedkredsen","Horsenskredsen","Randers Nordkredsen","Randers Sydkredsen","Skanderborgkredsen","Aarhus Nordkredsen","Aarhus Sydkredsen","Aarhus Vestkredsen","Aarhus Østkredsen" ]
-  };
-
-  // FT 2005 – amter + storkredse
-  const FT2005_AREAS = [
-    "Bornholms Statsamt","Frederiksborg Statsamt","Fyns Statsamt","Københavns Statsamt",
-    "Nordjyllands Statsamt","Ribe Statsamt","Ringkjøbing Statsamt","Roskilde Statsamt",
-    "Storstrøms Statsamt","Sønderjyllands Statsamt","Søndre Storkreds","Vejle Statsamt",
-    "Vestre Storkreds","Vestsjællands Statsamt","Viborg Statsamt","Østre Storkreds","Århus Statsamt"
-  ];
-
-  // ============================================================
-  // UI-init: dropdown + config-tabel
-  // ============================================================
-  (function initUI(){
-    FT_CONFIG
-      .slice()
-      .sort((a,b)=> b.year - a.year)
-      .forEach(cfg => {
-        const opt = document.createElement("option");
-        opt.value = cfg.key;
-        opt.textContent = `${cfg.label} (${cfg.key})`;
-        selectEl.appendChild(opt);
-      });
-
-    selectEl.value = "ft2022";
-
-    function renderCfgTable(){
-      const cfg = FT_CONFIG.find(c=>c.key===selectEl.value) || FT_CONFIG[0];
-      cfgTable.innerHTML = `
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Valg</td>
-          <td class="px-3 py-2">${cfg.label}</td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Type</td>
-          <td class="px-3 py-2"><code>${cfg.type}</code> – ${cfg.typeLabel}</td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">År</td>
-          <td class="px-3 py-2">${cfg.year}</td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Nøgle</td>
-          <td class="px-3 py-2"><code>${cfg.key}</code></td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Mode</td>
-          <td class="px-3 py-2 text-xs">
-            ${cfg.mode === "kreds"
-              ? "Storkredse + valgkredse (én CSV pr. valgkreds)"
-              : cfg.mode === "storkredsFlat"
-              ? "Kun storkredse, én CSV pr. storkreds i roden (fx /data/ft/2019/Nordjyllands_Storkreds_allepartier.csv)"
-              : cfg.mode === "storkreds"
-              ? "Kun storkredse (én CSV pr. storkreds i undermapper)"
-              : "FT 2005-områder (amter/storkredse, én CSV pr. område)"}
-          </td>
-        </tr>
-        <tr>
-          <td class="px-3 py-2 font-medium text-slate-600">Data-baserute</td>
-          <td class="px-3 py-2 font-mono text-xs">${cfg.basePath}</td>
-        </tr>
-      `;
-      hintEl.textContent = "";
-      outEl.value = "";
-      logEl.innerHTML = "";
-    }
-
-    renderCfgTable();
-    selectEl.addEventListener("change", renderCfgTable);
-  })();
-
-  // ============================================================
-  // CSV helpers
-  // ============================================================
-  async function fetchCsvText(url){
-    const res = await fetch(url, { cache: "no-store" });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  }
-
-  function parseCsvText(text){
-    const parsed = Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: h => (h || "").toString().trim().toLowerCase()
-    });
-    return parsed.data;
-  }
-
-  function toNum(v){
-    if(v == null || v === "") return 0;
-    const s = String(v)
-      .trim()
-      .replace(/\./g, "")   // fjern tusindtals-punktum
-      .replace(",", ".");   // dansk komma -> punktum
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  function toFileBase(name){
-    return (name || "").toString().replace(/ /g, "_");
-  }
-
-  // Map én CSV-række til vores interne FT-struktur
-  function mapRowFt(raw, ctx){
-    const r = raw;
-
-    // Kandidatnavn
-    let kandidatNavn =
-      (r.kandidat_navn ||
-       r.kandidatnavn ||
-       r["navn"] ||
-       r["kandidat"] ||
-       "").toString().trim();
-
-    if(!kandidatNavn){
-      for(const [key,val] of Object.entries(r)){
-        const lk = key.toLowerCase();
-        if(/navn/.test(lk) && !/parti|kommune|region|kreds|storkreds/.test(lk)){
-          kandidatNavn = String(val || "").trim();
-          if(kandidatNavn) break;
-        }
-      }
-    }
-
-    // Kandidat-ID
-    let kandidatId =
-      (r.kandidat_id ||
-       r.kandidatid ||
-       r["kandidat id"] ||
-       r["kandidat-id"] ||
-       r["kandidat nr"] ||
-       r["kandidat_nr"] ||
-       r["kandidat nr."] ||
-       r["kandidatnummer"] ||
-       r["kandidat"] ||
-       kandidatNavn ||
-       "").toString().trim();
-
-    // Parti-navn
-    let partyName =
-      (r.parti ||
-       r.partinavn ||
-       "").toString().trim();
-
-    if(!partyName){
-      for(const [key,val] of Object.entries(r)){
-        const lk = key.toLowerCase();
-        if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
-          partyName = String(val || "").trim();
-          if(partyName) break;
-        }
-      }
-    }
-
-    // Partibogstav
-    let partiBogstav =
-      (r.parti_bogstav ||
-       r.listebogstav ||
-       r["partibogstav"] ||
-       "").toString().trim();
-
-    if(!partiBogstav){
-      for(const [key,val] of Object.entries(r)){
-        const lk = key.toLowerCase();
-        if(/bogstav/.test(lk) || /listebogstav/.test(lk)){
-          partiBogstav = String(val || "").trim();
-          if(partiBogstav) break;
-        }
-      }
-    }
-
-    // Stemmer
-    let stemmer = 0;
-    const voteFields = [
-      "stemmer",
-      "personlige_stemmer",
-      "personlige stemmer",
-      "personlige stemmer i alt",
-      "pers_stemmer",
-      "pers. stemmer",
-      "persstemmer",
-      "antal stemmer",
-      "stemmer i alt"
-    ];
-    for(const f of voteFields){
-      if(r[f] != null && r[f] !== ""){
-        stemmer += toNum(r[f]);
-      }
-    }
-    if(stemmer === 0){
-      for(const [key,val] of Object.entries(r)){
-        const lk = key.toLowerCase();
-        if(/stem/.test(lk) && val !== ""){
-          stemmer += toNum(val);
-        }
-      }
-    }
-
-    const name = kandidatNavn;
-    const area   = ctx.areaName || "";
-    const storkreds = ctx.storkredsName || ctx.areaName || "";
-
-    const normName = (name || "")
-      .toString()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu,"")
-      .toLowerCase()
-      .trim();
-
-    return {
-      candidateId: kandidatId,
-      name,
-      displayName: name,
-      normalizedName: normName,
-      nameVariants: [ name ].filter(Boolean),
-      party: partyName,
-      partyShort: partiBogstav || "",
-      totalVotes: stemmer,
-      area,
-      region: "",   // FT: vi bruger storkreds/area i stedet
-      kommune: "",
-      storkreds
+  <script>
+    /* ====== KONFIG: ÅR & DESTINATIONER ====== */
+    const YEARS = {
+      ft: [2022, 2019, 2015, 2011, 2007],
+      kv: [2021, 2017, 2013, 2009, 2005],
+      rv: [2021, 2017],
+      ep: [2024, 2019, 2014, 2009],
+      fa: [2022, 2015, 2014]
     };
-  }
 
-  function buildCandidateRecords(allMapped){
-    const map = new Map();
+    const DISABLED = {};
 
-    for(const r of allMapped){
-      if(!r.candidateId) continue;
-      const areaKey = r.area || "";
-      const key = `${areaKey}::${r.candidateId}`;
+    const DEST = {
+      kv: { perYear: {
+        2021: '../kv/2021/',
+        2017: '../kv/2017/',
+        2013: '../kv/2013/',
+        2009: '../kv/2009/',
+        2005: '../kv/2005/',
+        2001: '../kv/2001/'
+      }},
+      ft: { perYear: {
+        2022: '../ft/2022/',
+        2019: '../ft/2019/',
+        2015: '../ft/2015/',
+        2011: '../ft/2011/',
+        2007: '../ft/2007/',
+        2005: '../ft/2005/'
+      }},
+      rv: { perYear: {
+        2021: '../rv/2021/',
+        2017: '../rv/2017/',
+        2013: '../rv/2013/'
+      }},
+      ep: { perYear: {
+        2024: '../ep/2024/',
+        2019: '../ep/2019/',
+        2014: '../ep/2014/',
+        2009: '../ep/2009/',
+        2004: '../ep/2004/'
+      }},
+      fa: { perYear: {
+        2022: '../fa/2022/',
+        2015: '../fa/2015/',
+        2014: '../fa/2014/'
+      }}
+    };
 
-      if(!map.has(key)){
-        map.set(key, {
-          candidateId: r.candidateId,
-          name: r.name,
-          displayName: r.displayName,
-          normalizedName: r.normalizedName,
-          nameVariants: r.nameVariants.slice(),
-          party: r.party,
-          partyShort: r.partyShort || "",
-          totalVotes: 0,
-          area: r.area,
-          region: r.region,
-          kommune: r.kommune,
-          storkreds: r.storkreds
-        });
+    const TITLES = {
+      ft:'Folketingsvalg',
+      kv:'Kommunalvalg',
+      rv:'Regionsrådsvalg',
+      ep:'Europa-Parlamentsvalg',
+      fa:'Folkeafstemning'
+    };
+
+    const ORDER = ['ft','kv','rv','ep','fa'];
+
+    /* ====== RENDER: VALG-LISTEN ====== */
+    const root = document.getElementById('list');
+
+    ORDER.forEach(type=>{
+      const years = YEARS[type] || [];
+      const article = document.createElement('article');
+      article.className = 'vb-row';
+
+      article.innerHTML = `
+        <button type="button"
+                class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left"
+                aria-expanded="false"
+                data-acc="${type}">
+          <h2 class="text-base md:text-lg font-semibold text-slate-800 flex-1">${TITLES[type]}</h2>
+          <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/>
+          </svg>
+        </button>
+
+        <div class="vb-body">
+          <div>
+            <div class="px-4 md:px-5 pt-0 pb-4">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                ${years.map(y=>{
+                  const isDisabled = DISABLED[type]?.includes(y);
+                  const hasUrl = !!DEST[type]?.perYear?.[y];
+                  const active = hasUrl && !isDisabled;
+                  const url = active ? DEST[type].perYear[y] : '#';
+                  return `<a class="vb-yearbtn"
+                               href="${url}"
+                               data-type="${type}" data-year="${y}"
+                               aria-disabled="${active ? 'false':'true'}">${y}</a>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      root.appendChild(article);
+    });
+
+    /* ====== INTERAKTION: ACCORDION ====== */
+    root.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-acc]');
+      if(btn){
+        const article = btn.closest('article');
+        const open = article.classList.toggle('vb-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if(open){
+          document.querySelectorAll('#list article.vb-open').forEach(el=>{
+            if(el!==article){
+              el.classList.remove('vb-open');
+              el.querySelector('[data-acc]').setAttribute('aria-expanded','false');
+            }
+          });
+        }
       }
-      map.get(key).totalVotes += r.totalVotes || 0;
+    });
+
+    root.addEventListener('keydown', (e)=>{
+      const btn = e.target.closest('[data-acc]');
+      if(btn && (e.key==='Enter' || e.key===' ')){
+        e.preventDefault(); btn.click();
+      }
+    });
+
+    root.addEventListener('click', (e)=>{
+      const link = e.target.closest('.vb-yearbtn');
+      if(!link) return;
+      const active = link.getAttribute('aria-disabled') === 'false';
+      if(!active){
+        e.preventDefault();
+        const type = link.getAttribute('data-type');
+        const year = link.getAttribute('data-year');
+        alert(`${TITLES[type]} ${year} er ikke aktiveret endnu.`);
+      }
+    });
+
+    /* =====================================================
+       KANDIDATSØGNING – manifest + candidate-sources
+       ===================================================== */
+    const searchInput   = document.getElementById('candidateSearch');
+    const resultsRoot   = document.getElementById('candidateResults');
+    const statusEl      = document.getElementById('candidateSearchStatus');
+
+    let candidateIndex  = null;
+    let flatCandidates  = [];
+    let lastQuery       = '';
+
+    function normalizeName(str){
+      return (str || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu,'')
+        .toLowerCase()
+        .trim();
     }
 
-    const list = Array.from(map.values());
-    list.sort((a,b)=> (a.name || "").localeCompare(b.name || "", "da"));
-    return list;
-  }
+    // Farver til partibogstav
+    const PARTY_COLORS = {
+      "A":"#e03a3e",
+      "B":"#712082",
+      "C":"#2e7d32",
+      "D":"#0f766e",
+      "F":"#e5003d",
+      "I":"#00a0e3",
+      "K":"#ff9800",
+      "O":"#0044aa",
+      "V":"#1b5eaa",
+      "Ø":"#c8102e",
+      "Å":"#3aaa35",
+      "Q":"#ff4fa3",
+      "Æ":"#666666"
+    };
 
-  // ============================================================
-  // Indlæs alle rækker for valgt FT-år
-  // ============================================================
-  async function loadRowsForElection(cfg){
-    const allMapped = [];
+    // Hvis partyShort mangler, forsøg at slå bogstav op ud fra fuldt partinavn
+    const PARTY_LETTER_FROM_NAME = {
+      "Socialdemokratiet": "A",
+      "Radikale Venstre": "B",
+      "Det Konservative Folkeparti": "C",
+      "SF - Socialistisk Folkeparti": "F",
+      "Liberal Alliance": "I",
+      "Kristendemokraterne": "K",
+      "Dansk Folkeparti": "O",
+      "Venstre, Danmarks Liberale Parti": "V",
+      "Enhedslisten - De Rød-Grønne": "Ø",
+      "Alternativet": "Å"
+    };
 
-    if(cfg.mode === "kreds"){
-      // 2015/2022 – storkreds + valgkredse
-      for(const storkreds of STORKREDSE){
-        const kredse = KREDS_BY_STORKREDS[storkreds] || [];
-        for(const kreds of kredse){
-          const folder   = encodeURIComponent(storkreds);
-          const fileBase = toFileBase(kreds);
-          const url = `${cfg.basePath}${folder}/${fileBase}_allepartier.csv`;
+    // MODSAT: hvis vi kun har bogstav (fx KV2013/09/05), slå fuldt navn op
+    const PARTY_NAME_FROM_LETTER = {
+      "A": "Socialdemokratiet",
+      "B": "Radikale Venstre",
+      "C": "Det Konservative Folkeparti",
+      "F": "SF - Socialistisk Folkeparti",
+      "I": "Liberal Alliance",
+      "K": "Kristendemokraterne",
+      "O": "Dansk Folkeparti",
+      "V": "Venstre, Danmarks Liberale Parti",
+      "Ø": "Enhedslisten - De Rød-Grønne",
+      "Å": "Alternativet"
+    };
 
-          try{
-            const text = await fetchCsvText(url);
-            const rows = parseCsvText(text);
-            logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
+    async function loadCandidateIndex(){
+      if(candidateIndex) return;
+      try{
+        statusEl.classList.remove('hidden');
+        statusEl.textContent = 'Indlæser kandidatindeks…';
 
-            rows.forEach((r, idx) => {
-              try{
-                allMapped.push(mapRowFt(r, {
-                  areaName: kreds,
-                  storkredsName: storkreds
+        // 1) Manifest
+        const manRes = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
+        if(!manRes.ok) throw new Error('Manifest HTTP ' + manRes.status);
+        const manifest = await manRes.json();
+
+        const elections = manifest.elections || [];
+        const enriched = [];
+
+        // 2) Hent alle candidate-sources parallelt
+        await Promise.all(elections.map(async (el) => {
+          const entry = { ...el, candidates: [] };
+
+          if(el.candidateFile){
+            const url = '..' + el.candidateFile;   // candidateFile starter med /data/...
+            try{
+              const res = await fetch(url + '?ts=' + Date.now(), { cache:'no-store' });
+              if(res.ok){
+                const json = await res.json();
+                const list = Array.isArray(json)
+                  ? json
+                  : (Array.isArray(json.candidates) ? json.candidates : []);
+
+                entry.candidates = list.map(c => ({
+                  ...c,
+                  electionKey: c.electionKey || el.key,
+                  electionLabel: c.electionLabel || el.typeLabel,
+                  electionType: c.electionType || el.type,
+                  electionTypeLabel: c.electionTypeLabel || el.typeLabel,
+                  electionYear: c.electionYear || el.year,
+                  electionDetailUrl: c.electionDetailUrl || el.detailUrl
                 }));
-              }catch(e){
-                logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
+              }else{
+                console.warn('Kunne ikke hente candidates for', el.key, res.status);
               }
-            });
-          }catch(err){
-            logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
+            }catch(err){
+              console.error('Fejl ved fetch af', el.key, err);
+            }
+          }
+
+          enriched.push(entry);
+        }));
+
+        candidateIndex = { ...manifest, elections: enriched };
+
+        flatCandidates = [];
+        candidateIndex.elections.forEach(el => {
+          (el.candidates || []).forEach(c => {
+            flatCandidates.push({ ...c });
+          });
+        });
+
+        statusEl.textContent =
+          `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
+      }catch(err){
+        console.error(err);
+        statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
+      }
+    }
+
+    function searchCandidates(query){
+      const q = normalizeName(query);
+      if(!q) return [];
+
+      const results = [];
+      for(const c of flatCandidates){
+        const base = normalizeName(c.displayName || c.name || '');
+        const variants = (c.nameVariants || []).map(normalizeName);
+
+        let score = -Infinity;
+
+        if(base.startsWith(q)) score = 300 - (base.length - q.length);
+        else if(base.includes(q)) score = 200 - base.indexOf(q);
+
+        if(score === -Infinity){
+          const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
+          if(hitVariant){
+            if(hitVariant.startsWith(q)) score = 250 - (hitVariant.length - q.length);
+            else score = 180 - hitVariant.indexOf(q);
           }
         }
-      }
-    } else if (cfg.mode === "storkredsFlat") {
-      // 2019 – én fil pr. storkreds i roden: [Storkreds]_allepartier.csv
-      for (const storkreds of STORKREDSE) {
-        const fileBase = toFileBase(storkreds);
-        const url = `${cfg.basePath}${fileBase}_allepartier.csv`;
 
-        try {
-          const text = await fetchCsvText(url);
-          const rows = parseCsvText(text);
-          logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
-
-          rows.forEach((r, idx) => {
-            try {
-              allMapped.push(mapRowFt(r, {
-                areaName: storkreds,
-                storkredsName: storkreds
-              }));
-            } catch (e) {
-              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
-            }
-          });
-        } catch (err) {
-          logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
+        if(score > -Infinity){
+          results.push({ c, score });
         }
       }
-    } else if(cfg.mode === "storkreds"){
-      // 2007/2011 – storkreds-niveau med undermapper
-      for(const storkreds of STORKREDSE){
-        const folder   = encodeURIComponent(storkreds);
-        const fileBase = toFileBase(storkreds);
-        const url = `${cfg.basePath}${folder}/${fileBase}_allepartier.csv`;
 
-        try{
-          const text = await fetchCsvText(url);
-          const rows = parseCsvText(text);
-          logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
+      // Tag de bedste 40 og sortér (navn → år → stemmer → type → id)
+      const top = results
+        .sort((a,b)=> b.score - a.score)
+        .slice(0, 40)
+        .map(r => r.c);
 
-          rows.forEach((r, idx) => {
-            try{
-              allMapped.push(mapRowFt(r, {
-                areaName: storkreds,
-                storkredsName: storkreds
-              }));
-            }catch(e){
-              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
-            }
-          });
-        }catch(err){
-          logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
+      const typePriority = { ep:4, ft:3, rv:2, kv:1 };
+
+      top.sort((a,b)=>{
+        const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
+        const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
+        if (nameA !== nameB) {
+          return nameA.localeCompare(nameB, 'da-DK');
         }
-      }
-    } else if(cfg.mode === "area2005"){
-      // 2005 – statsamter/storkredse uden undermapper
-      for(const area of FT2005_AREAS){
-        const fileBase = toFileBase(area);
-        const url = `${cfg.basePath}${fileBase}_allepartier.csv`;
 
-        try{
-          const text = await fetchCsvText(url);
-          const rows = parseCsvText(text);
-          logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
-
-          rows.forEach((r, idx) => {
-            try{
-              allMapped.push(mapRowFt(r, {
-                areaName: area,
-                storkredsName: area   // vi bruger området som “storkreds”-label
-              }));
-            }catch(e){
-              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
-            }
-          });
-        }catch(err){
-          logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
+        const yearA = a.electionYear || 0;
+        const yearB = b.electionYear || 0;
+        if (yearA !== yearB) {
+          return yearB - yearA; // nyeste først
         }
-      }
+
+        const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
+        const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
+        if (votesA !== votesB) {
+          return votesB - votesA; // flest stemmer først
+        }
+
+        const prioA = typePriority[a.electionType] || 0;
+        const prioB = typePriority[b.electionType] || 0;
+        if (prioA !== prioB) {
+          return prioB - prioA;
+        }
+
+        const idA = (a.candidateId || '').toString();
+        const idB = (b.candidateId || '').toString();
+        return idA.localeCompare(idB, 'da-DK');
+      });
+
+      return top.slice(0, 20);
     }
 
-    return allMapped;
-  }
+    function renderResults(query){
+      const q = query.trim();
+      if(!q || !flatCandidates.length){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
+        return;
+      }
 
-  // ============================================================
-  // Generér JSON for valgt FT-valg
-  // ============================================================
-  async function generateForElection(cfg){
-    logEl.innerHTML = "";
-    outEl.value = "";
-    hintEl.textContent = "";
+      const hits = searchCandidates(q);
+      if(!hits.length){
+        resultsRoot.innerHTML = `
+          <div class="px-3 py-2 text-xs text-slate-500">
+            Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
+          </div>`;
+        resultsRoot.classList.remove('hidden');
+        return;
+      }
 
-    logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
-    logLine(`Base: ${cfg.basePath} (mode: ${cfg.mode})`);
+      resultsRoot.innerHTML = hits.map(hit => {
+        let party      = (hit.party || '').trim();
+        let partyShort = (hit.partyShort || '').trim();
 
-    const allMapped = await loadRowsForElection(cfg);
-    logLine(`Færdig med at læse CSV – totalt ${fmt(allMapped.length)} rækkedata.`);
+        // fallback: 1) bogstav ud fra fuldt navn
+        if (!partyShort && party) {
+          const mapped = PARTY_LETTER_FROM_NAME[party];
+          if (mapped) partyShort = mapped;
+        }
+        // fallback: 2) fuldt navn ud fra bogstav (KV2013/09/05 osv.)
+        if (!party && partyShort && PARTY_NAME_FROM_LETTER[partyShort]) {
+          party = PARTY_NAME_FROM_LETTER[partyShort];
+        }
 
-    const candidates = buildCandidateRecords(allMapped);
-    logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × område).`);
+        const votes = typeof hit.totalVotes === 'number'
+                       ? hit.totalVotes.toLocaleString('da-DK')
+                       : '?';
 
-    const candidatesWithElection = candidates.map(c => ({
-      ...c,
-      electionKey: cfg.key,
-      electionLabel: cfg.typeLabel,
-      electionType: cfg.type,
-      electionTypeLabel: cfg.typeLabel,
-      electionYear: cfg.year,
-      electionDetailUrl: `/ft/${cfg.year}/`
-    }));
+        // område-tekst til visning
+        let area = '';
+        if (hit.electionType === 'kv' || hit.electionType === 'rv') {
+          area = hit.kommune || hit.area || '';
+        } else if (hit.electionType === 'ft') {
+          area = hit.storkreds || hit.area || '';
+        } else {
+          area = hit.area || '';
+        }
 
-    const wrapper = {
-      electionKey: cfg.key,
-      electionType: cfg.type,
-      electionLabel: cfg.typeLabel,
-      electionTypeLabel: cfg.typeLabel,
-      electionYear: cfg.year,
-      detailUrl: `/ft/${cfg.year}/`,
-      candidates: candidatesWithElection
-    };
+        const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
+        const year       = hit.electionYear || '';
 
-    outEl.value = JSON.stringify(wrapper, null, 2);
-    hintEl.textContent = `Gem som /data/candidate-sources/${cfg.key}.json (matcher candidateFile i manifestet).`;
-    logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
-  }
+        const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
 
-  // ============================================================
-  // Event handlers
-  // ============================================================
-  btnGenerate.addEventListener("click", async ()=>{
-    const cfg = FT_CONFIG.find(c=>c.key===selectEl.value) || FT_CONFIG[0];
-    try{
-      await generateForElection(cfg);
-    }catch(err){
-      console.error(err);
-      logLine(`❌ FEJL: ${err.message || err}`);
+        let partyLabel = '';
+        if (party) {
+          partyLabel = partyShort ? `${party} (${partyShort})` : party;
+        } else if (partyShort) {
+          partyLabel = `Parti ${partyShort}`;
+        }
+
+        // ØVERSTE LINJE: valg + område + stemmer
+        const topParts = [];
+        if (electionLabel) topParts.push(electionLabel);
+        if (area) topParts.push(area);
+        if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
+        const topMeta = topParts.join(' · ');
+
+        // NEDERSTE LINJE: parti
+        const bottomMeta = partyLabel || '';
+
+        // badge-stil
+        let badgeStyle = '';
+        let badgeText  = '';
+        if (partyShort) {
+          const color = PARTY_COLORS[partyShort] || null;
+          if (color) {
+            badgeStyle = `background:${color};color:#fff;border-color:${color}`;
+          } else {
+            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+          }
+          badgeText = partyShort;
+        }
+
+        const name = hit.displayName || hit.name || '';
+
+        return `
+          <button type="button"
+                  class="w-full text-left vb-hit"
+                  data-cand-id="${hit.candidateId || ''}"
+                  data-detail-url="${hit.electionDetailUrl || '/'}"
+                  data-region="${hit.region || ''}"
+                  data-kommune="${hit.kommune || hit.area || ''}"
+                  data-storkreds="${hit.storkreds || ''}"
+                  data-election-type="${hit.electionType || ''}"
+                  data-election-year="${hit.electionYear || ''}">
+            ${partyShort ? `
+              <span class="vb-hit-badge">
+                <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
+              </span>` : ''}
+            <div class="vb-hit-main">
+              <div class="vb-hit-name">${name}</div>
+              ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
+              ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      resultsRoot.classList.remove('hidden');
+
+      // klik-håndtering – bygger URL med passende parametre
+      resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cid     = btn.getAttribute('data-cand-id') || '';
+          const baseUrl = btn.getAttribute('data-detail-url') || '/';
+
+          const type    = btn.getAttribute('data-election-type') || '';
+          const region  = btn.getAttribute('data-region') || '';
+          const kommune = btn.getAttribute('data-kommune') || '';
+          const stork   = btn.getAttribute('data-storkreds') || '';
+
+          const params = new URLSearchParams();
+
+          if (type === 'kv' || type === 'rv') {
+            if (region)  params.set('region', region);
+            if (kommune) params.set('kommune', kommune);
+          } else if (type === 'ft') {
+            if (stork) params.set('storkreds', stork);
+          }
+          // fælles for alle: kandidat-id
+          if (cid) params.set('cand', cid);
+
+          const sep = baseUrl.includes('?') ? '&' : '?';
+          const url = baseUrl + sep + params.toString();
+          window.location.href = url;
+        });
+      });
     }
-  });
-</script>
+
+    // Lazy-load kandidatindeks ved fokus / første input
+    let indexLoadingTriggered = false;
+
+    searchInput.addEventListener('focus', () => {
+      if(!indexLoadingTriggered){
+        indexLoadingTriggered = true;
+        loadCandidateIndex();
+      }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value || '';
+      lastQuery = val;
+      if(!val.trim()){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
+        return;
+      }
+      if(!candidateIndex){
+        statusEl.classList.remove('hidden');
+        statusEl.textContent = 'Indlæser kandidatindeks…';
+      }
+      renderResults(val);
+    });
+  </script>
 </body>
 </html>
