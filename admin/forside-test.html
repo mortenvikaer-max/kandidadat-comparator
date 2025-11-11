@@ -476,16 +476,10 @@
         let party      = (hit.party || '').trim();
         let partyShort = (hit.partyShort || '').trim();
 
-        // fallback: slå bogstav op ud fra partinavn
-        if(!partyShort && party){
+        // fallback: slå bogstav op ud fra partinavn (gælder også KV2013)
+        if (!partyShort && party) {
           const mapped = PARTY_LETTER_FROM_NAME[party];
-          if(mapped) partyShort = mapped;
-        }
-
-        // KV2013: vi vil ikke vise partibogstav (hverken badge eller "(A)")
-        const suppressPartyShort = (hit.electionType === 'kv' && hit.electionYear === 2013);
-        if (suppressPartyShort) {
-          partyShort = '';
+          if (mapped) partyShort = mapped;
         }
 
         const votes      = typeof hit.totalVotes === 'number'
@@ -509,10 +503,8 @@
 
         let partyLabel = '';
         if (party) {
-          partyLabel = suppressPartyShort
-            ? party
-            : (partyShort ? `${party} (${partyShort})` : party);
-        } else if (partyShort && !suppressPartyShort) {
+          partyLabel = partyShort ? `${party} (${partyShort})` : party;
+        } else if (partyShort) {
           partyLabel = `Parti ${partyShort}`;
         }
 
@@ -531,7 +523,7 @@
         // badge-stil
         let badgeStyle = '';
         let badgeText  = '';
-        if (partyShort && !suppressPartyShort) {
+        if (partyShort) {
           const color = PARTY_COLORS[partyShort] || null;
           if (color) {
             badgeStyle = `background:${color};color:#fff;border-color:${color}`;
@@ -541,7 +533,7 @@
           badgeText = partyShort;
         }
 
-        // NAVN – nu uden kommune bagefter
+        // NAVN – uden kommune bagefter
         const name = hit.displayName || hit.name || '';
 
         return `
@@ -551,7 +543,7 @@
                   data-detail-url="${hit.electionDetailUrl || '/'}"
                   data-region="${hit.region || ''}"
                   data-kommune="${hit.kommune || hit.area || ''}">
-            ${partyShort && !suppressPartyShort ? `
+            ${partyShort ? `
               <span class="vb-hit-badge">
                 <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
               </span>` : ''}
