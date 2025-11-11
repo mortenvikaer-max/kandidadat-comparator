@@ -126,7 +126,8 @@
     <p class="text-xs text-slate-500">
       Stierne bygges automatisk som fx:
       <br />
-      2022: <code>/data/ft/2022/[Storkreds]/[Kreds]_allepartier.csv</code><br />
+      2022/2015: <code>/data/ft/ÅR/[Storkreds]/[Kreds]_allepartier.csv</code><br />
+      2019: <code>/data/ft/2019/[Storkreds]_allepartier.csv</code><br />
       2011/2007: <code>/data/ft/ÅR/[Storkreds]/[Storkreds]_allepartier.csv</code><br />
       2005: <code>/data/ft/2005/[Område]_allepartier.csv</code><br />
       hvor filnavnene bruger underscores i stedet for mellemrum (fx <code>Herning_Sydkredsen_allepartier.csv</code>).
@@ -177,9 +178,10 @@
   // ============================================================
   // KONFIG: FT-valg vi kan generere
   // mode:
-  //  - "kreds":   storkreds + valgkredse (2015/2019/2022)
-  //  - "storkreds": kun storkredse (2007/2011)
-  //  - "area2005": statsamter/storkredse uden undermapper (2005)
+  //  - "kreds":        storkreds + valgkredse (2015/2022)
+  //  - "storkredsFlat": én fil pr. storkreds i roden (2019)
+  //  - "storkreds":   kun storkredse med undermapper (2007/2011)
+  //  - "area2005":    statsamter/storkredse uden undermapper (2005)
   // ============================================================
   const FT_CONFIG = [
     {
@@ -197,7 +199,7 @@
       label: "Folketingsvalg 2019",
       type: "ft",
       typeLabel: "Folketingsvalg",
-      mode: "kreds",
+      mode: "storkredsFlat",
       basePath: "../data/ft/2019/"
     },
     {
@@ -329,8 +331,10 @@
           <td class="px-3 py-2 text-xs">
             ${cfg.mode === "kreds"
               ? "Storkredse + valgkredse (én CSV pr. valgkreds)"
+              : cfg.mode === "storkredsFlat"
+              ? "Kun storkredse, én CSV pr. storkreds i roden (fx /data/ft/2019/Nordjyllands_Storkreds_allepartier.csv)"
               : cfg.mode === "storkreds"
-              ? "Kun storkredse (én CSV pr. storkreds)"
+              ? "Kun storkredse (én CSV pr. storkreds i undermapper)"
               : "FT 2005-områder (amter/storkredse, én CSV pr. område)"}
           </td>
         </tr>
@@ -504,8 +508,6 @@
   }
 
   function buildCandidateRecords(allMapped){
-    // Slår sammen på (area + candidateId), så en kandidat i flere rækker
-    // inden for samme område får summeret stemmerne.
     const map = new Map();
 
     for(const r of allMapped){
@@ -544,7 +546,7 @@
     const allMapped = [];
 
     if(cfg.mode === "kreds"){
-      // 2015/2019/2022 – storkreds + valgkredse
+      // 2015/2022 – storkreds + valgkredse
       for(const storkreds of STORKREDSE){
         const kredse = KREDS_BY_STORKREDS[storkreds] || [];
         for(const kreds of kredse){
@@ -572,8 +574,33 @@
           }
         }
       }
+    } else if (cfg.mode === "storkredsFlat") {
+      // 2019 – én fil pr. storkreds i roden: [Storkreds]_allepartier.csv
+      for (const storkreds of STORKREDSE) {
+        const fileBase = toFileBase(storkreds);
+        const url = `${cfg.basePath}${fileBase}_allepartier.csv`;
+
+        try {
+          const text = await fetchCsvText(url);
+          const rows = parseCsvText(text);
+          logLine(`✔ Indlæste ${fmt(rows.length)} rækker fra ${url}`);
+
+          rows.forEach((r, idx) => {
+            try {
+              allMapped.push(mapRowFt(r, {
+                areaName: storkreds,
+                storkredsName: storkreds
+              }));
+            } catch (e) {
+              logLine(`   ↳ Mapping-fejl i ${url}, række ${idx}: ${e.message || e}`);
+            }
+          });
+        } catch (err) {
+          logLine(`… Kunne ikke læse ${url} (${err.message || err})`);
+        }
+      }
     } else if(cfg.mode === "storkreds"){
-      // 2007/2011 – storkreds-niveau
+      // 2007/2011 – storkreds-niveau med undermapper
       for(const storkreds of STORKREDSE){
         const folder   = encodeURIComponent(storkreds);
         const fileBase = toFileBase(storkreds);
