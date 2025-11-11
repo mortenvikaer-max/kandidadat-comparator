@@ -589,3 +589,162 @@
         const idB = (b.candidateId || '').toString();
         return idA.localeCompare(idB, 'da-DK');
       });
+
+      // Til sidst begrænser vi til 20 viste rækker
+      return top.slice(0, 20);
+    }
+
+    function renderResults(query){
+      const q = query.trim();
+      if(!q || !flatCandidates.length){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
+        return;
+      }
+
+      const hits = searchCandidates(q);
+      if(!hits.length){
+        resultsRoot.innerHTML = `
+          <div class="px-3 py-2 text-xs text-slate-500">
+            Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
+          </div>`;
+        resultsRoot.classList.remove('hidden');
+        return;
+      }
+
+      resultsRoot.innerHTML = hits.map(hit => {
+        let party      = (hit.party || '').trim();
+        let partyShort = (hit.partyShort || '').trim();
+
+        // fallback: slå bogstav op ud fra partinavn (gælder også ældre KV)
+        if (!partyShort && party) {
+          const mapped = PARTY_LETTER_FROM_NAME[party];
+          if (mapped) partyShort = mapped;
+        }
+
+        const votes      = typeof hit.totalVotes === 'number'
+                           ? hit.totalVotes.toLocaleString('da-DK')
+                           : '?';
+
+        // område
+        let area = '';
+        if (hit.electionType === 'kv' || hit.electionType === 'rv') {
+          area = hit.kommune || hit.area || '';
+        } else if (hit.electionType === 'ft') {
+          area = hit.storkreds || hit.area || '';
+        } else {
+          area = '';
+        }
+
+        const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
+        const year       = hit.electionYear || '';
+
+        const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
+
+        let partyLabel = '';
+        if (party) {
+          partyLabel = partyShort ? `${party} (${partyShort})` : party;
+        } else if (partyShort) {
+          partyLabel = `Parti ${partyShort}`;
+        }
+
+        // ØVERSTE LINJE: valg + område + stemmer
+        const topParts = [];
+        if (electionLabel) topParts.push(electionLabel);
+        if (area) topParts.push(area);
+        if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
+        const topMeta = topParts.join(' · ');
+
+        // NEDERSTE LINJE: parti
+        const bottomParts = [];
+        if (partyLabel) bottomParts.push(partyLabel);
+        const bottomMeta = bottomParts.join(' · ');
+
+        // badge-stil
+        let badgeStyle = '';
+        let badgeText  = '';
+        if (partyShort) {
+          const color = PARTY_COLORS[partyShort] || null;
+          if (color) {
+            badgeStyle = `background:${color};color:#fff;border-color:${color}`;
+          } else {
+            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+          }
+          badgeText = partyShort;
+        }
+
+        // NAVN – uden kommune bagefter
+        const name = hit.displayName || hit.name || '';
+
+        return `
+          <button type="button"
+                  class="w-full text-left vb-hit"
+                  data-cand-id="${hit.candidateId || ''}"
+                  data-detail-url="${hit.electionDetailUrl || '/'}"
+                  data-region="${hit.region || ''}"
+                  data-kommune="${hit.kommune || hit.area || ''}">
+            ${partyShort ? `
+              <span class="vb-hit-badge">
+                <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
+              </span>` : ''}
+            <div class="vb-hit-main">
+              <div class="vb-hit-name">${name}</div>
+              ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
+              ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      resultsRoot.classList.remove('hidden');
+
+      // klik-håndtering – bygger URL med region + kommune + cand hvis muligt
+      resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cid     = btn.getAttribute('data-cand-id') || '';
+          const baseUrl = btn.getAttribute('data-detail-url') || '/';
+          const region  = btn.getAttribute('data-region') || '';
+          const kommune = btn.getAttribute('data-kommune') || '';
+
+          const params = new URLSearchParams();
+
+          if(region && kommune){
+            params.set('region', region);
+            params.set('kommune', kommune);
+          }
+          params.set('cand', cid);
+
+          const sep = baseUrl.includes('?') ? '&' : '?';
+          const url = baseUrl + sep + params.toString();
+          window.location.href = url;
+        });
+      });
+    }
+
+    // Lazy-load kandidatindeks ved fokus / første input
+    let indexLoadingTriggered = false;
+
+    searchInput.addEventListener('focus', () => {
+      if(!indexLoadingTriggered){
+        indexLoadingTriggered = true;
+        loadCandidateIndex();
+      }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value || '';
+      lastQuery = val;
+      if(!val.trim()){
+        resultsRoot.innerHTML = '';
+        resultsRoot.classList.add('hidden');
+        return;
+      }
+      if(!candidateIndex){
+        statusEl.classList.remove('hidden');
+        statusEl.textContent = 'Indlæser kandidatindeks…';
+      }
+      renderResults(val);
+    });
+  </script>
+</body>
+</html>
