@@ -385,7 +385,6 @@
       return Number.isFinite(n) && n > 0 ? n : 0;
     }
 
-    // Finder bedste bud på stemmetal ud fra forskellige mulige felter
     function getBestVoteNumber(obj){
       const fieldNames = [
         "totalVotes",
@@ -398,14 +397,12 @@
 
       let best = 0;
 
-      // 1) Kendte felter
       for (const name of fieldNames) {
         if (!(name in obj)) continue;
         const n = parseVote(obj[name]);
         if (n > best) best = n;
       }
 
-      // 2) Fallback: alle felter med "stem" eller "vote" i navnet
       if (best === 0) {
         for (const [key, val] of Object.entries(obj)) {
           if (!/stem|vote/i.test(key)) continue;
@@ -417,14 +414,12 @@
       return best;
     }
 
-    // ======= MANIFEST-LOADER m. DEDUP & PARALLEL FETCH =======
     async function loadCandidateIndex(){
       if (candidateIndex) return;
       try {
         statusEl.classList.remove('hidden');
         statusEl.textContent = 'Indlæser kandidatindeks (manifest)…';
 
-        // 1) Hent manifestet
         const res = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
         const manifest = await res.json();
@@ -432,12 +427,9 @@
         const electionsFromManifest = manifest.elections || [];
         candidateIndex = { elections: [] };
 
-        console.log('Manifest indlæst, antal valg:', electionsFromManifest.length);
-
         const allCandidatesRaw = [];
         const electionMetas = [];
 
-        // 2) Hent alle kandidatfiler parallelt
         await Promise.all(
           electionsFromManifest.map(async (el) => {
             const electionMeta = { ...el };
@@ -452,7 +444,6 @@
               '';
 
             if (!candidatePath) {
-              console.warn('Manifest: intet candidateFile/candidateSource for', electionKey || electionYear);
               electionMeta.candidates = [];
               electionMetas.push(electionMeta);
               return;
@@ -470,9 +461,7 @@
               const resFile = await fetch(withTs, { cache: 'no-store' });
               if (!resFile.ok) throw new Error('HTTP ' + resFile.status);
               fileData = await resFile.json();
-              console.log('Indlæst kandidatfil for', electionKey || electionYear, 'fra', withTs);
             } catch (err) {
-              console.error('Kunne ikke hente kandidatfil for', electionKey || electionYear, candidatePath, err);
               electionMeta.candidates = [];
               electionMetas.push(electionMeta);
               return;
@@ -490,8 +479,6 @@
               if (fileData.electionTypeLabel)  electionMeta.typeLabel = fileData.electionTypeLabel;
               if (fileData.electionLabel)      electionMeta.label     = fileData.electionLabel;
               if (fileData.detailUrl)          electionMeta.detailUrl = fileData.detailUrl;
-            } else {
-              console.warn('Kandidatfil for', electionKey || electionYear, 'har ikke forventet format');
             }
 
             const enriched = candidates.map(c => {
@@ -542,17 +529,11 @@
             electionMetas.push(electionMeta);
 
             enrichedNorm.forEach(c => allCandidatesRaw.push(c));
-
-            console.log(
-              'Valg', electionKey || electionYear,
-              ': tilføjede', enrichedNorm.length, 'rækker (rå). Total rå nu:', allCandidatesRaw.length
-            );
           })
         );
 
         candidateIndex.elections = electionMetas;
 
-        // 3) DEDUP: én kandidat pr. valg (electionKey + candidateId)
         const map = new Map();
 
         for (const c of allCandidatesRaw) {
@@ -576,23 +557,12 @@
         statusEl.textContent =
           `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
 
-        console.log('Efter dedup: flatCandidates.length =', flatCandidates.length);
-
-        // Lille hjælpe-log hvis du vil debugge én bestemt kandidat (kan fjernes igen)
-        const debug = flatCandidates.find(c =>
-          (c.displayName || c.name || '').includes('Rasmus Jarlov')
-        );
-        if (debug) {
-          console.log('DEBUG – Rasmus Jarlov kandidatrekord:', debug);
-        }
-
       } catch (err) {
         console.error(err);
         statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
       }
     }
 
-    // ======= SØGNING / RENDER =======
     function searchCandidates(query){
       const q = normalizeName(query);
       if(!q) return [];
@@ -637,13 +607,13 @@
         const yearA = a.electionYear || 0;
         const yearB = b.electionYear || 0;
         if (yearA !== yearB) {
-          return yearB - yearA; // nyeste først
+          return yearB - yearA;
         }
 
         const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
         const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
         if (votesA !== votesB) {
-          return votesB - votesA; // flest stemmer først
+          return votesB - votesA;
         }
 
         const prioA = typePriority[a.electionType] || 0;
@@ -786,16 +756,21 @@
           const params = new URLSearchParams();
 
           if (type === 'kv' || type === 'rv') {
-            if(region && kommune){
+            // Kommunal-/regionsvalg: region + kommune + cand
+            if (region && kommune) {
               params.set('region', region);
               params.set('kommune', kommune);
             }
+            params.set('cand', cid);
           } else if (type === 'ft') {
+            // Folketingsvalg: storkreds/kreds + kandidat
             if (storkreds) params.set('storkreds', storkreds);
-            if (kreds)     params.set('kreds', kreds);
+            if (kreds)     params.set('kreds', kreds); // hvis vi har kreds fra indekset
+            params.set('kandidat', cid);
+          } else {
+            // EP m.m.: bare cand
+            params.set('cand', cid);
           }
-
-          params.set('cand', cid);
 
           const sep = baseUrl.includes('?') ? '&' : '?';
           const url = baseUrl + sep + params.toString();
