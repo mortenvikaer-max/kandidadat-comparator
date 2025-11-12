@@ -15,10 +15,8 @@
     .vb-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; box-shadow:0 1px 2px rgba(15,23,42,.05); }
     .vb-btn { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem 1rem; border-radius:999px; border:1px solid #0f172a; background:#0f172a; color:#f9fafb; font-weight:500; cursor:pointer; }
     .vb-btn:disabled { opacity:.5; cursor:not-allowed; }
-    code { background:#f3f4f6; border-radius:4px; padding:0 .3rem; font-size:.85em; }
-    .vb-log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size:.75rem; line-height:1.4; max-height:260px; overflow-y:auto; background:#f9fafb; border-radius:8px; padding:.5rem .75rem; border:1px solid #e5e7eb; }
-    .vb-err { color:#b91c1c; font-size:.85rem; }
+    code { background:#f3f4f6; border-radius:4px; padding:.1rem .3rem; font-size:.85em; }
+    .vb-log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.75rem; line-height:1.4; max-height:260px; overflow-y:auto; background:#f9fafb; border-radius:8px; padding:.5rem .75rem; border:1px solid #e5e7eb; }
   </style>
 </head>
 
@@ -34,7 +32,7 @@
         <span class="text-lg font-semibold text-slate-900">Regionsrådsvalg – generér kandidat-kildefil</span>
       </div>
     </div>
-    <span class="text-xs text-slate-500">Kun internt brug (ingen login – gem URL’en).</span>
+    <span class="text-xs text-slate-500">Denne side er kun til internt brug (ingen login – gem URL'en).</span>
   </div>
 </header>
 
@@ -48,11 +46,11 @@
     </p>
     <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
       <li>Vælg regionsrådsvalg (år).</li>
-      <li>Tryk <em>Generér kandidat-fil</em>.</li>
-      <li>Kopiér JSON-output til <code>/data/candidate-sources/rvYYYY.json</code>.</li>
+      <li>Tryk på <em>Generér kandidat-fil</em>.</li>
+      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/rvYYYY.json</code>.</li>
     </ol>
     <p class="text-xs text-slate-500">
-      <strong>Vigtigt:</strong> Siden skriver ikke til serveren – du kopierer selv JSON’en op.
+      <strong>Vigtigt:</strong> Denne side skriver ikke på serveren – du kopierer selv JSON’en op.
     </p>
   </section>
 
@@ -61,34 +59,27 @@
     <div class="flex items-center justify-between gap-3">
       <h2 class="text-lg font-semibold">Vælg regionsrådsvalg</h2>
       <div class="flex items-center gap-2">
-        <label for="rvElectionSelect" class="text-xs text-slate-600">År:</label>
-        <!-- Fallback-options så dropdown virker selv hvis JS fejler -->
-        <select id="rvElectionSelect" class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white">
-          <option value="rv2021">Regionsrådsvalg 2021</option>
-          <option value="rv2017">Regionsrådsvalg 2017</option>
-        </select>
+        <label for="rvElectionSelect" class="text-xs text-slate-600">Regionsrådsvalg:</label>
+        <select id="rvElectionSelect" class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white"></select>
       </div>
     </div>
-
-    <div id="err" class="vb-err"></div>
 
     <p class="text-sm text-slate-700">Konfiguration for det valgte valg:</p>
     <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
       <tbody id="rvConfigTableBody" class="bg-white divide-y divide-slate-100"></tbody>
     </table>
-
     <p class="text-xs text-slate-500">
-      Vi læser fra <code>../data/rv/ÅR/&lt;Region&gt;/Region_&lt;Region_med_underscore&gt;_allepartier.csv</code>
-      (falder tilbage til <code>.../Region_&lt;...&gt;.csv</code> hvis <code>_allepartier</code> ikke findes).
+      Sti forventes som <code>../data/rv/ÅR/&lt;Region&gt;/Region_&lt;Region_med_underscore&gt;_allepartier.csv</code>.<br/>
+      Eksempel: <code>../data/rv/2021/Region Hovedstaden/Region_Hovedstaden_allepartier.csv</code>.
     </p>
   </section>
 
-  <!-- Generér -->
+  <!-- Generér kandidat-fil -->
   <section class="vb-card p-4 md:p-5 space-y-3">
     <div class="flex items-center justify-between gap-3">
       <div>
         <h2 class="text-lg font-semibold">Generér kandidat-kildefil</h2>
-        <p class="text-xs text-slate-600">Resultatet er kandidater grupperet pr. region (sum af personlige stemmer pr. kandidat).</p>
+        <p class="text-xs text-slate-600">Resultatet er en liste af kandidater, grupperet pr. region, med total stemmetal for regionen.</p>
       </div>
       <button id="btnGenerate" class="vb-btn text-sm">Generér kandidat-fil</button>
     </div>
@@ -99,8 +90,10 @@
       <label for="outputJson" class="text-sm font-medium text-slate-800">
         Output (JSON – gem som <code>/data/candidate-sources/rvYYYY.json</code>)
       </label>
-      <textarea id="outputJson" class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
-        placeholder='Tryk "Generér" for at se JSON…' spellcheck="false"></textarea>
+      <textarea id="outputJson"
+                class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
+                placeholder='Tryk på "Generér kandidat-fil" for at se JSON…'
+                spellcheck="false"></textarea>
     </div>
   </section>
 </main>
@@ -113,265 +106,314 @@
 </footer>
 
 <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    try {
-      // ========= Regions (faste) =========
-      const REGIONS = [
-        "Region Hovedstaden",
-        "Region Sjælland",
-        "Region Syddanmark",
-        "Region Midtjylland",
-        "Region Nordjylland"
-      ];
+  // ============================================================
+  // REGIONS (5 regioner)
+  // ============================================================
+  const REGIONS = [
+    "Region Hovedstaden",
+    "Region Sjælland",
+    "Region Syddanmark",
+    "Region Midtjylland",
+    "Region Nordjylland"
+  ];
 
-      // ========= Konfiguration =========
-      const RV_CONFIG = [
-        { key:"rv2021", year:2021, label:"Regionsrådsvalg 2021", dataRoot:"../data/rv/2021/" },
-        { key:"rv2017", year:2017, label:"Regionsrådsvalg 2017", dataRoot:"../data/rv/2017/" }
-      ];
+  // ============================================================
+  // KONFIG: Regionsrådsvalg-setup
+  // ============================================================
+  const RV_CONFIG = [
+    { key: "rv2021", year: 2021, label: "Regionsrådsvalg 2021", dataRoot: "../data/rv/2021/" },
+    { key: "rv2017", year: 2017, label: "Regionsrådsvalg 2017", dataRoot: "../data/rv/2017/" }
+  ];
 
-      const el  = id => document.getElementById(id);
-      const fmt = n => new Intl.NumberFormat("da-DK").format(n);
+  const el  = id => document.getElementById(id);
+  const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
 
-      const logEl    = el("log");
-      const outEl    = el("outputJson");
-      const selectEl = el("rvElectionSelect");
-      const cfgTable = el("rvConfigTableBody");
-      const errBox   = el("err");
+  const logEl        = el("log");
+  const outEl        = el("outputJson");
+  const selectEl     = el("rvElectionSelect");
+  const cfgTableBody = el("rvConfigTableBody");
 
-      function showErr(msg){ errBox.textContent = msg || ""; }
-      function logLine(msg){
-        const time = new Date().toLocaleTimeString("da-DK");
-        const div = document.createElement("div");
-        div.textContent = `[${time}] ${msg}`;
-        logEl.appendChild(div);
-        logEl.scrollTop = logEl.scrollHeight;
-      }
+  function logLine(msg){
+    const time = new Date().toLocaleTimeString("da-DK");
+    const div = document.createElement("div");
+    div.textContent = `[${time}] ${msg}`;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
 
-      // === UI init (idempotent + fallback) ===
-      (function initUI(){
-        // hvis select kun har fallback, suppler med konfig (uden at duplikere)
-        const existing = new Set(Array.from(selectEl.options).map(o => o.value));
-        RV_CONFIG
-          .slice().sort((a,b)=>b.year-a.year)
-          .forEach(cfg => {
-            if(!existing.has(cfg.key)){
-              const opt = document.createElement("option");
-              opt.value = cfg.key;
-              opt.textContent = cfg.label;
-              selectEl.appendChild(opt);
-            }
-          });
-
-        // Sæt default til 2021 hvis den findes
-        if (Array.from(selectEl.options).some(o => o.value === "rv2021")) {
-          selectEl.value = "rv2021";
-        }
-
-        renderCfgTable();
-        selectEl.addEventListener("change", ()=>{
-          logEl.innerHTML = "";
-          outEl.value = "";
-          renderCfgTable();
-        });
-      })();
-
-      function renderCfgTable(){
-        const cfg = RV_CONFIG.find(c=>c.key===selectEl.value) || RV_CONFIG[0];
-        if(!cfg){ showErr("Kunne ikke finde konfiguration for valgt år."); return; }
-        showErr("");
-        cfgTable.innerHTML = `
-          <tr><td class="px-3 py-2 font-medium text-slate-600">Valg</td><td class="px-3 py-2">${cfg.label}</td></tr>
-          <tr><td class="px-3 py-2 font-medium text-slate-600">År</td><td class="px-3 py-2">${cfg.year}</td></tr>
-          <tr><td class="px-3 py-2 font-medium text-slate-600">Nøgle</td><td class="px-3 py-2"><code>${cfg.key}</code></td></tr>
-          <tr><td class="px-3 py-2 font-medium text-slate-600">Data-mappe</td><td class="px-3 py-2 font-mono text-xs">${cfg.dataRoot}</td></tr>
-        `;
-      }
-
-      // ========= CSV helpers =========
-      async function fetchCsvText(url){
-        const res = await fetch(url, { cache:"no-store" });
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.text();
-      }
-
-      function toNum(v){
-        if(v == null || v === "") return 0;
-        const s = String(v).trim().replace(/\./g,"").replace(",",".");
-        const n = Number(s);
-        return Number.isFinite(n) ? n : 0;
-      }
-
-      // Parse CSV-tekst → normaliserede rækker
-      function parseCsvTextToRows(text, regionName){
-        const parsed = Papa.parse(text, {
-          header:true, skipEmptyLines:true,
-          transformHeader:h => (h||"").toString().trim().toLowerCase()
-        });
-
-        return parsed.data.map(raw => {
-          const r = raw;
-
-          const region =
-            (regionName ||
-             r.region || r.regionsnavn || "").toString().trim();
-
-          // Kandidatnavn
-          let kandidatNavn =
-            (r.kandidat_navn || r.kandidatnavn || r["navn"] || r["kandidat"] || "").toString().trim();
-          if(!kandidatNavn){
-            for(const [k,v] of Object.entries(r)){
-              const lk = k.toLowerCase();
-              if(/navn/.test(lk) && !/parti|region/.test(lk)){
-                kandidatNavn = String(v||"").trim();
-                if(kandidatNavn) break;
-              }
-            }
-          }
-
-          const navnLower = kandidatNavn.toLowerCase();
-          const isList = navnLower==="partiliste" || navnLower==="listestemmer" || navnLower==="liste";
-
-          let kandidatId =
-            (r.kandidat_id || r.kandidatid || r["kandidat id"] || r["kandidat-id"] ||
-             r["kandidat nr"] || r["kandidat_nr"] || r["kandidat nr."] || r["kandidatnummer"] ||
-             r["kandidat"] || kandidatNavn || "").toString().trim();
-
-          let parti = (r.parti || r.partinavn || "").toString().trim();
-          if(!parti){
-            for(const [k,v] of Object.entries(r)){
-              const lk = k.toLowerCase();
-              if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
-                parti = String(v||"").trim();
-                if(parti) break;
-              }
-            }
-          }
-          let partiBogstav = (r.parti_bogstav || r.listebogstav || "").toString().trim();
-          if(!partiBogstav){
-            for(const [k,v] of Object.entries(r)){
-              const lk = k.toLowerCase();
-              if(/bogstav/.test(lk) || /listebogstav/.test(lk)){
-                partiBogstav = String(v||"").trim();
-                if(partiBogstav) break;
-              }
-            }
-          }
-
-          const voteFields = [
-            "stemmer","personlige_stemmer","personlige stemmer","personlige stemmer i alt",
-            "pers_stemmer","pers. stemmer","persstemmer","antal stemmer","stemmer i alt"
-          ];
-          let stemmer = 0;
-          for(const f of voteFields){
-            if(r[f] != null && r[f] !== "") stemmer += toNum(r[f]);
-          }
-          if(stemmer === 0){
-            for(const [k,v] of Object.entries(r)){
-              if(/stem/.test(k.toLowerCase()) && v !== "") stemmer += toNum(v);
-            }
-          }
-
-          return {
-            region,
-            kandidat_id: kandidatId,
-            kandidat_navn: kandidatNavn,
-            is_list: isList,
-            parti,
-            parti_bogstav: partiBogstav,
-            stemmer
-          };
-        });
-      }
-
-      // Indlæs én region (prøv _allepartier og plain)
-      async function loadRowsForRegion(region, cfg){
-        const base = cfg.dataRoot;
-        const safeRegionDir = encodeURIComponent(region);
-        const regionFileStem = "Region_" + region.replace(/\s+/g,"_");
-
-        const paths = [
-          `${base}${safeRegionDir}/${regionFileStem}_allepartier.csv`,
-          `${base}${safeRegionDir}/${regionFileStem}.csv`
-        ];
-
-        for(const url of paths){
-          try{
-            const text = await fetchCsvText(url);
-            const rows = parseCsvTextToRows(text, region);
-            logLine(`✔ Indlæste ${rows.length} rækker for ${region} fra ${url}`);
-            return rows;
-          }catch(err){
-            logLine(`… Kunne ikke læse ${url} (${err.message || err}) – prøver næste variant`);
-          }
-        }
-        logLine(`⚠ Fandt ingen CSV-fil for ${region}`);
-        return [];
-      }
-
-      function buildCandidateRecords(allRows){
-        const map = new Map();
-        for(const r of allRows){
-          if(!r.kandidat_id) continue;
-          if(r.is_list) continue;
-
-          const region = r.region || "";
-          const key = `${region}::${r.kandidat_id}`;
-
-          if(!map.has(key)){
-            map.set(key, {
-              candidateId: r.kandidat_id,
-              name: r.kandidat_navn,
-              party: r.parti,
-              partyShort: r.parti_bogstav || "",
-              totalVotes: 0,
-              area: region,
-              region
-            });
-          }
-          map.get(key).totalVotes += r.stemmer || 0;
-        }
-        const list = Array.from(map.values());
-        list.sort((a,b)=> (a.name || "").localeCompare(b.name || "","da"));
-        return list;
-      }
-
-      async function generateForElection(cfg){
-        logEl.innerHTML = "";
-        outEl.value = "";
-
-        logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
-        logLine(`Data-mappe: ${cfg.dataRoot}`);
-        logLine(`Indlæser data for ${REGIONS.length} regioner…`);
-
-        const allRows = [];
-        for(const reg of REGIONS){
-          const rows = await loadRowsForRegion(reg, cfg);
-          allRows.push(...rows);
-        }
-        logLine(`Færdig med CSV – totalt ${fmt(allRows.length)} rækker.`);
-
-        const candidates = buildCandidateRecords(allRows);
-        logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × region).`);
-
-        outEl.value = JSON.stringify(candidates, null, 2);
-        logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
-      }
-
-      // Events
-      el("btnGenerate").addEventListener("click", async ()=>{
-        const cfg = RV_CONFIG.find(c=>c.key===selectEl.value) || RV_CONFIG[0];
-        try{
-          await generateForElection(cfg);
-        }catch(err){
-          console.error(err);
-          logLine(`❌ FEJL: ${err.message || err}`);
-        }
+  // ============================================================
+  // UI: udfyld dropdown og config-tabel
+  // ============================================================
+  (function initUI(){
+    RV_CONFIG
+      .slice()
+      .sort((a,b)=>b.year-a.year)
+      .forEach(cfg=>{
+        const opt = document.createElement("option");
+        opt.value = cfg.key;
+        opt.textContent = cfg.label;
+        selectEl.appendChild(opt);
       });
-    } catch (e) {
-      const errBox = document.getElementById('err');
-      if (errBox) errBox.textContent = `Init-fejl: ${e && e.message ? e.message : e}`;
-      console.error(e);
+
+    // default til seneste (2021)
+    selectEl.value = "rv2021";
+
+    function renderCfgTable(){
+      const cfg = RV_CONFIG.find(c=>c.key===selectEl.value) || RV_CONFIG[0];
+      cfgTableBody.innerHTML = `
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Valg</td>
+          <td class="px-3 py-2">${cfg.label}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">År</td>
+          <td class="px-3 py-2">${cfg.year}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Nøgle</td>
+          <td class="px-3 py-2"><code>${cfg.key}</code></td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Data-mappe</td>
+          <td class="px-3 py-2 font-mono text-xs">${cfg.dataRoot}</td>
+        </tr>
+      `;
+    }
+
+    renderCfgTable();
+    selectEl.addEventListener("change", ()=>{
+      logEl.innerHTML = "";
+      outEl.value = "";
+      renderCfgTable();
+    });
+  })();
+
+  // ============================================================
+  // CSV helpers
+  // ============================================================
+  async function fetchCsvText(url){
+    const res = await fetch(url, { cache: "no-store" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  }
+
+  // Robust tal-parser (danske formater)
+  function toNum(v){
+    if(v == null || v === "") return 0;
+    const s = String(v).trim().replace(/\./g, "").replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
+   * Parser CSV-tekst til rækker.
+   * Vi gætter felter for kandidatnavn, parti, partibogstav og stemmer
+   * rimeligt aggressivt – da formats kan variere.
+   */
+  function parseCsvTextToRows(text, regionHint){
+    const parsed = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: h => (h || "").toString().trim().toLowerCase()
+    });
+
+    return parsed.data.map(raw => {
+      const r = raw;
+
+      // Region – brug hint (fra filstien) som primær
+      const region =
+        (regionHint ||
+         r.region ||
+         r.regionsnavn ||
+         "").toString().trim();
+
+      // Kandidatnavn – klassiske og “enhver kolonne med 'navn'”
+      let kandidatNavn =
+        (r.kandidat_navn ||
+         r.kandidatnavn ||
+         r["navn"] ||
+         r["kandidat"] ||
+         "").toString().trim();
+
+      if(!kandidatNavn){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/navn/.test(lk) && !/parti|region|kommune/.test(lk)){
+            kandidatNavn = String(val || "").trim();
+            if(kandidatNavn) break;
+          }
+        }
+      }
+
+      // Kandidat-ID: prøv forskellige – fallback til navn
+      let kandidatId =
+        (r.kandidat_id ||
+         r.kandidatid ||
+         r["kandidat id"] ||
+         r["kandidat-id"] ||
+         r["kandidat nr"] ||
+         r["kandidat_nr"] ||
+         r["kandidat nr."] ||
+         r["kandidatnummer"] ||
+         r["kandidat"] ||
+         kandidatNavn ||
+         "").toString().trim();
+
+      // Partinavn – klassiske, derefter hvilken som helst kolonne med “parti”
+      let parti =
+        (r.parti ||
+         r.partinavn ||
+         "").toString().trim();
+
+      if(!parti){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
+            parti = String(val || "").trim();
+            if(parti) break;
+          }
+        }
+      }
+
+      // Partibogstav
+      let partiBogstav =
+        (r.parti_bogstav ||
+         r.listebogstav ||
+         r["partibogstav"] ||
+         "").toString().trim();
+
+      if(!partiBogstav){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/bogstav/.test(lk) || /listebogstav/.test(lk)){
+            partiBogstav = String(val || "").trim();
+            if(partiBogstav) break;
+          }
+        }
+      }
+
+      // Stemmer – kendte felter + fallback: alle kolonner der matcher /stem/
+      let stemmer = 0;
+      const voteFields = [
+        "stemmer",
+        "personlige_stemmer",
+        "personlige stemmer",
+        "personlige stemmer i alt",
+        "pers_stemmer",
+        "pers. stemmer",
+        "persstemmer",
+        "antal stemmer",
+        "stemmer i alt"
+      ];
+      for(const f of voteFields){
+        if(r[f] != null && r[f] !== "") stemmer += toNum(r[f]);
+      }
+      if(stemmer === 0){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/stem/.test(lk) && val !== "") stemmer += toNum(val);
+        }
+      }
+
+      return {
+        region,
+        kandidat_id: kandidatId,
+        kandidat_navn: kandidatNavn,
+        parti,
+        parti_bogstav: partiBogstav,
+        stemmer
+      };
+    });
+  }
+
+  // Indlæs én region (prøv _allepartier og plain)
+  async function loadRowsForRegion(region, cfg){
+    const base = cfg.dataRoot;
+    const safeRegionDir = encodeURIComponent(region);
+
+    // Filstammen er allerede "Region <Navn>" → kun underscores
+    // Eksempel: "Region Hovedstaden" -> "Region_Hovedstaden"
+    const regionFileStem = region.replace(/\s+/g, "_");
+
+    const paths = [
+      `${base}${safeRegionDir}/${regionFileStem}_allepartier.csv`,
+      `${base}${safeRegionDir}/${regionFileStem}.csv`
+    ];
+
+    for (const url of paths){
+      try{
+        const text = await fetchCsvText(url);
+        const rows = parseCsvTextToRows(text, region);
+        logLine(`✔ Indlæste ${rows.length} rækker for ${region} fra ${url}`);
+        return rows;
+      }catch(err){
+        logLine(`… Kunne ikke læse ${url} (${err.message || err}) – prøver næste variant`);
+      }
+    }
+    logLine(`⚠ Fandt ingen CSV-fil for ${region}`);
+    return [];
+  }
+
+  function buildCandidateRecords(allRows){
+    // Kandidat × region
+    const map = new Map();
+    for(const r of allRows){
+      if(!r.kandidat_id) continue;
+      const reg = r.region || "";
+      const key = `${reg}::${r.kandidat_id}`;
+
+      if(!map.has(key)){
+        map.set(key, {
+          candidateId: r.kandidat_id,
+          name: r.kandidat_navn,
+          party: r.parti,
+          partyShort: r.parti_bogstav || "",
+          totalVotes: 0,
+          area: reg,     // konsistent med KV: "area" bruges som visningsnavn
+          region: reg
+        });
+      }
+      map.get(key).totalVotes += r.stemmer || 0;
+    }
+
+    const list = Array.from(map.values());
+    list.sort((a,b)=> (a.name || "").localeCompare(b.name || "", "da"));
+    return list;
+  }
+
+  async function generateForElection(cfg){
+    logEl.innerHTML = "";
+    outEl.value = "";
+
+    logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
+    logLine(`Data-mappe: ${cfg.dataRoot}`);
+    logLine(`Indlæser data for ${REGIONS.length} regioner…`);
+
+    const allRows = [];
+    for(const region of REGIONS){
+      const rows = await loadRowsForRegion(region, cfg);
+      allRows.push(...rows);
+    }
+
+    logLine(`Færdig med at læse CSV – totalt ${fmt(allRows.length)} rækker.`);
+
+    const candidates = buildCandidateRecords(allRows);
+    logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × region).`);
+
+    outEl.value = JSON.stringify(candidates, null, 2);
+    logLine(`KOPIÉR til /data/candidate-sources/${cfg.key}.json`);
+  }
+
+  // ============================================================
+  // Event handlers
+  // ============================================================
+  el("btnGenerate").addEventListener("click", async ()=>{
+    const cfg = RV_CONFIG.find(c=>c.key===selectEl.value) || RV_CONFIG[0];
+    try{
+      await generateForElection(cfg);
+    }catch(err){
+      console.error(err);
+      logLine(`❌ FEJL: ${err.message || err}`);
     }
   });
 </script>
