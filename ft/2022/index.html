@@ -418,39 +418,46 @@ function selectCandidateFromParam(candParam){
       .toLowerCase()
       .trim();
 
-  const param = candParam.toString();
+  const param = candParam.toString().trim();
+  const rows  = state.rows || [];
 
   // 1) Direkte match på vores egen kandidat_id
-  let hit = state.rows.find(r => r.kandidat_id === param);
+  let hit = rows.find(r => r.kandidat_id === param);
 
-  // 2) Hvis den ligner "X::Navn", så prøv at matche
+  let namePart   = param;
+  let prefixPart = "";
+
+  // 2) Hvis den ligner "X::Navn", så split og prøv at matche
   if(!hit && param.includes("::")){
-    const [pRaw, nRaw] = param.split("::");
-    const nameNorm = normalizeKey(nRaw || "");
+    const parts = param.split("::");
+    prefixPart = (parts[0] || "").trim();
+    namePart   = (parts[1] || "").trim();
 
-    // 2a) Tolker første del som partibogstav, hvis den er kort
-    const letter = (pRaw || "").trim().toUpperCase();
+    const nameNorm = normalizeKey(namePart);
+
+    // 2a) Tolker første del som partibogstav, hvis den er kort (fx "C")
+    const letter = prefixPart.toUpperCase();
     if(letter.length <= 2){
-      hit = state.rows.find(r =>
+      hit = rows.find(r =>
         (r.parti_letter || "").toUpperCase() === letter &&
         normalizeKey(r.kandidat_navn) === nameNorm
       );
     }
 
     // 2b) Ellers prøv som fuldt partinavn
-    if(!hit){
-      const partyNorm = normalizeKey(pRaw);
-      hit = state.rows.find(r =>
+    if(!hit && prefixPart){
+      const partyNorm = normalizeKey(prefixPart);
+      hit = rows.find(r =>
         normalizeKey(r.parti) === partyNorm &&
         normalizeKey(r.kandidat_navn) === nameNorm
       );
     }
   }
 
-  // 3) Fallback: match kun på navn (hvis unikt)
+  // 3) Fallback: match kun på selve navnet (hvis unikt)
   if(!hit){
-    const nameNorm = normalizeKey(param);
-    const matches = state.rows.filter(r => normalizeKey(r.kandidat_navn) === nameNorm);
+    const nameNorm = normalizeKey(namePart);
+    const matches = rows.filter(r => normalizeKey(r.kandidat_navn) === nameNorm);
     if(matches.length === 1){
       hit = matches[0];
     }
@@ -483,7 +490,7 @@ function gotoStorkreds(storkredsName, candidateId=null){
   clearValgsted();                           // NY
   state.storkreds = storkredsName; state.kreds = KREDS_ALL_VALUE;
   loadStorkredsData(storkredsName).then(()=>{
-    if(candidateId) selectCandidateById(candidateId);
+    if(candidateId) selectCandidateFromParam(candidateId);
     else { renderAll(); renderContextBar(); }
   });
 }
@@ -1013,7 +1020,12 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const rawLetter = r.parti_bogstav || r.bogstav || r.parti_kode ||
                       r['parti (bogstav)'] || r.listebogstav || r["partibogstav"];
     const L = canon(rawLetter).toUpperCase();
-    const parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
+    let parti_letter = /^[A-ZÆØÅ]$/.test(L) ? L : "";
+    // NY: hvis der ikke er bogstav i CSV, forsøg at slå det op via partinavn
+    if(!parti_letter){
+      const mapped = PARTY_LETTERS_BY_NAME_NORM[norm(parti)];
+      if(mapped) parti_letter = mapped;
+    }
 
     const kredsNavn = kredsNameOverride || canon(r.kredsnavn || r.kreds || r["opstillingskreds"] || "");
     const storkredsNavn = canon(r.storkreds || "") || inferStorkredsFromKreds(kredsNavn);
