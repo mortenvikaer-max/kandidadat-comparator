@@ -56,7 +56,7 @@
            class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden"></div>
     </section>
 
-    <!-- LISTE OVER VALG (fra manifest) -->
+    <!-- LISTE OVER VALG (fra manifest eller fallback) -->
     <section id="list" class="space-y-3"></section>
   </main>
 
@@ -72,77 +72,44 @@
 
 <script>
 /* =========================
-   ROBUST URL-HELPERS
+   Stier & robust fetch
    ========================= */
-// GitHub Pages: undgå absolutte /data/... – prøv relative først.
+const MANIFEST_PATH = '/data/candidate-index-manifest.json'; // KORREKT navn/placering
 const DATA_ROOT_REL = '../data/';
 
 function toRelativeDataUrl(path){
-  // f.eks. "/data/candidate-manifest-index.json" -> "../data/candidate-manifest-index.json"
-  const p = (path || '').replace(/^\/+/, ''); // strip leading /
+  const p = (path || '').replace(/^\/+/, '');
   if (p.startsWith('data/')) return DATA_ROOT_REL + p.slice('data/'.length);
-  return path; // already relative like "../data/..."
+  return path;
 }
 
 async function fetchJsonWithFallback(path){
   const candidates = [];
-
   if (/^https?:\/\//i.test(path)) {
     candidates.push(path);
   } else {
-    // 1) Hvis path allerede er relativ ("../data/..."), brug det først
     if (path.startsWith('../')) candidates.push(path);
-    // 2) Relativ version konverteret fra "/data/..."
     candidates.push(toRelativeDataUrl(path));
-    // 3) Absolut (sidste udvej)
     candidates.push(path);
   }
-
-  // Tilføj cache-buster
   const withTs = (u) => u + (u.includes('?') ? '&' : '?') + 'ts=' + Date.now();
-
   for (const u of candidates) {
     try {
-      const r = await fetch(withTs(u), { cache: 'no-store' });
+      const r = await fetch(withTs(u), { cache:'no-store' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return await r.json();
     } catch (e) {
-      console.warn('Fetch fallback fail:', u, e);
+      console.warn('Fetch fallback fejlede:', u, e);
     }
   }
   throw new Error('Kunne ikke hente ' + path);
 }
 
 /* =========================
-   MANIFEST (fælles kilde)
+   Labels, farver og utils
    ========================= */
-const MANIFEST_PATH = '/data/candidate-manifest-index.json'; // din oplyste sti
-
-const TYPE_LABELS = {
-  ft:'Folketingsvalg',
-  kv:'Kommunalvalg',
-  rv:'Regionsrådsvalg',
-  ep:'Europa-Parlamentsvalg'
-};
-const TYPE_ORDER = ['ft','kv','rv','ep'];
-
-/* ==============
-   DOM refs
-   ============== */
-const listRoot       = document.getElementById('list');
-const searchInput    = document.getElementById('candidateSearch');
-const resultsRoot    = document.getElementById('candidateResults');
-
-/* =========================
-   Kandidatindeks (lazy)
-   ========================= */
-let candidateIndex = null;   // { elections: [...] }
-let flatCandidates = [];
-let lastQuery = '';
-
-function normalizeName(str){
-  return (str || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
-}
+const TYPE_LABELS = { ft:'Folketingsvalg', kv:'Kommunalvalg', rv:'Regionsrådsvalg', ep:'Europa-Parlamentsvalg' };
+const TYPE_ORDER  = ['ft','kv','rv','ep'];
 
 const PARTY_COLORS = {
   "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3",
@@ -159,9 +126,12 @@ const PARTY_NAME_FROM_LETTER = {
   "O":"Dansk Folkeparti","V":"Venstre, Danmarks Liberale Parti","Ø":"Enhedslisten - De Rød-Grønne","Å":"Alternativet"
 };
 
+function normalizeName(str){
+  return (str || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+}
 function parseVote(raw){
   if(raw == null || raw === "") return 0;
-  const n = Number(String(raw).trim().replace(/\./g,"").replace(",","."));
+  const n = Number(String(raw).trim().replace(/\.\s*/g,"").replace(",","."));
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 function getBestVoteNumber(obj){
@@ -178,15 +148,36 @@ function getBestVoteNumber(obj){
 }
 
 /* =========================
+   DOM refs
+   ========================= */
+const listRoot    = document.getElementById('list');
+const searchInput = document.getElementById('candidateSearch');
+const resultsRoot = document.getElementById('candidateResults');
+
+/* =========================
+   Fallback år-liste (hvis manifest mangler)
+   ========================= */
+const FALLBACK_YEARS = {
+  ft: [2022, 2019, 2015, 2011, 2007],
+  kv: [2025, 2021, 2017, 2013, 2009, 2005],
+  rv: [2025, 2021, 2017],
+  ep: [2024, 2019, 2014, 2009]
+};
+const FALLBACK_URLS = {
+  ft:{perYear:{2022:'../ft/2022/',2019:'../ft/2019/',2015:'../ft/2015/',2011:'../ft/2011/',2007:'../ft/2007/'}},
+  kv:{perYear:{2025:'../kv/2025/',2021:'../kv/2021/',2017:'../kv/2017/',2013:'../kv/2013/',2009:'../kv/2009/',2005:'../kv/2005/'}},
+  rv:{perYear:{2025:'../rv/2025/',2021:'../rv/2021/',2017:'../rv/2017/'}},
+  ep:{perYear:{2024:'../ep/2024/',2019:'../ep/2019/',2014:'../ep/2014/',2009:'../ep/2009/'}}
+};
+
+/* =========================
    Manifest → årslister
    ========================= */
-async function fetchManifest(){
-  // prøv relativt først, så absolut
+async function fetchManifestElections(){
   const data = await fetchJsonWithFallback(MANIFEST_PATH);
   const arr = Array.isArray(data.elections) ? data.elections : data;
   return Array.isArray(arr) ? arr : (data.elections || []);
 }
-
 function groupElectionsByType(elections){
   const map = new Map();
   for(const el of elections){
@@ -200,25 +191,52 @@ function groupElectionsByType(elections){
   }
   return map;
 }
-
-function renderYearLists(typeMap){
+function renderYearListsFromTypeMap(typeMap){
   listRoot.innerHTML = '';
   const types = TYPE_ORDER.filter(t=>typeMap.has(t));
   types.forEach(type=>{
-    const title = TYPE_LABELS[type] || type;
     const items = typeMap.get(type) || [];
-
+    const title = TYPE_LABELS[type] || type;
     const article = document.createElement('article');
     article.className = 'vb-row';
-
     const yearButtons = items.map(item=>{
       const y   = item.year || '';
       const url = item.detailUrl || '';
       const active = !!url;
-      const href = active ? url : '#';
-      return `<a class="vb-yearbtn" href="${href}" aria-disabled="${active ? 'false':'true'}">${y}</a>`;
+      return `<a class="vb-yearbtn" href="${active ? url : '#'}" aria-disabled="${active?'false':'true'}">${y}</a>`;
     }).join('');
-
+    article.innerHTML = `
+      <button type="button" class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left"
+              aria-expanded="false" data-acc="${type}">
+        <h2 class="text-base md:text-lg font-semibold text-slate-800 flex-1">${title}</h2>
+        <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/>
+        </svg>
+      </button>
+      <div class="vb-body">
+        <div>
+          <div class="px-4 md:px-5 pt-0 pb-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              ${yearButtons}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    listRoot.appendChild(article);
+  });
+}
+function renderYearListsFallback(){
+  listRoot.innerHTML = '';
+  TYPE_ORDER.forEach(type=>{
+    const years = FALLBACK_YEARS[type] || [];
+    const title = TYPE_LABELS[type] || type;
+    const article = document.createElement('article');
+    article.className = 'vb-row';
+    const yearButtons = years.map(y=>{
+      const url = FALLBACK_URLS[type]?.perYear?.[y] || '#';
+      const active = !!FALLBACK_URLS[type]?.perYear?.[y];
+      return `<a class="vb-yearbtn" href="${url}" aria-disabled="${active?'false':'true'}">${y}</a>`;
+    }).join('');
     article.innerHTML = `
       <button type="button" class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left"
               aria-expanded="false" data-acc="${type}">
@@ -271,21 +289,22 @@ listRoot.addEventListener('click', (e)=>{
 });
 
 /* =========================
-   Kandidatindeks-loader
+   Kandidatindeks (lazy)
    ========================= */
+let candidateIndex = null;
+let flatCandidates = [];
+let lastQuery = '';
+
 async function loadCandidateIndex(){
   if(candidateIndex) return;
-
-  // 1) Manifest
   let elections;
   try{
-    elections = await fetchManifest();
+    elections = await fetchManifestElections();
   }catch(err){
-    console.error('Manifest kunne ikke hentes via nogen sti:', err);
+    console.warn('Manifest kunne ikke hentes — søgning deaktiveres for nu.');
     return;
   }
 
-  // 2) Hent kandidatfiler
   const allCandidatesRaw = [];
   const electionMetas = [];
 
@@ -297,7 +316,6 @@ async function loadCandidateIndex(){
       electionMetas.push(meta);
       return;
     }
-
     let fileData = null;
     try{
       fileData = await fetchJsonWithFallback(candidatePath);
@@ -307,7 +325,6 @@ async function loadCandidateIndex(){
       electionMetas.push(meta);
       return;
     }
-
     let candidates = [];
     if(Array.isArray(fileData)){
       candidates = fileData;
@@ -320,24 +337,19 @@ async function loadCandidateIndex(){
       if(fileData.electionLabel)     meta.label     = fileData.electionLabel;
       if(fileData.detailUrl)         meta.detailUrl = fileData.detailUrl;
     }
-
     const enriched = candidates.map(c => {
       const type = c.electionType || meta.type;
       const year = c.electionYear || meta.year;
       const key  = c.electionKey  || meta.key;
-
       const typeLabel =
         c.electionTypeLabel || meta.typeLabel ||
         (type === 'ft' ? 'Folketingsvalg' :
          type === 'kv' ? 'Kommunalvalg' :
          type === 'rv' ? 'Regionsrådsvalg' :
          type === 'ep' ? 'Europa-Parlamentsvalg' : (meta.label || ''));
-
       const label = c.electionLabel || meta.label || typeLabel;
-
       let detailUrl = c.electionDetailUrl || meta.detailUrl || '';
       if(!detailUrl && type && year) detailUrl = `/${type}/${year}/`;
-
       return {
         ...c,
         electionKey: key,
@@ -349,7 +361,6 @@ async function loadCandidateIndex(){
         totalVotes: getBestVoteNumber(c)
       };
     });
-
     meta.candidates = enriched;
     electionMetas.push(meta);
     enriched.forEach(c => allCandidatesRaw.push(c));
@@ -357,7 +368,6 @@ async function loadCandidateIndex(){
 
   candidateIndex = { elections: electionMetas };
 
-  // 3) Dedup pr. (electionKey, candidateId)
   const map = new Map();
   for(const c of allCandidatesRaw){
     const eKey = c.electionKey || '';
@@ -370,59 +380,43 @@ async function loadCandidateIndex(){
   }
   flatCandidates = Array.from(map.values());
 
-  if(lastQuery.trim()){
-    renderResults(lastQuery);
-  }
+  if(lastQuery.trim()) renderResults(lastQuery);
 }
 
 /* =========================
-   Søgning og render
+   Søgning
    ========================= */
 function searchCandidates(query){
   const q = normalizeName(query);
   if(!q) return [];
   const results = [];
-
   for(const c of flatCandidates){
     const base = normalizeName(c.displayName || c.name || '');
     const variants = (c.nameVariants || []).map(normalizeName);
     let score = -Infinity;
-
     if(base.startsWith(q)) score = 300 - (base.length - q.length);
     else if(base.includes(q)) score = 200 - base.indexOf(q);
-
     if(score === -Infinity){
-      const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
-      if(hitVariant){
-        score = hitVariant.startsWith(q)
-          ? 250 - (hitVariant.length - q.length)
-          : 180 - hitVariant.indexOf(q);
-      }
+      const hitV = variants.find(v => v.startsWith(q) || v.includes(q));
+      if(hitV) score = hitV.startsWith(q) ? 250 - (hitV.length - q.length) : 180 - hitV.indexOf(q);
     }
-
     if(score > -Infinity) results.push({ c, score });
   }
-
   const top = results.sort((a,b)=> b.score - a.score).slice(0, 40).map(r => r.c);
-
   const typePriority = { ep:4, ft:3, rv:2, kv:1 };
   top.sort((a,b)=>{
     const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
     const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
     if (nameA !== nameB) return nameA.localeCompare(nameB, 'da-DK');
-    const yearA = a.electionYear || 0, yearB = b.electionYear || 0;
-    if (yearA !== yearB) return yearB - yearA;
+    const yearA = a.electionYear || 0, yearB = b.electionYear || 0; if (yearA !== yearB) return yearB - yearA;
     const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
     const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
     if (votesA !== votesB) return votesB - votesA;
-    const prioA = typePriority[a.electionType] || 0;
-    const prioB = typePriority[b.electionType] || 0;
+    const prioA = typePriority[a.electionType] || 0, prioB = typePriority[b.electionType] || 0;
     if (prioA !== prioB) return prioB - prioA;
-    const idA = (a.candidateId || '').toString();
-    const idB = (b.candidateId || '').toString();
+    const idA = (a.candidateId || '').toString(), idB = (b.candidateId || '').toString();
     return idA.localeCompare(idB, 'da-DK');
   });
-
   return top.slice(0, 20);
 }
 
@@ -433,7 +427,6 @@ function renderResults(query){
     resultsRoot.classList.add('hidden');
     return;
   }
-
   const hits = searchCandidates(q);
   if(!hits.length){
     resultsRoot.innerHTML = `
@@ -443,48 +436,33 @@ function renderResults(query){
     resultsRoot.classList.remove('hidden');
     return;
   }
-
   resultsRoot.innerHTML = hits.map(hit => {
     let party      = (hit.party || '').trim();
     let partyShort = (hit.partyShort || '').trim();
-    if (!partyShort && party) {
-      const m = PARTY_LETTER_FROM_NAME[party]; if (m) partyShort = m;
-    }
-    if (!party && partyShort) {
-      const n = PARTY_NAME_FROM_LETTER[partyShort]; if (n) party = n;
-    }
-
+    if (!partyShort && party) { const m = PARTY_LETTER_FROM_NAME[party]; if (m) partyShort = m; }
+    if (!party && partyShort){ const n = PARTY_NAME_FROM_LETTER[partyShort]; if (n) party = n; }
     const votes = typeof hit.totalVotes === 'number' ? hit.totalVotes.toLocaleString('da-DK') : '?';
     let area = '';
     if (hit.electionType === 'kv' || hit.electionType === 'rv') area = hit.kommune || hit.area || '';
     else if (hit.electionType === 'ft') area = hit.storkreds || hit.area || '';
-
     const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
     const year       = hit.electionYear || '';
     const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
-
     let partyLabel = '';
     if (party) partyLabel = partyShort ? `${party} (${partyShort})` : party;
     else if (partyShort) partyLabel = `Parti ${partyShort}`;
-
-    const topParts = [];
-    if (electionLabel) topParts.push(electionLabel);
-    if (area) topParts.push(area);
+    const topParts = []; if (electionLabel) topParts.push(electionLabel); if (area) topParts.push(area);
     if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
     const topMeta = topParts.join(' · ');
-
     const bottomMeta = partyLabel ? partyLabel : '';
-
     let badgeStyle = ''; let badgeText  = '';
     if (partyShort) {
       const color = PARTY_COLORS[partyShort] || null;
       badgeStyle = color ? `background:${color};color:#fff;border-color:${color}` : 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
       badgeText = partyShort;
     }
-
     const name = hit.displayName || hit.name || '';
     const kredsAttr = hit.kreds || hit.kredsnavn || hit.kredsNavn || '';
-
     return `
       <button type="button" class="w-full text-left vb-hit"
               data-cand-id="${hit.candidateId || ''}"
@@ -505,7 +483,6 @@ function renderResults(query){
         </div>
       </button>`;
   }).join('');
-
   resultsRoot.classList.remove('hidden');
 
   resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
@@ -520,7 +497,6 @@ function renderResults(query){
       const party      = btn.getAttribute('data-party') || '';
       const partyShort = btn.getAttribute('data-party-short') || '';
       const name       = btn.getAttribute('data-name') || '';
-
       const params = new URLSearchParams();
       if (type === 'kv' || type === 'rv') {
         if(region && kommune){ params.set('region', region); params.set('kommune', kommune); }
@@ -528,14 +504,12 @@ function renderResults(query){
         if (storkreds) params.set('storkreds', storkreds);
         if (kreds)     params.set('kreds', kreds);
       }
-
       let candParam = cid;
       if (type === 'ft') {
         const prefix = partyShort || party;
         candParam = prefix ? `${prefix}::${name}` : name;
       }
       params.set('cand', candParam);
-
       const sep = baseUrl.includes('?') ? '&' : '?';
       const url = baseUrl + sep + params.toString();
       window.location.href = url;
@@ -547,20 +521,18 @@ function renderResults(query){
    Init
    ========================= */
 (async function init(){
+  // 1) Prøv at bygge oversigten fra manifest
   try{
-    const elections = await fetchManifest();
+    const elections = await fetchManifestElections();
     const typeMap   = groupElectionsByType(elections);
-    renderYearLists(typeMap);
+    renderYearListsFromTypeMap(typeMap);
   }catch(err){
-    console.error('Valgoversigt fejlede:', err);
-    // Behold siden stille; ingen alert/tekstboks som forstyrrer.
-    listRoot.innerHTML = `<div class="vb-row p-4 md:p-5 text-sm text-slate-600">
-      Kunne ikke indlæse valgoversigten. Tjek at <code>/data/candidate-manifest-index.json</code> findes.
-    </div>`;
+    console.warn('Manifest ikke tilgængeligt – viser fallback-årsliste.');
+    renderYearListsFallback(); // Selv hvis manifest mangler, har du en oversigt.
   }
 })();
 
-// Lazy-load kandidatindeks på fokus/skrivning (ingen status-tekst)
+// 2) Lazy-load kandidatindeks ved fokus/skrivning (ingen status-tekster)
 let indexLoadingTriggered = false;
 searchInput.addEventListener('focus', () => {
   if(!indexLoadingTriggered){ indexLoadingTriggered = true; loadCandidateIndex(); }
