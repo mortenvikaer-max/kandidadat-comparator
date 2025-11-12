@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "elections": [
+    /* ---------------------------
+       Folketingsvalg
+       --------------------------- */
+    {
+      "key": "ft2022",
+      "type": "ft",
+      "label": "Folketingsvalg",
+      "year": 2022,
+      "detailUrl": "/ft/2022/",
+      "candidateSource": "/data/candidate-sources/ft2022.json"
+    },
+    {
+      "key": "ft2019",
+      "type": "ft",
+      "label": "Folketingsvalg",
+      "year": 2019,
+      "detailUrl": "/ft/2019/",
+      "candidateSource": "/data/candidate-sources/ft2019.json"
+    },
+    {
+      "key": "ft2015",
+      "type": "ft",
+      "label": "Folketingsvalg",
+      "year": 2015,
+      "detailUrl": "/ft/2015/",
+      "candidateSource": "/data/candidate-sources/ft2015.json"
+    },
+    {
+      "key": "ft2011",
+      "type": "ft",
+      "label": "Folketingsvalg",
+      "year": 2011,
+      "detailUrl": "/ft/2011/",
+      "candidateSource": "/data/candidate-sources/ft2011.json"
+    },
+    {
+      "key": "ft2007",
+      "type": "ft",
+      "label": "Folketingsvalg",
+      "year": 2007,
+      "detailUrl": "/ft/2007/",
+      "candidateSource": "/data/candidate-sources/ft2007.json"
+    },
+
+    /* ---------------------------
+       Kommunalvalg
+       --------------------------- */
+    {
+      "key": "kv2025",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2025,
+      "detailUrl": "/kv/2025/",
+      "candidateSource": "/data/candidate-sources/kv2025.json"
+    },
+    {
+      "key": "kv2021",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2021,
+      "detailUrl": "/kv/2021/",
+      "candidateSource": "/data/candidate-sources/kv2021.json"
+    },
+    {
+      "key": "kv2017",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2017,
+      "detailUrl": "/kv/2017/",
+      "candidateSource": "/data/candidate-sources/kv2017.json"
+    },
+    {
+      "key": "kv2013",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2013,
+      "detailUrl": "/kv/2013/",
+      "candidateSource": "/data/candidate-sources/kv2013.json"
+    },
+    {
+      "key": "kv2009",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2009,
+      "detailUrl": "/kv/2009/",
+      "candidateSource": "/data/candidate-sources/kv2009.json"
+    },
+    {
+      "key": "kv2005",
+      "type": "kv",
+      "label": "Kommunalvalg",
+      "year": 2005,
+      "detailUrl": "/kv/2005/",
+      "candidateSource": "/data/candidate-sources/kv2005.json"
+    },
+
+    /* ---------------------------
+       Regionsrådsvalg
+       --------------------------- */
+    {
+      "key": "rv2025",
+      "type": "rv",
+      "label": "Regionsrådsvalg",
+      "year": 2025,
+      "detailUrl": "/rv/2025/",
+      "candidateSource": "/data/candidate-sources/rv2025.json"
+    },
+    {
+      "key": "rv2021",
+      "type": "rv",
+      "label": "Regionsrådsvalg",
+      "year": 2021,
+      "detailUrl": "/rv/2021/",
+      "candidateSource": "/data/candidate-sources/rv2021.json"
+    },
+    {
+      "key": "rv2017",
+      "type": "rv",
+      "label": "Regionsrådsvalg",
+      "year": 2017,
+      "detailUrl": "/rv/2017/",
+      "candidateSource": "/data/candidate-sources/rv2017.json"
+    },
+
+    /* ---------------------------
+       Europa-Parlamentsvalg
+       --------------------------- */
+    {
+      "key": "ep2024",
+      "type": "ep",
+      "label": "Europa-Parlamentsvalg",
+      "year": 2024,
+      "detailUrl": "/ep/2024/",
+      "candidateSource": "/data/candidate-sources/ep2024.json"
+    },
+    {
+      "key": "ep2019",
+      "type": "ep",
+      "label": "Europa-Parlamentsvalg",
+      "year": 2019,
+      "detailUrl": "/ep/2019/",
+      "candidateSource": "/data/candidate-sources/ep2019.json"
+    },
+    {
+      "key": "ep2014",
+      "type": "ep",
+      "label": "Europa-Parlamentsvalg",
+      "year": 2014,
+      "detailUrl": "/ep/2014/",
+      "candidateSource": "/data/candidate-sources/ep2014.json"
+    },
+    {
+      "key": "ep2009",
+      "type": "ep",
+      "label": "Europa-Parlamentsvalg",
+      "year": 2009,
+      "detailUrl": "/ep/2009/",
+      "candidateSource": "/data/candidate-sources/ep2009.json"
+    }
+  ]
+}
