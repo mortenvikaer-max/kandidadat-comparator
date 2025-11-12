@@ -51,12 +51,10 @@
         <label for="candidateSearch" class="text-sm font-semibold text-slate-800">Søg efter en kandidat</label>
         <input id="candidateSearch" type="text" class="vb-search-input" placeholder="Søg efter en kandidat..." autocomplete="off" />
       </div>
-
-      <div id="candidateResults"
-           class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden"></div>
+      <div id="candidateResults" class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden"></div>
     </section>
 
-    <!-- LISTE OVER VALG (fra manifest eller fallback) -->
+    <!-- LISTE OVER VALG -->
     <section id="list" class="space-y-3"></section>
   </main>
 
@@ -74,7 +72,7 @@
 /* =========================
    Stier & robust fetch
    ========================= */
-const MANIFEST_PATH = '/data/candidate-index-manifest.json'; // KORREKT navn/placering
+const MANIFEST_PATH = '/data/candidate-index-manifest.json'; // absolut sti (du bekræftede navnet)
 const DATA_ROOT_REL = '../data/';
 
 function toRelativeDataUrl(path){
@@ -131,7 +129,7 @@ function normalizeName(str){
 }
 function parseVote(raw){
   if(raw == null || raw === "") return 0;
-  const n = Number(String(raw).trim().replace(/\.\s*/g,"").replace(",","."));
+  const n = Number(String(raw).trim().replace(/\./g,"").replace(",","."));
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 function getBestVoteNumber(obj){
@@ -289,98 +287,106 @@ listRoot.addEventListener('click', (e)=>{
 });
 
 /* =========================
-   Kandidatindeks (lazy)
+   Kandidatindeks (INDLÆS VED SIDESTART)
    ========================= */
 let candidateIndex = null;
 let flatCandidates = [];
 let lastQuery = '';
 
-async function loadCandidateIndex(){
-  if(candidateIndex) return;
-  let elections;
+async function loadManifestAndCandidateIndex(){
   try{
-    elections = await fetchManifestElections();
+    const elections = await fetchManifestElections();
+    // Byg oversigten fra manifest
+    try {
+      const typeMap   = groupElectionsByType(elections);
+      renderYearListsFromTypeMap(typeMap);
+    } catch(e){
+      console.warn('Render af oversigt fra manifest fejlede, viser fallback.', e);
+      renderYearListsFallback();
+    }
+
+    // Hent kandidatfiler parallelt
+    const allCandidatesRaw = [];
+    const electionMetas = [];
+
+    await Promise.all(elections.map(async (el) => {
+      const meta = { ...el };
+      const candidatePath = el.candidateFile || el.candidatesFile || el.candidateSource || el.source || '';
+      if(!candidatePath){
+        meta.candidates = [];
+        electionMetas.push(meta);
+        return;
+      }
+      let fileData = null;
+      try{
+        fileData = await fetchJsonWithFallback(candidatePath);
+      }catch(err){
+        console.warn('Kandidatfil kunne ikke hentes for', el.key || el.year, err);
+        meta.candidates = [];
+        electionMetas.push(meta);
+        return;
+      }
+      let candidates = [];
+      if(Array.isArray(fileData)){
+        candidates = fileData;
+      }else if(fileData && Array.isArray(fileData.candidates)){
+        candidates = fileData.candidates;
+        if(fileData.electionKey)       meta.key       = fileData.electionKey;
+        if(fileData.electionYear)      meta.year      = fileData.electionYear;
+        if(fileData.electionType)      meta.type      = fileData.electionType;
+        if(fileData.electionTypeLabel) meta.typeLabel = fileData.electionTypeLabel;
+        if(fileData.electionLabel)     meta.label     = fileData.electionLabel;
+        if(fileData.detailUrl)         meta.detailUrl = fileData.detailUrl;
+      }
+      const enriched = candidates.map(c => {
+        const type = c.electionType || meta.type;
+        const year = c.electionYear || meta.year;
+        const key  = c.electionKey  || meta.key;
+        const typeLabel =
+          c.electionTypeLabel || meta.typeLabel ||
+          (type === 'ft' ? 'Folketingsvalg' :
+           type === 'kv' ? 'Kommunalvalg' :
+           type === 'rv' ? 'Regionsrådsvalg' :
+           type === 'ep' ? 'Europa-Parlamentsvalg' : (meta.label || ''));
+        const label = c.electionLabel || meta.label || typeLabel;
+        let detailUrl = c.electionDetailUrl || meta.detailUrl || '';
+        if(!detailUrl && type && year) detailUrl = `/${type}/${year}/`;
+        return {
+          ...c,
+          electionKey: key,
+          electionType: type,
+          electionTypeLabel: typeLabel,
+          electionLabel: label,
+          electionYear: year,
+          electionDetailUrl: detailUrl,
+          totalVotes: getBestVoteNumber(c)
+        };
+      });
+      meta.candidates = enriched;
+      electionMetas.push(meta);
+      enriched.forEach(c => allCandidatesRaw.push(c));
+    }));
+
+    candidateIndex = { elections: electionMetas };
+
+    // Dedup (samme kandidatId pr. valg)
+    const map = new Map();
+    for(const c of allCandidatesRaw){
+      const eKey = c.electionKey || '';
+      const candId = c.candidateId || c.name || '';
+      if(!eKey || !candId) continue;
+      const k = `${eKey}::${candId}`;
+      const prev = map.get(k);
+      if(!prev) map.set(k, { ...c });
+      else prev.totalVotes = (prev.totalVotes||0) + (c.totalVotes||0);
+    }
+    flatCandidates = Array.from(map.values());
+
+    console.log('Kandidatindeks klar. Antal kandidatrekorder:', flatCandidates.length);
   }catch(err){
-    console.warn('Manifest kunne ikke hentes — søgning deaktiveres for nu.');
-    return;
+    console.warn('Manifest kunne ikke hentes – oversigt vises som fallback, søgning uden data.', err);
+    renderYearListsFallback();
   }
-
-  const allCandidatesRaw = [];
-  const electionMetas = [];
-
-  await Promise.all(elections.map(async (el) => {
-    const meta = { ...el };
-    const candidatePath = el.candidateFile || el.candidatesFile || el.candidateSource || el.source || '';
-    if(!candidatePath){
-      meta.candidates = [];
-      electionMetas.push(meta);
-      return;
-    }
-    let fileData = null;
-    try{
-      fileData = await fetchJsonWithFallback(candidatePath);
-    }catch(err){
-      console.warn('Kandidatfil kunne ikke hentes for', el.key || el.year, err);
-      meta.candidates = [];
-      electionMetas.push(meta);
-      return;
-    }
-    let candidates = [];
-    if(Array.isArray(fileData)){
-      candidates = fileData;
-    }else if(fileData && Array.isArray(fileData.candidates)){
-      candidates = fileData.candidates;
-      if(fileData.electionKey)       meta.key       = fileData.electionKey;
-      if(fileData.electionYear)      meta.year      = fileData.electionYear;
-      if(fileData.electionType)      meta.type      = fileData.electionType;
-      if(fileData.electionTypeLabel) meta.typeLabel = fileData.electionTypeLabel;
-      if(fileData.electionLabel)     meta.label     = fileData.electionLabel;
-      if(fileData.detailUrl)         meta.detailUrl = fileData.detailUrl;
-    }
-    const enriched = candidates.map(c => {
-      const type = c.electionType || meta.type;
-      const year = c.electionYear || meta.year;
-      const key  = c.electionKey  || meta.key;
-      const typeLabel =
-        c.electionTypeLabel || meta.typeLabel ||
-        (type === 'ft' ? 'Folketingsvalg' :
-         type === 'kv' ? 'Kommunalvalg' :
-         type === 'rv' ? 'Regionsrådsvalg' :
-         type === 'ep' ? 'Europa-Parlamentsvalg' : (meta.label || ''));
-      const label = c.electionLabel || meta.label || typeLabel;
-      let detailUrl = c.electionDetailUrl || meta.detailUrl || '';
-      if(!detailUrl && type && year) detailUrl = `/${type}/${year}/`;
-      return {
-        ...c,
-        electionKey: key,
-        electionType: type,
-        electionTypeLabel: typeLabel,
-        electionLabel: label,
-        electionYear: year,
-        electionDetailUrl: detailUrl,
-        totalVotes: getBestVoteNumber(c)
-      };
-    });
-    meta.candidates = enriched;
-    electionMetas.push(meta);
-    enriched.forEach(c => allCandidatesRaw.push(c));
-  }));
-
-  candidateIndex = { elections: electionMetas };
-
-  const map = new Map();
-  for(const c of allCandidatesRaw){
-    const eKey = c.electionKey || '';
-    const candId = c.candidateId || c.name || '';
-    if(!eKey || !candId) continue;
-    const k = `${eKey}::${candId}`;
-    const prev = map.get(k);
-    if(!prev) map.set(k, { ...c });
-    else prev.totalVotes = (prev.totalVotes||0) + (c.totalVotes||0);
-  }
-  flatCandidates = Array.from(map.values());
-
-  if(lastQuery.trim()) renderResults(lastQuery);
 }
 
 /* =========================
@@ -518,34 +524,20 @@ function renderResults(query){
 }
 
 /* =========================
-   Init
+   Init (indlæs alt ved sidestart)
    ========================= */
 (async function init(){
-  // 1) Prøv at bygge oversigten fra manifest
-  try{
-    const elections = await fetchManifestElections();
-    const typeMap   = groupElectionsByType(elections);
-    renderYearListsFromTypeMap(typeMap);
-  }catch(err){
-    console.warn('Manifest ikke tilgængeligt – viser fallback-årsliste.');
-    renderYearListsFallback(); // Selv hvis manifest mangler, har du en oversigt.
-  }
+  // Prøv manifest + oversigt + kandidatindeks
+  await loadManifestAndCandidateIndex();
+  // Hvis manifest ikke kunne hentes, har vi allerede lavet fallback-oversigt
 })();
 
-// 2) Lazy-load kandidatindeks ved fokus/skrivning (ingen status-tekster)
-let indexLoadingTriggered = false;
-searchInput.addEventListener('focus', () => {
-  if(!indexLoadingTriggered){ indexLoadingTriggered = true; loadCandidateIndex(); }
-});
+// Søg (ingen status-tekster – bare virke)
 searchInput.addEventListener('input', (e) => {
   lastQuery = e.target.value || '';
   if(!lastQuery.trim()){
     resultsRoot.innerHTML = '';
     resultsRoot.classList.add('hidden');
-    return;
-  }
-  if(!candidateIndex){
-    if(!indexLoadingTriggered){ indexLoadingTriggered = true; loadCandidateIndex().then(()=> renderResults(lastQuery)); }
     return;
   }
   renderResults(lastQuery);
