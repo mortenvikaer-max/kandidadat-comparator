@@ -313,7 +313,9 @@ const canon = s => (s||"").toString().trim();
 const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isListestemmer = name => { const t = canon(name).toLowerCase(); return t==="partiliste" || t==="listestemmer" || t==="liste"; };
 const cleanPollingPlaceName = (name) => canon(name).replace(/^\s*\d+\.\s*/,'').trim();
+
 const kredsSlug = name => (name || "").toString().split(" ").join("_");
+const storkredsSlug = name => (name || "").toString().split(" ").join("_");
 
 /* Sortering – kandidater */
 const sortKandidaterAlpha = (a,b)=>{
@@ -765,7 +767,7 @@ function clearAll(){
   btn.disabled=true; btn.setAttribute('aria-expanded','false');
   btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg kreds først…</span>`;
   el("partyMenu").innerHTML="";
-  el("partyDetailHeader").textContent="Vælg et parti i drop-down menuen.";
+  el("partyDetailHeader").textContent="";
   el("candidateColLeft").innerHTML="";
   el("candidateColRight").innerHTML="";
   el("storkredstitel").textContent="";
@@ -824,7 +826,9 @@ async function loadKredsData(storkreds,kreds){
   try{
     el("error").textContent="";
     el("storkredstitel").textContent = kreds ? `(${storkreds} – ${kreds})` : `(${storkreds})`;
-    const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
+
+    const s = storkredsSlug(storkreds);
+    const k = kredsSlug(kreds);
     const candidates=[
       `${BASE_PATH}${s}/${k}_allepartier.csv`,
       `${BASE_PATH}${s}/${k}.csv`,
@@ -924,7 +928,7 @@ async function loadRowsForStorkreds(storkreds){
   const keyAll = `${storkreds}::__ALL__`;
   if(state.csvCache.has(keyAll)) return state.csvCache.get(keyAll);
 
-  const s = encodeURIComponent(storkreds);
+  const s = storkredsSlug(storkreds);
 
   const candidates = [
     `${BASE_PATH}${s}_allepartier.csv`,
@@ -965,7 +969,8 @@ async function loadRowsForKreds(storkreds, kreds){
   const key = `${storkreds}::${kreds}`;
   if(state.csvCache.has(key)) return state.csvCache.get(key);
 
-  const s=encodeURIComponent(storkreds), k=encodeURIComponent(kredsSlug(kreds));
+  const s = storkredsSlug(storkreds);
+  const k = kredsSlug(kreds);
   const candidates=[
     `${BASE_PATH}${s}/${k}_allepartier.csv`,
     `${BASE_PATH}${s}/${k}.csv`
