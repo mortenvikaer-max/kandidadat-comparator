@@ -173,636 +173,675 @@
     </div>
   </footer>
 
-  <script>
-    /* ====== KONFIG: ÅR & DESTINATIONER ====== */
-    const YEARS = {
-      ft: [2022, 2019, 2015, 2011, 2007],
-      kv: [2021, 2017, 2013, 2009, 2005],
-      rv: [2021, 2017],
-      ep: [2024, 2019, 2014, 2009],
-      fa: [2022, 2015, 2014]
-    };
+<script>
+  /* ====== KONFIG: ÅR & DESTINATIONER ====== */
+  const YEARS = {
+    ft: [2022, 2019, 2015, 2011, 2007],
+    kv: [2021, 2017, 2013, 2009, 2005],
+    rv: [2021, 2017],
+    ep: [2024, 2019, 2014, 2009],
+    fa: [2022, 2015, 2014]
+  };
 
-    const DISABLED = {};
+  const DISABLED = {};
 
-    const DEST = {
-      kv: { perYear: {
-        2021: '../kv/2021/',
-        2017: '../kv/2017/',
-        2013: '../kv/2013/',
-        2009: '../kv/2009/',
-        2005: '../kv/2005/',
-        2001: '../kv/2001/'
-      }},
-      ft: { perYear: {
-        2022: '../ft/2022/',
-        2019: '../ft/2019/',
-        2015: '../ft/2015/',
-        2011: '../ft/2011/',
-        2007: '../ft/2007/',
-        2005: '../ft/2005/'
-      }},
-      rv: { perYear: {
-        2021: '../rv/2021/',
-        2017: '../rv/2017/',
-        2013: '../rv/2013/'
-      }},
-      ep: { perYear: {
-        2024: '../ep/2024/',
-        2019: '../ep/2019/',
-        2014: '../ep/2014/',
-        2009: '../ep/2009/',
-        2004: '../ep/2004/'
-      }},
-      fa: { perYear: {
-        2022: '../fa/2022/',
-        2015: '../fa/2015/',
-        2014: '../fa/2014/'
-      }}
-    };
+  const DEST = {
+    kv: { perYear: {
+      2021: '../kv/2021/',
+      2017: '../kv/2017/',
+      2013: '../kv/2013/',
+      2009: '../kv/2009/',
+      2005: '../kv/2005/',
+      2001: '../kv/2001/'
+    }},
+    ft: { perYear: {
+      2022: '../ft/2022/',
+      2019: '../ft/2019/',
+      2015: '../ft/2015/',
+      2011: '../ft/2011/',
+      2007: '../ft/2007/',
+      2005: '../ft/2005/'
+    }},
+    rv: { perYear: {
+      2021: '../rv/2021/',
+      2017: '../rv/2017/',
+      2013: '../rv/2013/'
+    }},
+    ep: { perYear: {
+      2024: '../ep/2024/',
+      2019: '../ep/2019/',
+      2014: '../ep/2014/',
+      2009: '../ep/2009/',
+      2004: '../ep/2004/'
+    }},
+    fa: { perYear: {
+      2022: '../fa/2022/',
+      2015: '../fa/2015/',
+      2014: '../fa/2014/'
+    }}
+  };
 
-    const TITLES = {
-      ft:'Folketingsvalg',
-      kv:'Kommunalvalg',
-      rv:'Regionsrådsvalg',
-      ep:'Europa-Parlamentsvalg',
-      fa:'Folkeafstemning'
-    };
+  const TITLES = {
+    ft:'Folketingsvalg',
+    kv:'Kommunalvalg',
+    rv:'Regionsrådsvalg',
+    ep:'Europa-Parlamentsvalg',
+    fa:'Folkeafstemning'
+  };
 
-    const ORDER = ['ft','kv','rv','ep','fa'];
+  const ORDER = ['ft','kv','rv','ep','fa'];
 
-    /* ====== RENDER: VALG-LISTEN ====== */
-    const root = document.getElementById('list');
+  /* ====== RENDER: VALG-LISTEN ====== */
+  const root = document.getElementById('list');
 
-    ORDER.forEach(type=>{
-      const years = YEARS[type] || [];
-      const article = document.createElement('article');
-      article.className = 'vb-row';
+  ORDER.forEach(type=>{
+    const years = YEARS[type] || [];
+    const article = document.createElement('article');
+    article.className = 'vb-row';
 
-      article.innerHTML = `
-        <button type="button"
-                class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left"
-                aria-expanded="false"
-                data-acc="${type}">
-          <h2 class="text-base md:text-lg font-semibold text-slate-800 flex-1">${TITLES[type]}</h2>
-          <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/>
-          </svg>
-        </button>
+    article.innerHTML = `
+      <button type="button"
+              class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left"
+              aria-expanded="false"
+              data-acc="${type}">
+        <h2 class="text-base md:text-lg font-semibold text-slate-800 flex-1">${TITLES[type]}</h2>
+        <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/>
+        </svg>
+      </button>
 
-        <div class="vb-body">
-          <div>
-            <div class="px-4 md:px-5 pt-0 pb-4">
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                ${years.map(y=>{
-                  const isDisabled = DISABLED[type]?.includes(y);
-                  const hasUrl = !!DEST[type]?.perYear?.[y];
-                  const active = hasUrl && !isDisabled;
-                  const url = active ? DEST[type].perYear[y] : '#';
-                  return `<a class="vb-yearbtn"
-                               href="${url}"
-                               data-type="${type}" data-year="${y}"
-                               aria-disabled="${active ? 'false':'true'}">${y}</a>`;
-                }).join('')}
-              </div>
+      <div class="vb-body">
+        <div>
+          <div class="px-4 md:px-5 pt-0 pb-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              ${years.map(y=>{
+                const isDisabled = DISABLED[type]?.includes(y);
+                const hasUrl = !!DEST[type]?.perYear?.[y];
+                const active = hasUrl && !isDisabled;
+                const url = active ? DEST[type].perYear[y] : '#';
+                return `<a class="vb-yearbtn"
+                             href="${url}"
+                             data-type="${type}" data-year="${y}"
+                             aria-disabled="${active ? 'false':'true'}">${y}</a>`;
+              }).join('')}
             </div>
           </div>
         </div>
-      `;
-      root.appendChild(article);
-    });
+      </div>
+    `;
+    root.appendChild(article);
+  });
 
-    /* ====== INTERAKTION: ACCORDION ====== */
-    root.addEventListener('click', (e)=>{
-      const btn = e.target.closest('[data-acc]');
-      if(btn){
-        const article = btn.closest('article');
-        const open = article.classList.toggle('vb-open');
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if(open){
-          document.querySelectorAll('#list article.vb-open').forEach(el=>{
-            if(el!==article){
-              el.classList.remove('vb-open');
-              el.querySelector('[data-acc]').setAttribute('aria-expanded','false');
-            }
-          });
-        }
+  /* ====== INTERAKTION: ACCORDION ====== */
+  root.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-acc]');
+    if(btn){
+      const article = btn.closest('article');
+      const open = article.classList.toggle('vb-open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if(open){
+        document.querySelectorAll('#list article.vb-open').forEach(el=>{
+          if(el!==article){
+            el.classList.remove('vb-open');
+            el.querySelector('[data-acc]').setAttribute('aria-expanded','false');
+          }
+        });
       }
-    });
+    }
+  });
 
-    root.addEventListener('keydown', (e)=>{
-      const btn = e.target.closest('[data-acc]');
-      if(btn && (e.key==='Enter' || e.key===' ')){
-        e.preventDefault(); btn.click();
-      }
-    });
+  root.addEventListener('keydown', (e)=>{
+    const btn = e.target.closest('[data-acc]');
+    if(btn && (e.key==='Enter' || e.key===' ')){
+      e.preventDefault(); btn.click();
+    }
+  });
 
-    root.addEventListener('click', (e)=>{
-      const link = e.target.closest('.vb-yearbtn');
-      if(!link) return;
-      const active = link.getAttribute('aria-disabled') === 'false';
-      if(!active){
-        e.preventDefault();
-        const type = link.getAttribute('data-type');
-        const year = link.getAttribute('data-year');
-        alert(`${TITLES[type]} ${year} er ikke aktiveret endnu.`);
-      }
-    });
+  root.addEventListener('click', (e)=>{
+    const link = e.target.closest('.vb-yearbtn');
+    if(!link) return;
+    const active = link.getAttribute('aria-disabled') === 'false';
+    if(!active){
+      e.preventDefault();
+      const type = link.getAttribute('data-type');
+      const year = link.getAttribute('data-year');
+      alert(`${TITLES[type]} ${year} er ikke aktiveret endnu.`);
+    }
+  });
 
-    /* =====================================================
-       KANDIDATSØGNING – via manifest + candidate-sources
-       ===================================================== */
-    const searchInput   = document.getElementById('candidateSearch');
-    const resultsRoot   = document.getElementById('candidateResults');
-    const statusEl      = document.getElementById('candidateSearchStatus');
+  /* =====================================================
+     KANDIDATSØGNING – via manifest + candidate-sources
+     ===================================================== */
+  const searchInput   = document.getElementById('candidateSearch');
+  const resultsRoot   = document.getElementById('candidateResults');
+  const statusEl      = document.getElementById('candidateSearchStatus');
 
-    let candidateIndex  = null;
-    let flatCandidates  = [];
-    let lastQuery       = '';
+  let candidateIndex  = null;
+  let flatCandidates  = [];
+  let lastQuery       = '';
 
-    function normalizeName(str){
-      return (str || '')
-        .toString()
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu,'')
-        .toLowerCase()
-        .trim();
+  function normalizeName(str){
+    return (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu,'')
+      .toLowerCase()
+      .trim();
+  }
+
+  // Farver til partibogstav
+  const PARTY_COLORS = {
+    "A":"#e03a3e",
+    "B":"#712082",
+    "C":"#2e7d32",
+    "D":"#0f766e",
+    "F":"#e5003d",
+    "I":"#00a0e3",
+    "K":"#ff9800",
+    "O":"#0044aa",
+    "V":"#1b5eaa",
+    "Ø":"#c8102e",
+    "Å":"#3aaa35",
+    "Q":"#ff4fa3",
+    "Æ":"#666666"
+  };
+
+  // Navn -> bogstav
+  const PARTY_LETTER_FROM_NAME = {
+    "Socialdemokratiet": "A",
+    "Radikale Venstre": "B",
+    "Det Konservative Folkeparti": "C",
+    "SF - Socialistisk Folkeparti": "F",
+    "Liberal Alliance": "I",
+    "Kristendemokraterne": "K",
+    "Dansk Folkeparti": "O",
+    "Venstre, Danmarks Liberale Parti": "V",
+    "Enhedslisten - De Rød-Grønne": "Ø",
+    "Alternativet": "Å"
+  };
+
+  // Bogstav -> navn (især til ældre KV hvor kun bogstav findes)
+  const PARTY_NAME_FROM_LETTER = {
+    "A":"Socialdemokratiet",
+    "B":"Radikale Venstre",
+    "C":"Det Konservative Folkeparti",
+    "F":"SF - Socialistisk Folkeparti",
+    "I":"Liberal Alliance",
+    "K":"Kristendemokraterne",
+    "O":"Dansk Folkeparti",
+    "V":"Venstre, Danmarks Liberale Parti",
+    "Ø":"Enhedslisten - De Rød-Grønne",
+    "Å":"Alternativet"
+  };
+
+  function parseVote(raw){
+    if(raw == null || raw === "") return 0;
+    const n = Number(
+      String(raw)
+        .trim()
+        .replace(/\./g, "")   // fjern tusindtals-punktum
+        .replace(",", ".")    // dansk komma -> punktum
+    );
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  // Finder bedste bud på stemmetal ud fra forskellige mulige felter
+  function getBestVoteNumber(obj){
+    const fieldNames = [
+      "totalVotes",
+      "votes",
+      "stemmer",
+      "personligeStemmer",
+      "personlige_stemmer",
+      "personlige_stemmer_i_alt"
+    ];
+
+    let best = 0;
+
+    // 1) Kendte felter
+    for (const name of fieldNames) {
+      if (!(name in obj)) continue;
+      const n = parseVote(obj[name]);
+      if (n > best) best = n;
     }
 
-    // Farver til partibogstav
-    const PARTY_COLORS = {
-      "A":"#e03a3e",
-      "B":"#712082",
-      "C":"#2e7d32",
-      "D":"#0f766e",
-      "F":"#e5003d",
-      "I":"#00a0e3",
-      "K":"#ff9800",
-      "O":"#0044aa",
-      "V":"#1b5eaa",
-      "Ø":"#c8102e",
-      "Å":"#3aaa35",
-      "Q":"#ff4fa3",
-      "Æ":"#666666"
-    };
-
-    // Navn -> bogstav
-    const PARTY_LETTER_FROM_NAME = {
-      "Socialdemokratiet": "A",
-      "Radikale Venstre": "B",
-      "Det Konservative Folkeparti": "C",
-      "SF - Socialistisk Folkeparti": "F",
-      "Liberal Alliance": "I",
-      "Kristendemokraterne": "K",
-      "Dansk Folkeparti": "O",
-      "Venstre, Danmarks Liberale Parti": "V",
-      "Enhedslisten - De Rød-Grønne": "Ø",
-      "Alternativet": "Å"
-    };
-
-    // Bogstav -> navn (især til ældre KV hvor kun bogstav findes)
-    const PARTY_NAME_FROM_LETTER = {
-      "A":"Socialdemokratiet",
-      "B":"Radikale Venstre",
-      "C":"Det Konservative Folkeparti",
-      "F":"SF - Socialistisk Folkeparti",
-      "I":"Liberal Alliance",
-      "K":"Kristendemokraterne",
-      "O":"Dansk Folkeparti",
-      "V":"Venstre, Danmarks Liberale Parti",
-      "Ø":"Enhedslisten - De Rød-Grønne",
-      "Å":"Alternativet"
-    };
-
-    function parseVote(raw){
-      if(raw == null || raw === "") return 0;
-      const n = Number(
-        String(raw)
-          .trim()
-          .replace(/\./g, "")   // fjern tusindtals-punktum
-          .replace(",", ".")    // dansk komma -> punktum
-      );
-      return Number.isFinite(n) && n > 0 ? n : 0;
-    }
-
-    function getBestVoteNumber(obj){
-      const fieldNames = [
-        "totalVotes",
-        "votes",
-        "stemmer",
-        "personligeStemmer",
-        "personlige_stemmer",
-        "personlige_stemmer_i_alt"
-      ];
-
-      let best = 0;
-
-      for (const name of fieldNames) {
-        if (!(name in obj)) continue;
-        const n = parseVote(obj[name]);
+    // 2) Fallback: alle felter med "stem" eller "vote" i navnet
+    if (best === 0) {
+      for (const [key, val] of Object.entries(obj)) {
+        if (!/stem|vote/i.test(key)) continue;
+        const n = parseVote(val);
         if (n > best) best = n;
       }
-
-      if (best === 0) {
-        for (const [key, val] of Object.entries(obj)) {
-          if (!/stem|vote/i.test(key)) continue;
-          const n = parseVote(val);
-          if (n > best) best = n;
-        }
-      }
-
-      return best;
     }
 
-    async function loadCandidateIndex(){
-      if (candidateIndex) return;
-      try {
-        statusEl.classList.remove('hidden');
-        statusEl.textContent = 'Indlæser kandidatindeks (manifest)…';
+    return best;
+  }
 
-        const res = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
-        const manifest = await res.json();
+  // ======= MANIFEST-LOADER m. DEDUP & PARALLEL FETCH =======
+  async function loadCandidateIndex(){
+    if (candidateIndex) return;
+    try {
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'Indlæser kandidatindeks (manifest)…';
 
-        const electionsFromManifest = manifest.elections || [];
-        candidateIndex = { elections: [] };
+      // 1) Hent manifestet
+      const res = await fetch('../data/candidate-index-manifest.json?ts=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
+      const manifest = await res.json();
 
-        const allCandidatesRaw = [];
-        const electionMetas = [];
+      const electionsFromManifest = manifest.elections || [];
+      candidateIndex = { elections: [] };
 
-        await Promise.all(
-          electionsFromManifest.map(async (el) => {
-            const electionMeta = { ...el };
-            const electionKey  = el.key || el.electionKey || '';
-            const electionYear = el.year || el.electionYear || '';
+      console.log('Manifest indlæst, antal valg:', electionsFromManifest.length);
 
-            const candidatePath =
-              el.candidateFile ||
-              el.candidatesFile ||
-              el.candidateSource ||
-              el.source ||
+      const allCandidatesRaw = [];
+      const electionMetas = [];
+
+      // 2) Hent alle kandidatfiler parallelt
+      await Promise.all(
+        electionsFromManifest.map(async (el) => {
+          const electionMeta = { ...el };
+          const electionKey  = el.key || el.electionKey || '';
+          const electionYear = el.year || el.electionYear || '';
+
+          const candidatePath =
+            el.candidateFile ||
+            el.candidatesFile ||
+            el.candidateSource ||
+            el.source ||
+            '';
+
+          if (!candidatePath) {
+            console.warn('Manifest: intet candidateFile/candidateSource for', electionKey || electionYear);
+            electionMeta.candidates = [];
+            electionMetas.push(electionMeta);
+            return;
+          }
+
+          let fileData = null;
+
+          let url = candidatePath;
+          if (!url.startsWith('http') && !url.startsWith('/')) {
+            url = '../' + url.replace(/^\.?\//, '');
+          }
+          const withTs = url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+
+          try {
+            const resFile = await fetch(withTs, { cache: 'no-store' });
+            if (!resFile.ok) throw new Error('HTTP ' + resFile.status);
+            fileData = await resFile.json();
+            console.log('Indlæst kandidatfil for', electionKey || electionYear, 'fra', withTs);
+          } catch (err) {
+            console.error('Kunne ikke hente kandidatfil for', electionKey || electionYear, candidatePath, err);
+            electionMeta.candidates = [];
+            electionMetas.push(electionMeta);
+            return;
+          }
+
+          let candidates = [];
+          if (Array.isArray(fileData)) {
+            candidates = fileData;
+          } else if (fileData && Array.isArray(fileData.candidates)) {
+            candidates = fileData.candidates;
+
+            if (fileData.electionKey)        electionMeta.key       = fileData.electionKey;
+            if (fileData.electionYear)       electionMeta.year      = fileData.electionYear;
+            if (fileData.electionType)       electionMeta.type      = fileData.electionType;
+            if (fileData.electionTypeLabel)  electionMeta.typeLabel = fileData.electionTypeLabel;
+            if (fileData.electionLabel)      electionMeta.label     = fileData.electionLabel;
+            if (fileData.detailUrl)          electionMeta.detailUrl = fileData.detailUrl;
+          } else {
+            console.warn('Kandidatfil for', electionKey || electionYear, 'har ikke forventet format');
+          }
+
+          const enriched = candidates.map(c => {
+            const type = c.electionType || electionMeta.type;
+            const year = c.electionYear || electionMeta.year;
+            const key  = c.electionKey  || electionMeta.key;
+
+            const typeLabel =
+              c.electionTypeLabel ||
+              electionMeta.typeLabel ||
+              (type === 'ft' ? 'Folketingsvalg' :
+               type === 'kv' ? 'Kommunalvalg' :
+               type === 'rv' ? 'Regionsrådsvalg' :
+               type === 'ep' ? 'Europa-Parlamentsvalg' :
+               electionMeta.label || '');
+
+            const label =
+              c.electionLabel ||
+              electionMeta.label ||
+              typeLabel;
+
+            let detailUrl =
+              c.electionDetailUrl ||
+              electionMeta.detailUrl ||
               '';
 
-            if (!candidatePath) {
-              electionMeta.candidates = [];
-              electionMetas.push(electionMeta);
-              return;
+            if (!detailUrl && type && year) {
+              detailUrl = `/${type}/${year}/`;
             }
 
-            let fileData = null;
-
-            let url = candidatePath;
-            if (!url.startsWith('http') && !url.startsWith('/')) {
-              url = '../' + url.replace(/^\.?\//, '');
-            }
-            const withTs = url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now();
-
-            try {
-              const resFile = await fetch(withTs, { cache: 'no-store' });
-              if (!resFile.ok) throw new Error('HTTP ' + resFile.status);
-              fileData = await resFile.json();
-            } catch (err) {
-              electionMeta.candidates = [];
-              electionMetas.push(electionMeta);
-              return;
-            }
-
-            let candidates = [];
-            if (Array.isArray(fileData)) {
-              candidates = fileData;
-            } else if (fileData && Array.isArray(fileData.candidates)) {
-              candidates = fileData.candidates;
-
-              if (fileData.electionKey)        electionMeta.key       = fileData.electionKey;
-              if (fileData.electionYear)       electionMeta.year      = fileData.electionYear;
-              if (fileData.electionType)       electionMeta.type      = fileData.electionType;
-              if (fileData.electionTypeLabel)  electionMeta.typeLabel = fileData.electionTypeLabel;
-              if (fileData.electionLabel)      electionMeta.label     = fileData.electionLabel;
-              if (fileData.detailUrl)          electionMeta.detailUrl = fileData.detailUrl;
-            }
-
-            const enriched = candidates.map(c => {
-              const type = c.electionType || electionMeta.type;
-              const year = c.electionYear || electionMeta.year;
-              const key  = c.electionKey  || electionMeta.key;
-
-              const typeLabel =
-                c.electionTypeLabel ||
-                electionMeta.typeLabel ||
-                (type === 'ft' ? 'Folketingsvalg' :
-                 type === 'kv' ? 'Kommunalvalg' :
-                 type === 'rv' ? 'Regionsrådsvalg' :
-                 type === 'ep' ? 'Europa-Parlamentsvalg' :
-                 electionMeta.label || '');
-
-              const label =
-                c.electionLabel ||
-                electionMeta.label ||
-                typeLabel;
-
-              let detailUrl =
-                c.electionDetailUrl ||
-                electionMeta.detailUrl ||
-                '';
-
-              if (!detailUrl && type && year) {
-                detailUrl = `/${type}/${year}/`;
-              }
-
-              return {
-                ...c,
-                electionKey: key,
-                electionType: type,
-                electionTypeLabel: typeLabel,
-                electionLabel: label,
-                electionYear: year,
-                electionDetailUrl: detailUrl
-              };
-            });
-
-            const enrichedNorm = enriched.map(c => ({
+            return {
               ...c,
-              totalVotes: getBestVoteNumber(c)
-            }));
+              electionKey: key,
+              electionType: type,
+              electionTypeLabel: typeLabel,
+              electionLabel: label,
+              electionYear: year,
+              electionDetailUrl: detailUrl
+            };
+          });
 
-            electionMeta.candidates = enrichedNorm;
-            electionMetas.push(electionMeta);
+          const enrichedNorm = enriched.map(c => ({
+            ...c,
+            totalVotes: getBestVoteNumber(c)
+          }));
 
-            enrichedNorm.forEach(c => allCandidatesRaw.push(c));
-          })
-        );
+          electionMeta.candidates = enrichedNorm;
+          electionMetas.push(electionMeta);
 
-        candidateIndex.elections = electionMetas;
+          enrichedNorm.forEach(c => allCandidatesRaw.push(c));
 
-        const map = new Map();
+          console.log(
+            'Valg', electionKey || electionYear,
+            ': tilføjede', enrichedNorm.length, 'rækker (rå). Total rå nu:', allCandidatesRaw.length
+          );
+        })
+      );
 
-        for (const c of allCandidatesRaw) {
-          const eKey = c.electionKey || '';
-          const candId = c.candidateId || c.name || '';
-          if (!eKey || !candId) continue;
+      candidateIndex.elections = electionMetas;
 
-          const k = `${eKey}::${candId}`;
-          const existing = map.get(k);
-          if (!existing) {
-            map.set(k, { ...c });
-          } else {
-            const prev = typeof existing.totalVotes === 'number' ? existing.totalVotes : 0;
-            const add  = typeof c.totalVotes === 'number' ? c.totalVotes : 0;
-            existing.totalVotes = prev + add;
-          }
-        }
+      // 3) DEDUP: én kandidat pr. valg (electionKey + candidateId)
+      const map = new Map();
 
-        flatCandidates = Array.from(map.values());
+      for (const c of allCandidatesRaw) {
+        const eKey = c.electionKey || '';
+        const candId = c.candidateId || c.name || '';
+        if (!eKey || !candId) continue;
 
-        statusEl.textContent =
-          `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
-
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
-      }
-    }
-
-    function searchCandidates(query){
-      const q = normalizeName(query);
-      if(!q) return [];
-
-      const results = [];
-      for(const c of flatCandidates){
-        const base = normalizeName(c.displayName || c.name || '');
-        const variants = (c.nameVariants || []).map(normalizeName);
-
-        let score = -Infinity;
-
-        if(base.startsWith(q)) score = 300 - (base.length - q.length);
-        else if(base.includes(q)) score = 200 - base.indexOf(q);
-
-        if(score === -Infinity){
-          const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
-          if(hitVariant){
-            if(hitVariant.startsWith(q)) score = 250 - (hitVariant.length - q.length);
-            else score = 180 - hitVariant.indexOf(q);
-          }
-        }
-
-        if(score > -Infinity){
-          results.push({ c, score });
-        }
-      }
-
-      const top = results
-        .sort((a,b)=> b.score - a.score)
-        .slice(0, 40)
-        .map(r => r.c);
-
-      const typePriority = { ep:4, ft:3, rv:2, kv:1 };
-
-      top.sort((a,b)=>{
-        const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
-        const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
-        if (nameA !== nameB) {
-          return nameA.localeCompare(nameB, 'da-DK');
-        }
-
-        const yearA = a.electionYear || 0;
-        const yearB = b.electionYear || 0;
-        if (yearA !== yearB) {
-          return yearB - yearA;
-        }
-
-        const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
-        const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
-        if (votesA !== votesB) {
-          return votesB - votesA;
-        }
-
-        const prioA = typePriority[a.electionType] || 0;
-        const prioB = typePriority[b.electionType] || 0;
-        if (prioA !== prioB) {
-          return prioB - prioA;
-        }
-
-        const idA = (a.candidateId || '').toString();
-        const idB = (b.candidateId || '').toString();
-        return idA.localeCompare(idB, 'da-DK');
-      });
-
-      return top.slice(0, 20);
-    }
-
-    function renderResults(query){
-      const q = query.trim();
-      if(!q || !flatCandidates.length){
-        resultsRoot.innerHTML = '';
-        resultsRoot.classList.add('hidden');
-        return;
-      }
-
-      const hits = searchCandidates(q);
-      if(!hits.length){
-        resultsRoot.innerHTML = `
-          <div class="px-3 py-2 text-xs text-slate-500">
-            Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
-          </div>`;
-        resultsRoot.classList.remove('hidden');
-        return;
-      }
-
-      resultsRoot.innerHTML = hits.map(hit => {
-        let party      = (hit.party || '').trim();
-        let partyShort = (hit.partyShort || '').trim();
-
-        if (!partyShort && party) {
-          const mappedLetter = PARTY_LETTER_FROM_NAME[party];
-          if (mappedLetter) partyShort = mappedLetter;
-        }
-
-        if (!party && partyShort) {
-          const mappedName = PARTY_NAME_FROM_LETTER[partyShort];
-          if (mappedName) party = mappedName;
-        }
-
-        const votes      = typeof hit.totalVotes === 'number'
-                           ? hit.totalVotes.toLocaleString('da-DK')
-                           : '?';
-
-        let area = '';
-        if (hit.electionType === 'kv' || hit.electionType === 'rv') {
-          area = hit.kommune || hit.area || '';
-        } else if (hit.electionType === 'ft') {
-          area = hit.storkreds || hit.area || '';
+        const k = `${eKey}::${candId}`;
+        const existing = map.get(k);
+        if (!existing) {
+          map.set(k, { ...c });
         } else {
-          area = '';
+          const prev = typeof existing.totalVotes === 'number' ? existing.totalVotes : 0;
+          const add  = typeof c.totalVotes === 'number' ? c.totalVotes : 0;
+          existing.totalVotes = prev + add;
         }
+      }
 
-        const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
-        const year       = hit.electionYear || '';
+      flatCandidates = Array.from(map.values());
 
-        const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
+      statusEl.textContent =
+        `Kandidatindeks indlæst: ${flatCandidates.length} kandidatrekorder på tværs af ${candidateIndex.elections.length} valg.`;
 
-        let partyLabel = '';
-        if (party) {
-          partyLabel = partyShort ? `${party} (${partyShort})` : party;
-        } else if (partyShort) {
-          partyLabel = `Parti ${partyShort}`;
+      console.log('Efter dedup: flatCandidates.length =', flatCandidates.length);
+
+      // Lille hjælpe-log hvis du vil debugge én bestemt kandidat (kan fjernes igen)
+      const debug = flatCandidates.find(c =>
+        (c.displayName || c.name || '').includes('Rasmus Jarlov')
+      );
+      if (debug) {
+        console.log('DEBUG – Rasmus Jarlov kandidatrekord:', debug);
+      }
+
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Kunne ikke indlæse kandidatindeks (se konsollen).';
+    }
+  }
+
+  // ======= SØGNING / RENDER =======
+  function searchCandidates(query){
+    const q = normalizeName(query);
+    if(!q) return [];
+
+    const results = [];
+    for(const c of flatCandidates){
+      const base = normalizeName(c.displayName || c.name || '');
+      const variants = (c.nameVariants || []).map(normalizeName);
+
+      let score = -Infinity;
+
+      if(base.startsWith(q)) score = 300 - (base.length - q.length);
+      else if(base.includes(q)) score = 200 - base.indexOf(q);
+
+      if(score === -Infinity){
+        const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
+        if(hitVariant){
+          if(hitVariant.startsWith(q)) score = 250 - (hitVariant.length - q.length);
+          else score = 180 - hitVariant.indexOf(q);
         }
+      }
 
-        const topParts = [];
-        if (electionLabel) topParts.push(electionLabel);
-        if (area) topParts.push(area);
-        if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
-        const topMeta = topParts.join(' · ');
-
-        const bottomParts = [];
-        if (partyLabel) bottomParts.push(partyLabel);
-        const bottomMeta = bottomParts.join(' · ');
-
-        let badgeStyle = '';
-        let badgeText  = '';
-        if (partyShort) {
-          const color = PARTY_COLORS[partyShort] || null;
-          if (color) {
-            badgeStyle = `background:${color};color:#fff;border-color:${color}`;
-          } else {
-            badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
-          }
-          badgeText = partyShort;
-        }
-
-        const name = hit.displayName || hit.name || '';
-
-        const kredsAttr =
-          hit.kreds ||
-          hit.kredsnavn ||
-          hit.kredsNavn ||
-          '';
-
-        return `
-          <button type="button"
-                  class="w-full text-left vb-hit"
-                  data-cand-id="${hit.candidateId || ''}"
-                  data-detail-url="${hit.electionDetailUrl || '/'}"
-                  data-region="${hit.region || ''}"
-                  data-kommune="${hit.kommune || hit.area || ''}"
-                  data-election-type="${hit.electionType || ''}"
-                  data-storkreds="${hit.storkreds || ''}"
-                  data-kreds="${kredsAttr || ''}">
-            ${partyShort ? `
-              <span class="vb-hit-badge">
-                <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
-              </span>` : ''}
-            <div class="vb-hit-main">
-              <div class="vb-hit-name">${name}</div>
-              ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
-              ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
-            </div>
-          </button>
-        `;
-      }).join('');
-
-      resultsRoot.classList.remove('hidden');
-
-      // klik-håndtering – bygger URL afhængigt af valgtype
-      resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const cid       = btn.getAttribute('data-cand-id') || '';
-          const baseUrl   = btn.getAttribute('data-detail-url') || '/';
-          const type      = btn.getAttribute('data-election-type') || '';
-          const region    = btn.getAttribute('data-region') || '';
-          const kommune   = btn.getAttribute('data-kommune') || '';
-          const storkreds = btn.getAttribute('data-storkreds') || '';
-          const kreds     = btn.getAttribute('data-kreds') || '';
-
-          const params = new URLSearchParams();
-
-          if (type === 'kv' || type === 'rv') {
-            // Kommunal-/regionsvalg: region + kommune + cand
-            if (region && kommune) {
-              params.set('region', region);
-              params.set('kommune', kommune);
-            }
-            params.set('cand', cid);
-          } else if (type === 'ft') {
-            // Folketingsvalg: storkreds/kreds + kandidat
-            if (storkreds) params.set('storkreds', storkreds);
-            if (kreds)     params.set('kreds', kreds); // hvis vi har kreds fra indekset
-            params.set('kandidat', cid);
-          } else {
-            // EP m.m.: bare cand
-            params.set('cand', cid);
-          }
-
-          const sep = baseUrl.includes('?') ? '&' : '?';
-          const url = baseUrl + sep + params.toString();
-          window.location.href = url;
-        });
-      });
+      if(score > -Infinity){
+        results.push({ c, score });
+      }
     }
 
-    // Lazy-load kandidatindeks ved fokus / første input
-    let indexLoadingTriggered = false;
+    const top = results
+      .sort((a,b)=> b.score - a.score)
+      .slice(0, 40)
+      .map(r => r.c);
 
-    searchInput.addEventListener('focus', () => {
-      if(!indexLoadingTriggered){
-        indexLoadingTriggered = true;
-        loadCandidateIndex();
+    const typePriority = { ep:4, ft:3, rv:2, kv:1 };
+
+    top.sort((a,b)=>{
+      const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
+      const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
+      if (nameA !== nameB) {
+        return nameA.localeCompare(nameB, 'da-DK');
       }
+
+      const yearA = a.electionYear || 0;
+      const yearB = b.electionYear || 0;
+      if (yearA !== yearB) {
+        return yearB - yearA; // nyeste først
+      }
+
+      const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
+      const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
+      if (votesA !== votesB) {
+        return votesB - votesA; // flest stemmer først
+      }
+
+      const prioA = typePriority[a.electionType] || 0;
+      const prioB = typePriority[b.electionType] || 0;
+      if (prioA !== prioB) {
+        return prioB - prioA;
+      }
+
+      const idA = (a.candidateId || '').toString();
+      const idB = (b.candidateId || '').toString();
+      return idA.localeCompare(idB, 'da-DK');
     });
 
-    searchInput.addEventListener('input', (e) => {
-      const val = e.target.value || '';
-      lastQuery = val;
-      if(!val.trim()){
-        resultsRoot.innerHTML = '';
-        resultsRoot.classList.add('hidden');
-        return;
+    return top.slice(0, 20);
+  }
+
+  function renderResults(query){
+    const q = query.trim();
+    if(!q || !flatCandidates.length){
+      resultsRoot.innerHTML = '';
+      resultsRoot.classList.add('hidden');
+      return;
+    }
+
+    const hits = searchCandidates(q);
+    if(!hits.length){
+      resultsRoot.innerHTML = `
+        <div class="px-3 py-2 text-xs text-slate-500">
+          Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
+        </div>`;
+      resultsRoot.classList.remove('hidden');
+      return;
+    }
+
+    resultsRoot.innerHTML = hits.map(hit => {
+      let party      = (hit.party || '').trim();
+      let partyShort = (hit.partyShort || '').trim();
+
+      if (!partyShort && party) {
+        const mappedLetter = PARTY_LETTER_FROM_NAME[party];
+        if (mappedLetter) partyShort = mappedLetter;
       }
-      if(!candidateIndex){
-        statusEl.classList.remove('hidden');
-        statusEl.textContent = 'Indlæser kandidatindeks…';
+
+      if (!party && partyShort) {
+        const mappedName = PARTY_NAME_FROM_LETTER[partyShort];
+        if (mappedName) party = mappedName;
       }
-      renderResults(val);
+
+      const votes      = typeof hit.totalVotes === 'number'
+                         ? hit.totalVotes.toLocaleString('da-DK')
+                         : '?';
+
+      let area = '';
+      if (hit.electionType === 'kv' || hit.electionType === 'rv') {
+        area = hit.kommune || hit.area || '';
+      } else if (hit.electionType === 'ft') {
+        area = hit.storkreds || hit.area || '';
+      } else {
+        area = '';
+      }
+
+      const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
+      const year       = hit.electionYear || '';
+
+      const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
+
+      let partyLabel = '';
+      if (party) {
+        partyLabel = partyShort ? `${party} (${partyShort})` : party;
+      } else if (partyShort) {
+        partyLabel = `Parti ${partyShort}`;
+      }
+
+      const topParts = [];
+      if (electionLabel) topParts.push(electionLabel);
+      if (area) topParts.push(area);
+      if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
+      const topMeta = topParts.join(' · ');
+
+      const bottomParts = [];
+      if (partyLabel) bottomParts.push(partyLabel);
+      const bottomMeta = bottomParts.join(' · ');
+
+      let badgeStyle = '';
+      let badgeText  = '';
+      if (partyShort) {
+        const color = PARTY_COLORS[partyShort] || null;
+        if (color) {
+          badgeStyle = `background:${color};color:#fff;border-color:${color}`;
+        } else {
+          badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+        }
+        badgeText = partyShort;
+      }
+
+      const name = hit.displayName || hit.name || '';
+
+      const kredsAttr =
+        hit.kreds ||
+        hit.kredsnavn ||
+        hit.kredsNavn ||
+        '';
+
+      return `
+        <button type="button"
+                class="w-full text-left vb-hit"
+                data-cand-id="${hit.candidateId || ''}"
+                data-detail-url="${hit.electionDetailUrl || '/'}"
+                data-region="${hit.region || ''}"
+                data-kommune="${hit.kommune || hit.area || ''}"
+                data-election-type="${hit.electionType || ''}"
+                data-storkreds="${hit.storkreds || ''}"
+                data-kreds="${kredsAttr || ''}"
+                data-party="${party || ''}"
+                data-party-short="${partyShort || ''}"
+                data-name="${name || ''}">
+          ${partyShort ? `
+            <span class="vb-hit-badge">
+              <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
+            </span>` : ''}
+          <div class="vb-hit-main">
+            <div class="vb-hit-name">${name}</div>
+            ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
+            ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    resultsRoot.classList.remove('hidden');
+
+    // klik-håndtering – bygger URL afhængigt af valgtype
+    resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cid        = btn.getAttribute('data-cand-id') || '';
+        const baseUrl    = btn.getAttribute('data-detail-url') || '/';
+        const type       = btn.getAttribute('data-election-type') || '';
+        const region     = btn.getAttribute('data-region') || '';
+        const kommune    = btn.getAttribute('data-kommune') || '';
+        const storkreds  = btn.getAttribute('data-storkreds') || '';
+        const kreds      = btn.getAttribute('data-kreds') || '';
+        const party      = btn.getAttribute('data-party') || '';
+        const partyShort = btn.getAttribute('data-party-short') || '';
+        const name       = btn.getAttribute('data-name') || '';
+
+        const params = new URLSearchParams();
+
+        if (type === 'kv' || type === 'rv') {
+          if(region && kommune){
+            params.set('region', region);
+            params.set('kommune', kommune);
+          }
+        } else if (type === 'ft') {
+          if (storkreds) params.set('storkreds', storkreds);
+          if (kreds)     params.set('kreds', kreds);
+        }
+
+        // VIGTIGT: for FT sender vi en cand-værdi, som FT-siderne kan afkode
+        let candParam = cid;
+        if (type === 'ft') {
+          const prefix = partyShort || party;
+          candParam = prefix ? `${prefix}::${name}` : name;
+        }
+
+        params.set('cand', candParam);
+
+        const sep = baseUrl.includes('?') ? '&' : '?';
+        const url = baseUrl + sep + params.toString();
+        window.location.href = url;
+      });
     });
-  </script>
+  }
+
+  // Lazy-load kandidatindeks ved fokus / første input
+  let indexLoadingTriggered = false;
+
+  searchInput.addEventListener('focus', () => {
+    if(!indexLoadingTriggered){
+      indexLoadingTriggered = true;
+      loadCandidateIndex();
+    }
+  });
+
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value || '';
+    lastQuery = val;
+    if(!val.trim()){
+      resultsRoot.innerHTML = '';
+      resultsRoot.classList.add('hidden');
+      return;
+    }
+    if(!candidateIndex){
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'Indlæser kandidatindeks…';
+    }
+    renderResults(val);
+  });
+</script>
+
 </body>
 </html>
