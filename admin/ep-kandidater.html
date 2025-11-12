@@ -1,1 +1,423 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valgbar – Admin – EP-kandidater</title>
 
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PapaParse til CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .vb-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+    .vb-btn { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem 1rem; border-radius:999px; border:1px solid #0f172a; background:#0f172a; color:#f9fafb; font-weight:500; cursor:pointer; }
+    .vb-btn:disabled { opacity:.5; cursor:not-allowed; }
+    code { background:#f3f4f6; border-radius:4px; padding:.1rem .3rem; font-size:.85em; }
+    .vb-log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.75rem; line-height:1.4; max-height:260px; overflow-y:auto; background:#f9fafb; border-radius:8px; padding:.5rem .75rem; border:1px solid #e5e7eb; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+<header class="border-b bg-white">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2">
+        <img src="/Valgbar-transparent3.png" alt="Valgbar" class="h-10 w-auto" />
+      </a>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Admin</span>
+        <span class="text-lg font-semibold text-slate-900">Europa-Parlamentsvalg – generér kandidat-kildefil</span>
+      </div>
+    </div>
+    <span class="text-xs text-slate-500">Denne side er kun til internt brug (ingen login – gem URL'en).</span>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  <!-- Intro -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <h1 class="text-xl md:text-2xl font-semibold">Generér kandidat-kildefil til EP-valg</h1>
+    <p class="text-sm md:text-base text-slate-700">
+      Denne side læser dine CSV-filer pr. storkreds for EP-valg og laver en samlet liste
+      af kandidater pr. storkreds, som kan bruges i kandidatindekset på forsiden.
+    </p>
+    <ol class="list-decimal list-inside text-sm md:text-base text-slate-800 space-y-1">
+      <li>Vælg EP-år.</li>
+      <li>Tryk på <em>Generér kandidat-fil</em>.</li>
+      <li>Kopiér JSON-outputtet til <code>/data/candidate-sources/epYYYY.json</code>.</li>
+    </ol>
+    <p class="text-xs text-slate-500">
+      <strong>Sti-format:</strong> <code>../data/ep/ÅR/&lt;Storkreds&gt;_allepartier.csv</code>.<br/>
+      Eksempel: <code>../data/ep/2024/Københavns_Storkreds_allepartier.csv</code>.
+    </p>
+  </section>
+
+  <!-- Valg / konfiguration -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-lg font-semibold">Vælg EP-år</h2>
+      <div class="flex items-center gap-2">
+        <label for="epElectionSelect" class="text-xs text-slate-600">EP-år:</label>
+        <select id="epElectionSelect" class="rounded-md border border-slate-300 text-sm px-2 py-1 bg-white"></select>
+      </div>
+    </div>
+
+    <p class="text-sm text-slate-700">Konfiguration for det valgte år:</p>
+    <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+      <tbody id="epConfigTableBody" class="bg-white divide-y divide-slate-100"></tbody>
+    </table>
+    <p class="text-xs text-slate-500">
+      For 2009, 2014, 2019 og 2024 bruges storkredse-listen herunder (samme forsøges også for 2004; manglende filer logges blot).
+    </p>
+  </section>
+
+  <!-- Generér kandidat-fil -->
+  <section class="vb-card p-4 md:p-5 space-y-3">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">Generér kandidat-kildefil</h2>
+        <p class="text-xs text-slate-600">Resultatet er en liste af kandidater, grupperet pr. storkreds, med total stemmetal for storkredsen.</p>
+      </div>
+      <button id="btnGenerate" class="vb-btn text-sm">Generér kandidat-fil</button>
+    </div>
+
+    <div id="log" class="vb-log" aria-live="polite"></div>
+
+    <div class="space-y-2">
+      <label for="outputJson" class="text-sm font-medium text-slate-800">
+        Output (JSON – gem som <code>/data/candidate-sources/epYYYY.json</code>)
+      </label>
+      <textarea id="outputJson"
+                class="w-full h-72 border border-slate-200 rounded-lg text-xs font-mono p-2 bg-slate-50"
+                placeholder='Tryk på "Generér kandidat-fil" for at se JSON…'
+                spellcheck="false"></textarea>
+    </div>
+  </section>
+</main>
+
+<footer class="mt-8 border-t bg-slate-100">
+  <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+    <span>Valgbar · Admin-værktøj (EP kandidater)</span>
+    <span>Side genereres statisk – ingen server-side ændringer</span>
+  </div>
+</footer>
+
+<script>
+  // ============================================================
+  // STORKREDSE – filnavne (med underscores) + pæne navne
+  // ============================================================
+  const STORKREDS_FILES = [
+    "Bornholms_Storkreds_allepartier.csv",
+    "Fyns_Storkreds_allepartier.csv",
+    "Københavns_Omegns_Storkreds_allepartier.csv",
+    "Københavns_Storkreds_allepartier.csv",
+    "Nordjyllands_Storkreds_allepartier.csv",
+    "Nordsjællands_Storkreds_allepartier.csv",
+    "Sjællands_Storkreds_allepartier.csv",
+    "Sydjyllands_Storkreds_allepartier.csv",
+    "Vestjyllands_Storkreds_allepartier.csv",
+    "Østjyllands_Storkreds_allepartier.csv"
+  ];
+
+  const prettyNameFromFile = (fname) =>
+    fname.replace(/_allepartier\.csv$/,"").replace(/_/g," ");
+
+  // ============================================================
+  // KONFIG: EP-år
+  // ============================================================
+  const EP_CONFIG = [
+    { key: "ep2024", year: 2024, label: "EP 2024", dataRoot: "../data/ep/2024/" },
+    { key: "ep2019", year: 2019, label: "EP 2019", dataRoot: "../data/ep/2019/" },
+    { key: "ep2014", year: 2014, label: "EP 2014", dataRoot: "../data/ep/2014/" },
+    { key: "ep2009", year: 2009, label: "EP 2009", dataRoot: "../data/ep/2009/" },
+    { key: "ep2004", year: 2004, label: "EP 2004", dataRoot: "../data/ep/2004/" }
+  ];
+
+  const el  = id => document.getElementById(id);
+  const fmt = n  => new Intl.NumberFormat("da-DK").format(n);
+
+  const logEl        = el("log");
+  const outEl        = el("outputJson");
+  const selectEl     = el("epElectionSelect");
+  const cfgTableBody = el("epConfigTableBody");
+
+  function logLine(msg){
+    const time = new Date().toLocaleTimeString("da-DK");
+    const div = document.createElement("div");
+    div.textContent = `[${time}] ${msg}`;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ============================================================
+  // UI: udfyld dropdown og config-tabel
+  // ============================================================
+  (function initUI(){
+    EP_CONFIG
+      .slice()
+      .sort((a,b)=>b.year-a.year)
+      .forEach(cfg=>{
+        const opt = document.createElement("option");
+        opt.value = cfg.key;
+        opt.textContent = cfg.label;
+        selectEl.appendChild(opt);
+      });
+
+    // default til seneste (2024)
+    selectEl.value = "ep2024";
+
+    function renderCfgTable(){
+      const cfg = EP_CONFIG.find(c=>c.key===selectEl.value) || EP_CONFIG[0];
+      cfgTableBody.innerHTML = `
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Valg</td>
+          <td class="px-3 py-2">${cfg.label}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">År</td>
+          <td class="px-3 py-2">${cfg.year}</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Nøgle</td>
+          <td class="px-3 py-2"><code>${cfg.key}</code></td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium text-slate-600">Data-mappe</td>
+          <td class="px-3 py-2 font-mono text-xs">${cfg.dataRoot}</td>
+        </tr>
+      `;
+    }
+
+    renderCfgTable();
+    selectEl.addEventListener("change", ()=>{
+      logEl.innerHTML = "";
+      outEl.value = "";
+      renderCfgTable();
+    });
+  })();
+
+  // ============================================================
+  // CSV helpers
+  // ============================================================
+  async function fetchCsvText(url){
+    const res = await fetch(url, { cache: "no-store" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  }
+
+  // Robust tal-parser (danske formater)
+  function toNum(v){
+    if(v == null || v === "") return 0;
+    const s = String(v).trim().replace(/\./g, "").replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /**
+   * Parser CSV-tekst til rækker.
+   * Vi gætter felter for kandidatnavn, parti, partibogstav og stemmer
+   * aggressivt – formater kan variere mellem år.
+   */
+  function parseCsvTextToRows(text, storkredsHint){
+    const parsed = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: h => (h || "").toString().trim().toLowerCase()
+    });
+
+    return parsed.data.map(raw => {
+      const r = raw;
+
+      // Storkreds – brug hint (filnavn) som primært
+      const storkreds =
+        (storkredsHint ||
+         r.storkreds ||
+         r.storkredsnavn ||
+         "").toString().trim();
+
+      // Kandidatnavn – kendte felter + enhver kolonne med 'navn'
+      let kandidatNavn =
+        (r.kandidat_navn ||
+         r.kandidatnavn ||
+         r["navn"] ||
+         r["kandidat"] ||
+         "").toString().trim();
+
+      if(!kandidatNavn){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/navn/.test(lk) && !/parti|storkreds|kommune|region/.test(lk)){
+            kandidatNavn = String(val || "").trim();
+            if(kandidatNavn) break;
+          }
+        }
+      }
+
+      // Kandidat-ID: mange varianter – fallback til navn
+      let kandidatId =
+        (r.kandidat_id ||
+         r.kandidatid ||
+         r["kandidat id"] ||
+         r["kandidat-id"] ||
+         r["kandidat nr"] ||
+         r["kandidat_nr"] ||
+         r["kandidat nr."] ||
+         r["kandidatnummer"] ||
+         r["kandidat"] ||
+         kandidatNavn ||
+         "").toString().trim();
+
+      // Partinavn
+      let parti =
+        (r.parti ||
+         r.partinavn ||
+         "").toString().trim();
+
+      if(!parti){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/parti/.test(lk) && !/bogstav|kode|nr/.test(lk)){
+            parti = String(val || "").trim();
+            if(parti) break;
+          }
+        }
+      }
+
+      // Partibogstav
+      let partiBogstav =
+        (r.parti_bogstav ||
+         r.listebogstav ||
+         r["partibogstav"] ||
+         "").toString().trim();
+
+      if(!partiBogstav){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/bogstav/.test(lk) || /listebogstav/.test(lk)){
+            partiBogstav = String(val || "").trim();
+            if(partiBogstav) break;
+          }
+        }
+      }
+
+      // Stemmer – kendte felter + alle kolonner med /stem/
+      let stemmer = 0;
+      const voteFields = [
+        "stemmer",
+        "personlige_stemmer",
+        "personlige stemmer",
+        "personlige stemmer i alt",
+        "pers_stemmer",
+        "pers. stemmer",
+        "persstemmer",
+        "antal stemmer",
+        "stemmer i alt"
+      ];
+      for(const f of voteFields){
+        if(r[f] != null && r[f] !== "") stemmer += toNum(r[f]);
+      }
+      if(stemmer === 0){
+        for(const [key,val] of Object.entries(r)){
+          const lk = key.toLowerCase();
+          if(/stem/.test(lk) && val !== "") stemmer += toNum(val);
+        }
+      }
+
+      return {
+        storkreds,
+        kandidat_id: kandidatId,
+        kandidat_navn: kandidatNavn,
+        parti,
+        parti_bogstav: partiBogstav,
+        stemmer
+      };
+    });
+  }
+
+  // Indlæs én storkredsfil
+  async function loadRowsForStorkreds(fileName, cfg){
+    const base = cfg.dataRoot;
+    const path = `${base}${encodeURIComponent(fileName)}`; // filnavnet indeholder æøå/underscore – encode for en sikkerheds skyld
+    const storkredsPretty = prettyNameFromFile(fileName);
+
+    try{
+      const text = await fetchCsvText(path);
+      const rows = parseCsvTextToRows(text, storkredsPretty);
+      logLine(`✔ Indlæste ${rows.length} rækker for ${storkredsPretty} fra ${path}`);
+      return rows;
+    }catch(err){
+      logLine(`… Kunne ikke læse ${path} (${err.message || err})`);
+      return [];
+    }
+  }
+
+  // Byg kandidat-poster (kandidat × storkreds)
+  function buildCandidateRecords(allRows){
+    const map = new Map();
+
+    for(const r of allRows){
+      if(!r.kandidat_id) continue;
+      const area = r.storkreds || "";
+      const key = `${area}::${r.kandidat_id}`;
+
+      if(!map.has(key)){
+        map.set(key, {
+          candidateId: r.kandidat_id,
+          name: r.kandidat_navn,
+          party: r.parti,
+          partyShort: r.parti_bogstav || "",
+          totalVotes: 0,
+          area,       // storkreds visningsnavn
+          storkreds: area
+        });
+      }
+      map.get(key).totalVotes += r.stemmer || 0;
+    }
+
+    const list = Array.from(map.values());
+    list.sort((a,b)=> (a.name || "").localeCompare(b.name || "", "da"));
+    return list;
+  }
+
+  async function generateForElection(cfg){
+    logEl.innerHTML = "";
+    outEl.value = "";
+
+    logLine(`Starter generering for ${cfg.label} (${cfg.key})…`);
+    logLine(`Data-mappe: ${cfg.dataRoot}`);
+    logLine(`Indlæser data for ${STORKREDS_FILES.length} storkredse…`);
+
+    const allRows = [];
+    for(const fname of STORKREDS_FILES){
+      const rows = await loadRowsForStorkreds(fname, cfg);
+      allRows.push(...rows);
+    }
+
+    logLine(`Færdig med at læse CSV – totalt ${fmt(allRows.length)} rækker.`);
+
+    const candidates = buildCandidateRecords(allRows);
+    logLine(`Byggede ${fmt(candidates.length)} kandidatrekorder (kandidat × storkreds).`);
+
+    outEl.value = JSON.stringify(candidates, null, 2);
+    const y = cfg.year;
+    logLine(`KOPIÉR til /data/candidate-sources/ep${y}.json`);
+  }
+
+  // ============================================================
+  // Event handlers
+  // ============================================================
+  el("btnGenerate").addEventListener("click", async ()=>{
+    const cfg = EP_CONFIG.find(c=>c.key===selectEl.value) || EP_CONFIG[0];
+    try{
+      await generateForElection(cfg);
+    }catch(err){
+      console.error(err);
+      logLine(`❌ FEJL: ${err.message || err}`);
+    }
+  });
+</script>
+</body>
+</html>
