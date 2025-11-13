@@ -10,72 +10,32 @@
 
   <style>
     :root { --vb-navy:#234a5a; --vb-navy-2:#1f4352; }
-    .vb-hero{
-      background: linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%);
-      color:#fff;
-    }
-    .vb-row{
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04);
-    }
+    .vb-hero{ background:linear-gradient(180deg,var(--vb-navy) 0%,var(--vb-navy-2) 100%); color:#fff; }
+    .vb-row{ background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%); border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
     .vb-row:hover{ box-shadow:0 4px 14px rgba(0,0,0,.06); }
-    .vb-chevron{ transition: transform .2s ease; }
-    .vb-open .vb-chevron{ transform: rotate(180deg); }
-    .vb-body{
-      overflow:hidden;
-      transition:grid-template-rows .25s ease, padding .2s ease;
-      display:grid;
-      grid-template-rows:0fr;
-    }
+    .vb-chevron{ transition:transform .2s ease; }
+    .vb-open .vb-chevron{ transform:rotate(180deg); }
+    .vb-body{ overflow:hidden; transition:grid-template-rows .25s ease,padding .2s ease; display:grid; grid-template-rows:0fr; }
     .vb-open .vb-body{ grid-template-rows:1fr; }
-    .vb-body > div{ min-height:0; }
-    .vb-yearbtn{
-      display:flex; align-items:center; justify-content:center;
-      padding:.8rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fff; font-weight:600;
-    }
+    .vb-body>div{ min-height:0; }
+    .vb-yearbtn{ display:flex; align-items:center; justify-content:center; padding:.8rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fff; font-weight:600; }
     .vb-yearbtn:hover{ background:#f3f4f6; }
     .vb-yearbtn[aria-disabled="true"]{ opacity:.6; cursor:not-allowed; }
-
-    /* Kandidatsøgning */
-    .vb-search-input{
-      width:100%;
-      padding:.8rem 1rem;
-      border-radius:10px;
-      border:1px solid #e5e7eb;
-      background:#fff;
-      font-size:1rem;
-    }
-    .vb-search-input:focus{
-      outline:none;
-      border-color:#0f172a;
-      box-shadow:0 0 0 1px #0f172a11;
-    }
-
-    /* Søgeresultater */
-    .vb-hit{
-      display:flex;
-      align-items:flex-start;
-      gap:0.75rem;
-      padding:0.65rem 0.85rem;
-      border-radius:10px;
-      cursor:pointer;
-    }
+    .vb-search-input{ width:100%; padding:.8rem 1rem; border-radius:10px; border:1px solid #e5e7eb; background:#fff; font-size:1rem; }
+    .vb-search-input:focus{ outline:none; border-color:#0f172a; box-shadow:0 0 0 1px #0f172a11; }
+    .vb-hit{ display:flex; align-items:flex-start; gap:.75rem; padding:.65rem .85rem; border-radius:10px; cursor:pointer; }
     .vb-hit:hover{ background:#f3f4f6; }
     .vb-hit-main{ flex:1 1 auto; min-width:0; }
-    .vb-hit-name{ font-size:0.98rem; font-weight:600; color:#0f172a; }
-    .vb-hit-meta-top{ margin-top:0.1rem; font-size:0.8rem; font-weight:500; color:#4b5563; }
+    .vb-hit-name{ font-size:.98rem; font-weight:600; color:#0f172a; }
+    .vb-hit-meta-top{ margin-top:.1rem; font-size:.8rem; font-weight:500; color:#4b5563; }
     .vb-hit-meta-top span.font-semibold{ font-weight:700; }
-    .vb-hit-meta-bottom{ margin-top:0.1rem; font-size:0.78rem; color:#6b7280; }
-    .vb-hit-badge{ flex:0 0 auto; margin-top:0.1rem; }
-    .vb-badge{
-      width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center;
-      font-size:0.8rem; font-weight:600; border:1px solid #d1d5db; background:#e5e7eb; color:#111827;
-    }
+    .vb-hit-meta-bottom{ margin-top:.1rem; font-size:.78rem; color:#6b7280; }
+    .vb-hit-badge{ flex:0 0 auto; margin-top:.1rem; }
+    .vb-badge{ width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:600; border:1px solid #d1d5db; background:#e5e7eb; color:#111827; }
   </style>
 </head>
 
 <body class="bg-gray-50 text-gray-900">
-  <!-- HEADER -->
   <header class="vb-hero">
     <div class="mx-auto max-w-6xl px-4 pt-8 pb-3">
       <a href="../" aria-label="Valgbar" class="inline-block">
@@ -85,31 +45,22 @@
     <div class="border-t border-white/20"></div>
   </header>
 
-  <!-- INDHOLD -->
   <main class="mx-auto max-w-5xl p-4 md:p-6 space-y-4">
     <!-- KANDIDATSØGNING -->
     <section class="vb-row p-4 md:p-5 space-y-3">
       <div class="flex flex-col gap-1">
-        <label for="candidateSearch" class="text-sm font-semibold text-slate-800">
-          Søg efter en kandidat
-        </label>
+        <label for="candidateSearch" class="text-sm font-semibold text-slate-800">Søg efter en kandidat</label>
         <input id="candidateSearch" type="text" class="vb-search-input" placeholder="Søg efter en kandidat..." autocomplete="off" />
       </div>
-
-      <div id="candidateResults"
-           class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden">
-        <!-- søgeresultater ind her -->
-      </div>
+      <div id="candidateResults" class="mt-2 border border-slate-200 rounded-lg bg-white divide-y divide-slate-100 hidden"></div>
     </section>
 
-    <!-- LISTE OVER VALG (statisk – uafhængig af manifest) -->
+    <!-- STATISK VALG-OVERSIGT (uafhængig af manifest) -->
     <section id="list" class="space-y-3"></section>
   </main>
 
   <footer class="mt-10 border-t bg-gray-100">
-    <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
-                flex flex-col md:flex-row items-center justify-between
-                gap-3 md:gap-6 text-sm md:text-base text-gray-700">
+    <div class="mx-auto max-w-6xl px-4 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 text-sm md:text-base text-gray-700">
       <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">hej@valgbar.dk</a>
       <p class="text-center">Data stammer fra KMDValg, Danmarks Statistik og valg.dk</p>
       <a href="/om-valgbar/" class="font-medium underline hover:text-gray-900">Om Valgbar</a>
@@ -117,50 +68,45 @@
   </footer>
 
 <script>
-  /* ====== KONFIG: ÅR & DESTINATIONER (statisk oversigt) ====== */
+  /* ====== VALG-OVERSIGT ====== */
   const YEARS = {
-    ft: [2022, 2019, 2015, 2011, 2007],
-    kv: [2025, 2021, 2017, 2013, 2009, 2005],
-    rv: [2025, 2021, 2017],
-    ep: [2024, 2019, 2014, 2009],
-    fa: [2022, 2015, 2014]
+    ft:[2022,2019,2015,2011,2007],
+    kv:[2025,2021,2017,2013,2009,2005],
+    rv:[2025,2021,2017],
+    ep:[2024,2019,2014,2009],
+    fa:[2022,2015,2014]
   };
-
   const DISABLED = {};
   const DEST = {
-    kv: { perYear: { 2025: '../kv/2025/', 2021: '../kv/2021/', 2017: '../kv/2017/', 2013: '../kv/2013/', 2009: '../kv/2009/', 2005: '../kv/2005/', 2001: '../kv/2001/' } },
-    ft: { perYear: { 2022: '../ft/2022/', 2019: '../ft/2019/', 2015: '../ft/2015/', 2011: '../ft/2011/', 2007: '../ft/2007/', 2005: '../ft/2005/' } },
-    rv: { perYear: { 2025: '../rv/2025/', 2021: '../rv/2021/', 2017: '../rv/2017/', 2013: '../rv/2013/' } },
-    ep: { perYear: { 2024: '../ep/2024/', 2019: '../ep/2019/', 2014: '../ep/2014/', 2009: '../ep/2009/', 2004: '../ep/2004/' } },
-    fa: { perYear: { 2022: '../fa/2022/', 2015: '../fa/2015/', 2014: '../fa/2014/' } }
+    kv:{perYear:{2025:'../kv/2025/',2021:'../kv/2021/',2017:'../kv/2017/',2013:'../kv/2013/',2009:'../kv/2009/',2005:'../kv/2005/',2001:'../kv/2001/'}},
+    ft:{perYear:{2022:'../ft/2022/',2019:'../ft/2019/',2015:'../ft/2015/',2011:'../ft/2011/',2007:'../ft/2007/',2005:'../ft/2005/'}},
+    rv:{perYear:{2025:'../rv/2025/',2021:'../rv/2021/',2017:'../rv/2017/',2013:'../rv/2013/'}},
+    ep:{perYear:{2024:'../ep/2024/',2019:'../ep/2019/',2014:'../ep/2014/',2009:'../ep/2009/',2004:'../ep/2004/'}},
+    fa:{perYear:{2022:'../fa/2022/',2015:'../fa/2015/',2014:'../fa/2014/'}}
   };
+  const TITLES={ft:'Folketingsvalg',kv:'Kommunalvalg',rv:'Regionsrådsvalg',ep:'Europa-Parlamentsvalg',fa:'Folkeafstemning'};
+  const ORDER=['ft','kv','rv','ep','fa'];
 
-  const TITLES = { ft:'Folketingsvalg', kv:'Kommunalvalg', rv:'Regionsrådsvalg', ep:'Europa-Parlamentsvalg', fa:'Folkeafstemning' };
-  const ORDER = ['ft','kv','rv','ep','fa'];
-
-  // Render valg-oversigten (uafhængig af manifest)
-  const root = document.getElementById('list');
+  const root=document.getElementById('list');
   ORDER.forEach(type=>{
-    const years = YEARS[type] || [];
-    const article = document.createElement('article');
-    article.className = 'vb-row';
-    article.innerHTML = `
+    const years=YEARS[type]||[];
+    const article=document.createElement('article');
+    article.className='vb-row';
+    article.innerHTML=`
       <button type="button" class="w-full flex items-center gap-3 px-4 md:px-5 py-4 text-left" aria-expanded="false" data-acc="${type}">
         <h2 class="text-base md:text-lg font-semibold text-slate-800 flex-1">${TITLES[type]}</h2>
-        <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/>
-        </svg>
+        <svg class="vb-chevron h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.1l3.71-3.87a.75.75 0 111.08 1.04l-4.24 4.43a.75.75 0 01-1.08 0L5.27 8.27a.75.75 0 01-.04-1.06z"/></svg>
       </button>
       <div class="vb-body">
         <div>
           <div class="px-4 md:px-5 pt-0 pb-4">
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
               ${years.map(y=>{
-                const isDisabled = DISABLED[type]?.includes(y);
-                const hasUrl = !!DEST[type]?.perYear?.[y];
-                const active = hasUrl && !isDisabled;
-                const url = active ? DEST[type].perYear[y] : '#';
-                return `<a class="vb-yearbtn" href="${url}" data-type="${type}" data-year="${y}" aria-disabled="${active ? 'false':'true'}">${y}</a>`;
+                const isDisabled=DISABLED[type]?.includes(y);
+                const hasUrl=!!DEST[type]?.perYear?.[y];
+                const active=hasUrl && !isDisabled;
+                const url=active?DEST[type].perYear[y]:'#';
+                return `<a class="vb-yearbtn" href="${url}" data-type="${type}" data-year="${y}" aria-disabled="${active?'false':'true'}">${y}</a>`;
               }).join('')}
             </div>
           </div>
@@ -168,400 +114,290 @@
       </div>`;
     root.appendChild(article);
   });
-
-  // Accordion
-  root.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-acc]');
+  root.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-acc]');
     if(btn){
-      const article = btn.closest('article');
-      const open = article.classList.toggle('vb-open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const article=btn.closest('article');
+      const open=article.classList.toggle('vb-open');
+      btn.setAttribute('aria-expanded',open?'true':'false');
       if(open){
         document.querySelectorAll('#list article.vb-open').forEach(el=>{
-          if(el!==article){
-            el.classList.remove('vb-open');
-            el.querySelector('[data-acc]').setAttribute('aria-expanded','false');
-          }
+          if(el!==article){ el.classList.remove('vb-open'); el.querySelector('[data-acc]').setAttribute('aria-expanded','false'); }
         });
       }
     }
   });
-  root.addEventListener('keydown', (e)=>{
-    const btn = e.target.closest('[data-acc]');
-    if(btn && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); btn.click(); }
+  root.addEventListener('keydown',e=>{
+    const btn=e.target.closest('[data-acc]');
+    if(btn && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); btn.click(); }
   });
-  root.addEventListener('click', (e)=>{
-    const link = e.target.closest('.vb-yearbtn');
+  root.addEventListener('click',e=>{
+    const link=e.target.closest('.vb-yearbtn');
     if(!link) return;
-    const active = link.getAttribute('aria-disabled') === 'false';
+    const active=link.getAttribute('aria-disabled')==='false';
     if(!active){
       e.preventDefault();
-      const type = link.getAttribute('data-type');
-      const year = link.getAttribute('data-year');
+      const type=link.getAttribute('data-type'); const year=link.getAttribute('data-year');
       alert(`${TITLES[type]} ${year} er ikke aktiveret endnu.`);
     }
   });
 
-  /* =====================================================
-     KANDIDATSØGNING – læs manifest + kandidatfiler
-     ===================================================== */
-  const searchInput = document.getElementById('candidateSearch');
-  const resultsRoot = document.getElementById('candidateResults');
+  /* ====== KANDIDATSØGNING via manifest ====== */
+  const searchInput=document.getElementById('candidateSearch');
+  const resultsRoot=document.getElementById('candidateResults');
 
-  let candidateIndex  = null;
-  let flatCandidates  = [];
-  let indexLoadingTriggered = false;
+  let candidateIndex=null;
+  let flatCandidates=[];
+  let indexLoadingTriggered=false;
 
   function normalizeName(str){
-    return (str || '').toString()
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu,'')
-      .toLowerCase()
-      .trim();
+    return (str||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
   }
 
-  const PARTY_COLORS = {
-    "A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d",
-    "I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e",
-    "Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666","M":"#6f42c1"
-  };
-  const PARTY_LETTER_FROM_NAME = {
-    "Socialdemokratiet":"A","Radikale Venstre":"B","Det Konservative Folkeparti":"C",
-    "SF - Socialistisk Folkeparti":"F","Liberal Alliance":"I","Kristendemokraterne":"K",
-    "Dansk Folkeparti":"O","Venstre, Danmarks Liberale Parti":"V",
-    "Enhedslisten - De Rød-Grønne":"Ø","Alternativet":"Å"
-  };
-  const PARTY_NAME_FROM_LETTER = {
-    "A":"Socialdemokratiet","B":"Radikale Venstre","C":"Det Konservative Folkeparti",
-    "F":"SF - Socialistisk Folkeparti","I":"Liberal Alliance","K":"Kristendemokraterne",
-    "O":"Dansk Folkeparti","V":"Venstre, Danmarks Liberale Parti",
-    "Ø":"Enhedslisten - De Rød-Grønne","Å":"Alternativet"
-  };
+  const PARTY_COLORS={"A":"#e03a3e","B":"#712082","C":"#2e7d32","D":"#0f766e","F":"#e5003d","I":"#00a0e3","K":"#ff9800","O":"#0044aa","V":"#1b5eaa","Ø":"#c8102e","Å":"#3aaa35","Q":"#ff4fa3","Æ":"#666666","M":"#6f42c1"};
+  const PARTY_LETTER_FROM_NAME={"Socialdemokratiet":"A","Radikale Venstre":"B","Det Konservative Folkeparti":"C","SF - Socialistisk Folkeparti":"F","Liberal Alliance":"I","Kristendemokraterne":"K","Dansk Folkeparti":"O","Venstre, Danmarks Liberale Parti":"V","Enhedslisten - De Rød-Grønne":"Ø","Alternativet":"Å"};
+  const PARTY_NAME_FROM_LETTER={"A":"Socialdemokratiet","B":"Radikale Venstre","C":"Det Konservative Folkeparti","F":"SF - Socialistisk Folkeparti","I":"Liberal Alliance","K":"Kristendemokraterne","O":"Dansk Folkeparti","V":"Venstre, Danmarks Liberale Parti","Ø":"Enhedslisten - De Rød-Grønne","Å":"Alternativet"};
 
   function parseVote(raw){
-    if(raw == null || raw === "") return 0;
-    const n = Number(String(raw).trim().replace(/\./g,"").replace(",","."));
-    return Number.isFinite(n) && n > 0 ? n : 0;
+    if(raw==null||raw==="") return 0;
+    const n=Number(String(raw).trim().replace(/\./g,"").replace(",","."));
+    return Number.isFinite(n)&&n>0?n:0;
   }
   function getBestVoteNumber(obj){
-    const fieldNames = ["totalVotes","votes","stemmer","personligeStemmer","personlige_stemmer","personlige_stemmer_i_alt"];
-    let best = 0;
-    for (const name of fieldNames) {
-      if (!(name in obj)) continue;
-      const n = parseVote(obj[name]);
-      if (n > best) best = n;
-    }
-    if (best === 0) {
-      for (const [key,val] of Object.entries(obj)) {
-        if (!/stem|vote/i.test(key)) continue;
-        const n = parseVote(val);
-        if (n > best) best = n;
-      }
+    const fieldNames=["totalVotes","votes","stemmer","personligeStemmer","personlige_stemmer","personlige_stemmer_i_alt"];
+    let best=0;
+    for(const name of fieldNames){ if(!(name in obj)) continue; const n=parseVote(obj[name]); if(n>best) best=n; }
+    if(best===0){
+      for(const [key,val] of Object.entries(obj)){ if(!/stem|vote/i.test(key)) continue; const n=parseVote(val); if(n>best) best=n; }
     }
     return best;
   }
 
-  const MANIFEST_URL = '/data/candidate-index-manifest.json';
+  const MANIFEST_URL='/data/candidate-index-manifest.json';
+  const TYPE_LABELS={ ft:'Folketingsvalg', kv:'Kommunalvalg', rv:'Regionsrådsvalg', ep:'Europa-Parlamentsvalg' };
 
   function resolveCandidateUrl(p){
     if(!p) return null;
-    if(/^https?:\/\//i.test(p)) return p; // absolute URL
-    if(p.startsWith('/')) return p;       // absolute path from root
-    if(p.startsWith('data/')) return '../' + p; // relative data path when page is /admin/
-    return p.startsWith('../') ? p : ('../' + p);
+    if(/^https?:\/\//i.test(p)) return p;
+    if(p.startsWith('/')) return p;
+    if(p.startsWith('data/')) return '../'+p;   // vi er i /admin/
+    return p.startsWith('../') ? p : ('../'+p);
   }
 
   async function loadCandidateIndex(){
-    if (candidateIndex) return;
-    try {
-      const res = await fetch(MANIFEST_URL + '?ts=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
-      const manifest = await res.json();
+    if(candidateIndex) return;
+    try{
+      const res=await fetch(MANIFEST_URL+'?ts='+Date.now(),{cache:'no-store'});
+      if(!res.ok) throw new Error('Manifest HTTP '+res.status);
+      const manifest=await res.json();
 
-      const elections = Array.isArray(manifest.elections)
-        ? manifest.elections
-        : (Array.isArray(manifest) ? manifest : []);
-
-      candidateIndex = { elections: [] };
-      const allCandidatesRaw = [];
-      const electionMetas = [];
+      const elections=Array.isArray(manifest.elections)?manifest.elections:(Array.isArray(manifest)?manifest:[]);
+      candidateIndex={elections:[]};
+      const allCandidatesRaw=[];
+      const electionMetas=[];
 
       await Promise.all(
-        elections.map(async (el) => {
-          const electionMeta = { ...el };
-          const candidatePath = el.candidateFile || el.candidatesFile || el.candidateSource || el.source || '';
-          const url = resolveCandidateUrl(candidatePath);
-          if (!url) { electionMeta.candidates = []; electionMetas.push(electionMeta); return; }
+        elections.map(async (el)=>{
+          const electionMeta={...el};
+          const url=resolveCandidateUrl(el.candidateSource||el.candidateFile||el.candidatesFile||el.source||'');
+          if(!url){ electionMeta.candidates=[]; electionMetas.push(electionMeta); return; }
 
-          try {
-            const resFile = await fetch(url + (url.includes('?') ? '&' : '?') + 'ts=' + Date.now(), { cache: 'no-store' });
-            if (!resFile.ok) throw new Error('HTTP ' + resFile.status);
-            const fileData = await resFile.json();
+          try{
+            const rf=await fetch(url+(url.includes('?')?'&':'?')+'ts='+Date.now(),{cache:'no-store'});
+            if(!rf.ok) throw new Error('HTTP '+rf.status);
+            const fileData=await rf.json();
+            const rawList = Array.isArray(fileData) ? fileData :
+                            (fileData && Array.isArray(fileData.candidates) ? fileData.candidates : []);
 
-            let candidates = Array.isArray(fileData) ? fileData
-                          : (fileData && Array.isArray(fileData.candidates) ? fileData.candidates : []);
+            // >>> CRITICAL FIX: Tving valg-annotering fra manifest, ikke fra kandidatfil <<<
+            const type = electionMeta.type;
+            const year = electionMeta.year;
+            const key  = electionMeta.key;
+            const typeLabel = TYPE_LABELS[type] || (electionMeta.typeLabel || electionMeta.label || '');
 
-            // enrich per candidate and normalize votes
-            const enriched = candidates.map(c => {
-              const type = c.electionType || electionMeta.type;
-              const year = c.electionYear || electionMeta.year;
-              const key  = c.electionKey  || electionMeta.key;
-
-              const typeLabel =
-                c.electionTypeLabel || electionMeta.typeLabel ||
-                (type === 'ft' ? 'Folketingsvalg' :
-                 type === 'kv' ? 'Kommunalvalg' :
-                 type === 'rv' ? 'Regionsrådsvalg' :
-                 type === 'ep' ? 'Europa-Parlamentsvalg' : (electionMeta.label || ''));
-
-              const label = c.electionLabel || electionMeta.label || typeLabel;
-
-              let detailUrl = c.electionDetailUrl || electionMeta.detailUrl || '';
-              if (!detailUrl && type && year) detailUrl = `/${type}/${year}/`;
-
+            const enriched = rawList.map(c=>{
+              // lav IKKE c.electionType/Year override — vi bruger manifestet
+              let detailUrl = electionMeta.detailUrl || '';
+              if(!detailUrl && type && year) detailUrl = `/${type}/${year}/`;
               return {
                 ...c,
                 electionKey: key,
                 electionType: type,
                 electionTypeLabel: typeLabel,
-                electionLabel: label,
+                electionLabel: electionMeta.label || typeLabel,
                 electionYear: year,
-                electionDetailUrl: detailUrl,
+                electionDetailUrl: c.electionDetailUrl || detailUrl,
                 totalVotes: getBestVoteNumber(c)
               };
             });
 
             electionMeta.candidates = enriched;
             electionMetas.push(electionMeta);
-            enriched.forEach(c => allCandidatesRaw.push(c));
-          } catch (err) {
-            console.warn('Kunne ikke hente kandidatfil for', el.key || el.year, url, err);
-            electionMeta.candidates = [];
-            electionMetas.push(electionMeta);
+            enriched.forEach(c=>allCandidatesRaw.push(c));
+          }catch(err){
+            console.warn('Kunne ikke hente kandidatfil for', el.key||el.year, url, err);
+            electionMeta.candidates=[]; electionMetas.push(electionMeta);
           }
         })
       );
 
       candidateIndex.elections = electionMetas;
 
-      // dedup pr. valg
-      const map = new Map();
-      for (const c of allCandidatesRaw) {
-        const eKey = c.electionKey || '';
-        const candId = c.candidateId || c.name || '';
-        if (!eKey || !candId) continue;
-        const k = `${eKey}::${candId}`;
-        const existing = map.get(k);
-        if (!existing) {
-          map.set(k, { ...c });
-        } else {
-          const prev = typeof existing.totalVotes === 'number' ? existing.totalVotes : 0;
-          const add  = typeof c.totalVotes === 'number' ? c.totalVotes : 0;
-          existing.totalVotes = prev + add;
+      // dedup pr. valg (electionKey + candidateId)
+      const map=new Map();
+      for(const c of allCandidatesRaw){
+        const eKey=c.electionKey||''; const candId=c.candidateId||c.name||'';
+        if(!eKey||!candId) continue;
+        const k=`${eKey}::${candId}`;
+        const existing=map.get(k);
+        if(!existing){ map.set(k,{...c}); }
+        else{
+          const prev=typeof existing.totalVotes==='number'?existing.totalVotes:0;
+          const add =typeof c.totalVotes==='number'?c.totalVotes:0;
+          existing.totalVotes=prev+add;
         }
       }
-      flatCandidates = Array.from(map.values());
-    } catch (err) {
+      flatCandidates=Array.from(map.values());
+    }catch(err){
       console.error('Fejl ved indlæsning af manifest/kandidatfiler:', err);
     }
   }
 
   function searchCandidates(query){
-    const q = normalizeName(query);
-    if(!q) return [];
-    const results = [];
+    const q=normalizeName(query); if(!q) return [];
+    const results=[];
     for(const c of flatCandidates){
-      const base = normalizeName(c.displayName || c.name || '');
-      const variants = (c.nameVariants || []).map(normalizeName);
-      let score = -Infinity;
-      if(base.startsWith(q)) score = 300 - (base.length - q.length);
-      else if(base.includes(q)) score = 200 - base.indexOf(q);
-      if(score === -Infinity){
-        const hitVariant = variants.find(v => v.startsWith(q) || v.includes(q));
-        if(hitVariant){
-          if(hitVariant.startsWith(q)) score = 250 - (hitVariant.length - q.length);
-          else score = 180 - hitVariant.indexOf(q);
-        }
+      const base=normalizeName(c.displayName||c.name||'');
+      const variants=(c.nameVariants||[]).map(normalizeName);
+      let score=-Infinity;
+      if(base.startsWith(q)) score=300-(base.length-q.length);
+      else if(base.includes(q)) score=200-base.indexOf(q);
+      if(score===-Infinity){
+        const hitVariant=variants.find(v=>v.startsWith(q)||v.includes(q));
+        if(hitVariant){ score = hitVariant.startsWith(q) ? 250-(hitVariant.length-q.length) : 180-hitVariant.indexOf(q); }
       }
-      if(score > -Infinity) results.push({ c, score });
+      if(score>-Infinity) results.push({c,score});
     }
-    const top = results.sort((a,b)=> b.score - a.score).slice(0, 40).map(r => r.c);
-
-    const typePriority = { ep:4, ft:3, rv:2, kv:1 };
+    const top=results.sort((a,b)=>b.score-a.score).slice(0,40).map(r=>r.c);
+    const typePriority={ep:4,ft:3,rv:2,kv:1};
     top.sort((a,b)=>{
-      const nameA = (a.displayName || a.name || '').toLocaleLowerCase('da-DK');
-      const nameB = (b.displayName || b.name || '').toLocaleLowerCase('da-DK');
-      if (nameA !== nameB) return nameA.localeCompare(nameB, 'da-DK');
-      const yearA = a.electionYear || 0, yearB = b.electionYear || 0;
-      if (yearA !== yearB) return yearB - yearA;
-      const votesA = typeof a.totalVotes === 'number' ? a.totalVotes : -1;
-      const votesB = typeof b.totalVotes === 'number' ? b.totalVotes : -1;
-      if (votesA !== votesB) return votesB - votesA;
-      const prioA = typePriority[a.electionType] || 0;
-      const prioB = typePriority[b.electionType] || 0;
-      if (prioA !== prioB) return prioB - prioA;
-      const idA = (a.candidateId || '').toString(), idB = (b.candidateId || '').toString();
-      return idA.localeCompare(idB, 'da-DK');
+      const nameA=(a.displayName||a.name||'').toLocaleLowerCase('da-DK');
+      const nameB=(b.displayName||b.name||'').toLocaleLowerCase('da-DK');
+      if(nameA!==nameB) return nameA.localeCompare(nameB,'da-DK');
+      const yearA=a.electionYear||0, yearB=b.electionYear||0;
+      if(yearA!==yearB) return yearB-yearA;
+      const votesA=typeof a.totalVotes==='number'?a.totalVotes:-1;
+      const votesB=typeof b.totalVotes==='number'?b.totalVotes:-1;
+      if(votesA!==votesB) return votesB-votesA;
+      const prioA=typePriority[a.electionType]||0, prioB=typePriority[b.electionType]||0;
+      if(prioA!==prioB) return prioB-prioA;
+      const idA=(a.candidateId||'').toString(), idB=(b.candidateId||'').toString();
+      return idA.localeCompare(idB,'da-DK');
     });
-    return top.slice(0, 20);
+    return top.slice(0,20);
   }
 
   function renderResults(query){
-    const q = query.trim();
-    if(!q || !flatCandidates.length){
-      resultsRoot.innerHTML = '';
-      resultsRoot.classList.add('hidden');
-      return;
-    }
-
-    const hits = searchCandidates(q);
+    const q=query.trim();
+    if(!q||!flatCandidates.length){ resultsRoot.innerHTML=''; resultsRoot.classList.add('hidden'); return; }
+    const hits=searchCandidates(q);
     if(!hits.length){
-      resultsRoot.innerHTML = `
-        <div class="px-3 py-2 text-xs text-slate-500">
-          Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".
-        </div>`;
-      resultsRoot.classList.remove('hidden');
-      return;
+      resultsRoot.innerHTML=`<div class="px-3 py-2 text-xs text-slate-500">Ingen kandidater fundet for "<strong>${q.replace(/</g,'&lt;')}</strong>".</div>`;
+      resultsRoot.classList.remove('hidden'); return;
     }
+    resultsRoot.innerHTML=hits.map(hit=>{
+      let party=(hit.party||'').trim();
+      let partyShort=(hit.partyShort||'').trim();
+      if(!partyShort&&party){ const L=PARTY_LETTER_FROM_NAME[party]; if(L) partyShort=L; }
+      if(!party&&partyShort){ const N=PARTY_NAME_FROM_LETTER[partyShort]; if(N) party=N; }
 
-    resultsRoot.innerHTML = hits.map(hit => {
-      let party      = (hit.party || '').trim();
-      let partyShort = (hit.partyShort || '').trim();
+      const votes=typeof hit.totalVotes==='number'?hit.totalVotes.toLocaleString('da-DK'):'?';
+      let area='';
+      if(hit.electionType==='kv'||hit.electionType==='rv'){ area=hit.kommune||hit.area||''; }
+      else if(hit.electionType==='ft'){ area=hit.storkreds||hit.area||''; }
 
-      if (!partyShort && party) {
-        const mappedLetter = PARTY_LETTER_FROM_NAME[party];
-        if (mappedLetter) partyShort = mappedLetter;
-      }
-      if (!party && partyShort) {
-        const mappedName = PARTY_NAME_FROM_LETTER[partyShort];
-        if (mappedName) party = mappedName;
-      }
-
-      const votes = typeof hit.totalVotes === 'number'
-                    ? hit.totalVotes.toLocaleString('da-DK')
-                    : '?';
-
-      let area = '';
-      if (hit.electionType === 'kv' || hit.electionType === 'rv') {
-        area = hit.kommune || hit.area || '';
-      } else if (hit.electionType === 'ft') {
-        area = hit.storkreds || hit.area || '';
-      } else {
-        area = '';
-      }
-
-      const typeLabel  = hit.electionTypeLabel || hit.electionLabel || '';
-      const year       = hit.electionYear || '';
+      const typeLabel = hit.electionTypeLabel || TYPE_LABELS[hit.electionType] || '';
+      const year = hit.electionYear || '';
       const electionLabel = (typeLabel && year) ? `${typeLabel} ${year}` : '';
 
-      let partyLabel = '';
-      if (party) partyLabel = partyShort ? `${party} (${partyShort})` : party;
-      else if (partyShort) partyLabel = `Parti ${partyShort}`;
+      let partyLabel='';
+      if(party) partyLabel = partyShort ? `${party} (${partyShort})` : party;
+      else if(partyShort) partyLabel = `Parti ${partyShort}`;
 
-      const topParts = [];
-      if (electionLabel) topParts.push(electionLabel);
-      if (area) topParts.push(area);
-      if (votes !== '?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
-      const topMeta = topParts.join(' · ');
+      const topParts=[]; if(electionLabel) topParts.push(electionLabel); if(area) topParts.push(area); if(votes!=='?') topParts.push(`<span class="font-semibold">${votes} stemmer</span>`);
+      const topMeta=topParts.join(' · ');
+      const bottomMeta=partyLabel||'';
 
-      const bottomParts = [];
-      if (partyLabel) bottomParts.push(partyLabel);
-      const bottomMeta = bottomParts.join(' · ');
-
-      let badgeStyle = '';
-      let badgeText  = '';
-      if (partyShort) {
-        const color = PARTY_COLORS[partyShort] || null;
-        if (color) badgeStyle = `background:${color};color:#fff;border-color:${color}`;
-        else badgeStyle = 'background:#e5e7eb;color:#111827;border-color:#d1d5db';
-        badgeText = partyShort;
+      let badgeStyle=''; let badgeText='';
+      if(partyShort){
+        const color=PARTY_COLORS[partyShort]||null;
+        badgeStyle=color?`background:${color};color:#fff;border-color:${color}`:'background:#e5e7eb;color:#111827;border-color:#d1d5db';
+        badgeText=partyShort;
       }
 
-      const name = hit.displayName || hit.name || '';
-      const kredsAttr = hit.kreds || hit.kredsnavn || hit.kredsNavn || '';
+      const name=hit.displayName||hit.name||'';
+      const kredsAttr=hit.kreds||hit.kredsnavn||hit.kredsNavn||'';
 
       return `
-        <button type="button"
-                class="w-full text-left vb-hit"
-                data-cand-id="${hit.candidateId || ''}"
-                data-detail-url="${hit.electionDetailUrl || '/'}"
-                data-region="${hit.region || ''}"
-                data-kommune="${hit.kommune || hit.area || ''}"
-                data-election-type="${hit.electionType || ''}"
-                data-storkreds="${hit.storkreds || ''}"
-                data-kreds="${kredsAttr || ''}"
-                data-party="${party || ''}"
-                data-party-short="${partyShort || ''}"
-                data-name="${name || ''}">
-          ${partyShort ? `
-            <span class="vb-hit-badge">
-              <span class="vb-badge" style="${badgeStyle}">${badgeText}</span>
-            </span>` : ''}
+        <button type="button" class="w-full text-left vb-hit"
+                data-cand-id="${hit.candidateId||''}"
+                data-detail-url="${hit.electionDetailUrl||'/'}"
+                data-region="${hit.region||''}"
+                data-kommune="${hit.kommune||hit.area||''}"
+                data-election-type="${hit.electionType||''}"
+                data-storkreds="${hit.storkreds||''}"
+                data-kreds="${kredsAttr||''}"
+                data-party="${party||''}"
+                data-party-short="${partyShort||''}"
+                data-name="${name||''}">
+          ${partyShort?`<span class="vb-hit-badge"><span class="vb-badge" style="${badgeStyle}">${badgeText}</span></span>`:''}
           <div class="vb-hit-main">
             <div class="vb-hit-name">${name}</div>
-            ${topMeta ? `<div class="vb-hit-meta-top">${topMeta}</div>` : ''}
-            ${bottomMeta ? `<div class="vb-hit-meta-bottom">${bottomMeta}</div>` : ''}
+            ${topMeta?`<div class="vb-hit-meta-top">${topMeta}</div>`:''}
+            ${bottomMeta?`<div class="vb-hit-meta-bottom">${bottomMeta}</div>`:''}
           </div>
-        </button>
-      `;
+        </button>`;
     }).join('');
-
     resultsRoot.classList.remove('hidden');
 
-    // klik-håndtering – bygger URL afhængigt af valgtype
-    resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cid        = btn.getAttribute('data-cand-id') || '';
-        const baseUrl    = btn.getAttribute('data-detail-url') || '/';
-        const type       = btn.getAttribute('data-election-type') || '';
-        const region     = btn.getAttribute('data-region') || '';
-        const kommune    = btn.getAttribute('data-kommune') || '';
-        const storkreds  = btn.getAttribute('data-storkreds') || '';
-        const kreds      = btn.getAttribute('data-kreds') || '';
-        const party      = btn.getAttribute('data-party') || '';
-        const partyShort = btn.getAttribute('data-party-short') || '';
-        const name       = btn.getAttribute('data-name') || '';
+    resultsRoot.querySelectorAll('button[data-cand-id]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const cid=btn.getAttribute('data-cand-id')||'';
+        const baseUrl=btn.getAttribute('data-detail-url')||'/';
+        const type=btn.getAttribute('data-election-type')||'';
+        const region=btn.getAttribute('data-region')||'';
+        const kommune=btn.getAttribute('data-kommune')||'';
+        const storkreds=btn.getAttribute('data-storkreds')||'';
+        const kreds=btn.getAttribute('data-kreds')||'';
+        const party=btn.getAttribute('data-party')||'';
+        const partyShort=btn.getAttribute('data-party-short')||'';
+        const name=btn.getAttribute('data-name')||'';
 
-        const params = new URLSearchParams();
-        if (type === 'kv' || type === 'rv') {
-          if(region && kommune){ params.set('region', region); params.set('kommune', kommune); }
-        } else if (type === 'ft') {
-          if (storkreds) params.set('storkreds', storkreds);
-          if (kreds)     params.set('kreds', kreds);
-        }
+        const params=new URLSearchParams();
+        if(type==='kv'||type==='rv'){ if(region&&kommune){ params.set('region',region); params.set('kommune',kommune);} }
+        else if(type==='ft'){ if(storkreds) params.set('storkreds',storkreds); if(kreds) params.set('kreds',kreds); }
 
-        let candParam = cid;
-        if (type === 'ft') {
-          const prefix = partyShort || party;
-          candParam = prefix ? `${prefix}::${name}` : name;
-        }
-        params.set('cand', candParam);
+        let candParam=cid;
+        if(type==='ft'){ const prefix=partyShort||party; candParam=prefix?`${prefix}::${name}`:name; }
+        params.set('cand',candParam);
 
-        const sep = baseUrl.includes('?') ? '&' : '?';
-        const url = baseUrl + sep + params.toString();
-        window.location.href = url;
+        const sep=baseUrl.includes('?')?'&':'?';
+        const url=baseUrl+sep+params.toString();
+        window.location.href=url;
       });
     });
   }
 
-  // Lazy-load ved fokus/første input
-  searchInput.addEventListener('focus', () => {
-    if(!indexLoadingTriggered){
-      indexLoadingTriggered = true;
-      loadCandidateIndex();
-    }
+  // Lazy-load
+  searchInput.addEventListener('focus',()=>{
+    if(!indexLoadingTriggered){ indexLoadingTriggered=true; loadCandidateIndex(); }
   });
-
-  searchInput.addEventListener('input', (e) => {
-    const val = e.target.value || '';
-    if(!val.trim()){
-      resultsRoot.innerHTML = '';
-      resultsRoot.classList.add('hidden');
-      return;
-    }
+  searchInput.addEventListener('input',(e)=>{
+    const val=e.target.value||'';
+    if(!val.trim()){ resultsRoot.innerHTML=''; resultsRoot.classList.add('hidden'); return; }
     if(!candidateIndex && !indexLoadingTriggered){
-      indexLoadingTriggered = true;
-      loadCandidateIndex().then(()=> renderResults(val));
+      indexLoadingTriggered=true;
+      loadCandidateIndex().then(()=>renderResults(val));
       return;
     }
     renderResults(val);
