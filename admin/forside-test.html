@@ -173,7 +173,7 @@
 
   function parseVote(raw){
     if(raw==null||raw==="") return 0;
-    const n = Number(String(raw).trim().replace(/\./g,"").replace(",","."));
+    const n = Number(String(raw).trim().replace(/\./g,"").replace(",",".")); 
     return Number.isFinite(n)&&n>0 ? n : 0;
   }
   function getBestVoteNumber(obj){
@@ -273,7 +273,7 @@
       }
       let dedupList = Array.from(perElection.values());
 
-      // 3b) **NYT**: Saml pr. (navn_normalized, år) og behold højeste type-prio
+      // 3b) Saml pr. (navn_normalized, år) og behold højeste type-prio
       const byNameYear = new Map();
       for(const c of dedupList){
         const n = normalizeName(c.displayName || c.name || '');
@@ -286,11 +286,9 @@
         } else {
           const pNew = TYPE_PRIO[c.electionType] || 0;
           const pOld = TYPE_PRIO[ex.electionType] || 0;
-          // vælg altid den højeste type-prio (EP>FT>RV>KV)
           if(pNew > pOld){
             byNameYear.set(k, c);
           } else if(pNew === pOld) {
-            // hvis samme type – behold den med flest stemmer
             const vNew = typeof c.totalVotes==='number' ? c.totalVotes : -1;
             const vOld = typeof ex.totalVotes==='number' ? ex.totalVotes : -1;
             if(vNew > vOld) byNameYear.set(k, c);
@@ -326,7 +324,6 @@
 
     const typePriority = TYPE_PRIO; // ep>ft>rv>kv
 
-    // Sortér: navn ↑, år ↓, **type-prio** ↓, stemmer ↓, id ↑
     return results
       .sort((a,b)=> b.score - a.score)
       .map(r=>r.c)
@@ -338,7 +335,7 @@
         const yearA=a.electionYear||0, yearB=b.electionYear||0;
         if(yearA!==yearB) return yearB-yearA;
 
-        // ★ vigtig ændring: type-prio før stemmer
+        // type-prio før stemmer
         const prA=typePriority[a.electionType]||0, prB=typePriority[b.electionType]||0;
         if(prA!==prB) return prB-prA;
 
@@ -346,7 +343,8 @@
         const votesB=typeof b.totalVotes==='number'?b.totalVotes:-1;
         if(votesA!==votesB) return votesB-votesA;
 
-        const idA=(a.candidateId||'').toString(), idB=(b.candidateId||'').toString();
+        const idA=(a.candidateId||'').toString();
+        const idB=(b.candidateId||'').toString();
         return idA.localeCompare(idB,'da-DK');
       })
       .slice(0,20);
@@ -435,12 +433,23 @@
         const name=btn.getAttribute('data-name')||'';
 
         const params=new URLSearchParams();
+
         if(type==='kv'||type==='rv'){ if(region&&kommune){ params.set('region',region); params.set('kommune',kommune); } }
         else if(type==='ft'){ if(storkreds) params.set('storkreds',storkreds); if(kreds) params.set('kreds',kreds); }
 
-        let candParam=cid;
-        if(type==='ft'){ const prefix=partyShort||party; candParam=prefix?`${prefix}::${name}`:name; }
-        params.set('cand',candParam);
+        // ***** VIGTIGT: send også stabile parametre til FT-sider *****
+        //  - cid: kandidatens unikke id
+        //  - party: bogstav (eller partinavn hvis bogstav mangler)
+        //  - cand: kompatibel fallback (som før)
+        let candParam = cid;
+        if(type==='ft'){
+          const prefix = partyShort || party;
+          candParam = prefix ? `${prefix}::${name}` : name;
+          params.set('cid', cid);
+          params.set('party', prefix || '');
+        }
+
+        params.set('cand', candParam);
 
         const sep=baseUrl.includes('?')?'&':'?';
         const url=baseUrl+sep+params.toString();
