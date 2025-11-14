@@ -329,6 +329,13 @@ const kredsSlug = name => (name || "").toString().split(" ").join("_");
 const storkredsSlug = name => (name || "").toString().split(" ").join("_");
 const sortKandidaterAlpha = (a,b)=>{ const al=isListestemmer(a.kandidat_navn), bl=isListestemmer(b.kandidat_navn); if(al&&!bl) return 1; if(!al&&bl) return -1; return a.kandidat_navn.localeCompare(b.kandidat_navn,"da"); };
 
+/* Robust stemme-parser (fjerner tusindtals-., konverterer , til .) */
+function parseVote(v) {
+  if (v == null || v === "") return 0;
+  const n = Number(String(v).trim().replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
 /* Partiliste nederst – også ved “Flest stemmer” */
 const sortKandidaterVotes = (a,b)=>{
   const al = isListestemmer(a.kandidat_navn), bl = isListestemmer(b.kandidat_navn);
@@ -849,6 +856,20 @@ function parseCsv(text, kredsNameOverride=null){
     const rawValgstedNavn = r.valgsted_navn || r.afstemningssted || r.sted_navn || r["afstemningsområde"] || "";
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
 
+    // robust mapping af stemmetal (alle tænkelige 2019-headere i lowercase)
+    const rawStemmer =
+      r.stemmer ??
+      r["stemmetal"] ??
+      r["personlige stemmer"] ??
+      r["personlige_stemmer"] ??
+      r["personlige"] ??
+      r["pers.st."] ??
+      r["pers st."] ??
+      r["pers stemmer"] ??
+      r["antal personlige stemmer"] ??
+      r["antal_personlige_stemmer"] ??
+      r["personlige stemmer i alt"] ?? 0;
+
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -858,7 +879,7 @@ function parseCsv(text, kredsNameOverride=null){
       kandidat_navn: kandidatNavn,
       parti,
       parti_letter,
-      stemmer: Number(r.stemmer || r["stemmetal"] || 0)||0
+      stemmer: parseVote(rawStemmer)
     };
   });
 }
@@ -884,6 +905,20 @@ function parseCsvTextToRows(text, kredsNameOverride){
     const rawValgstedNavn = r.valgsted_navn || r.afstemningssted || r.sted_navn || r["afstemningsområde"] || "";
 
     const kandidat_id = `${parti.toLowerCase()}::${kandidatNavn.toLowerCase()}`;
+
+    const rawStemmer =
+      r.stemmer ??
+      r["stemmetal"] ??
+      r["personlige stemmer"] ??
+      r["personlige_stemmer"] ??
+      r["personlige"] ??
+      r["pers.st."] ??
+      r["pers st."] ??
+      r["pers stemmer"] ??
+      r["antal personlige stemmer"] ??
+      r["antal_personlige_stemmer"] ??
+      r["personlige stemmer i alt"] ?? 0;
+
     return {
       storkreds: storkredsNavn,
       kreds: kredsNavn,
@@ -893,7 +928,7 @@ function parseCsvTextToRows(text, kredsNameOverride){
       kandidat_navn: kandidatNavn,
       parti,
       parti_letter,
-      stemmer: Number(r.stemmer || r["stemmetal"] || 0)||0
+      stemmer: parseVote(rawStemmer)
     };
   });
 }
