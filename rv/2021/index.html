@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="da">
 <head>
@@ -202,6 +201,9 @@
           <div id="candidateColLeft" class="space-y-2"></div>
           <div id="candidateColRight" class="space-y-2"></div>
         </div>
+
+        <!-- Ny: Geografisk fordeling for valgt parti på Danmark-niveau -->
+        <div id="partyHierarchy" class="mt-4 border-t pt-3 hidden"></div>
       </section>
     </div>
   </section>
@@ -306,6 +308,37 @@
       sum += r.stemmer || 0;
     }
     return sum;
+  }
+
+  /* NY: robust partitals-funktion (total/personlige/listestemmer) i aktuel scope */
+  function partyTotalsInScope(rowsForParti, parti){
+    let total=0, personal=0;
+    for(const r of rowsForParti){
+      if(parti && r.parti!==parti) continue;
+      const s=r.stemmer||0;
+      total+=s;
+      if(!isListestemmer(r.kandidat_navn)) personal+=s;
+    }
+    const list=Math.max(0,total-personal);
+    return {total, personal, list};
+  }
+
+  /* NY: total for en valgt kandidat i aktuel scope – håndterer listestemmer korrekt */
+  function totalForCandidateInScope(sel){
+    if(!sel) return 0;
+    const rows=state.rows||[];
+    if(isListestemmer(sel.kandidat_navn)){
+      const stats=partyTotalsInScope(rows, sel.parti);
+      return stats.list;
+    }else{
+      let sum=0;
+      for(const r of rows){
+        if(r.kandidat_id===sel.kandidat_id && r.parti===sel.parti && !isListestemmer(r.kandidat_navn)){
+          sum += r.stemmer || 0;
+        }
+      }
+      return sum;
+    }
   }
 
   function badge(letter){ const bg=letter&&PARTY_COLORS[letter]?PARTY_COLORS[letter]:DEFAULT_BADGE_BG; const fg=letter&&PARTY_COLORS[letter]?"#fff":DEFAULT_BADGE_FG; return {style:`background-color:${bg};color:${fg};border-color:${bg}`,text:(letter||" ")}; }
@@ -466,7 +499,7 @@
   function clearAll(){ state.rows=[]; state.selected.clear(); resetPartyUI(); renderAll(); el("kommunetitel").textContent=""; }
   function resetPartyUI(){ const btn=el("partyButton"), btnc=el("partyButtonContent");
     btn.disabled=false; btn.setAttribute('aria-expanded','false'); btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
-    el("partyMenu").innerHTML=""; el("partyDetailHeader").textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML=""; }
+    el("partyMenu").innerHTML=""; el("partyDetailHeader").textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML=""; el("partyHierarchy").classList.add("hidden"); el("partyHierarchy").innerHTML=""; }
 
   async function fetchArrayBuffer(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error(`404 for ${url}`); return await r.arrayBuffer(); }
   async function fetchTextSmart(url){
@@ -613,13 +646,23 @@
   function getPartyStats(){
     const byParti=new Map(); for(const r of state.rows){ if(!byParti.has(r.parti)) byParti.set(r.parti,[]); byParti.get(r.parti).push(r); }
     const res=[]; for(const [parti,rowsP] of byParti.entries()){
-      const map=new Map(); for(const r of rowsP){ if(!map.has(r.kandidat_id)) map.set(r.kandidat_id,{kandidat_id:r.kandidat_id,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0}); map.get(r.kandidat_id).total+=r.stemmer; }
-      const kandidater=Array.from(map.values()); const letter=detectPartyLetter(rowsP);
+      const map=new Map(); for(const r of rowsP){
+        if(!map.has(r.kandidat_id)) map.set(r.kandidat_id,{kandidat_id:r.kandidat_id,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0});
+        map.get(r.kandidat_id).total+=r.stemmer;
+      }
+      const statsForParty=partyTotalsInScope(rowsP, parti);
+      const kandidater=Array.from(map.values());
+      const listCand=kandidater.find(k=>isListestemmer(k.kandidat_navn));
+      if(listCand){
+        listCand.total=statsForParty.list;
+      }
+      const letter=detectPartyLetter(rowsP);
       res.push({ parti, letter, hasLetter:!!letter, kandidatAntal:kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length, kandidater });
     }
     res.sort((a,b)=>{ if(a.hasLetter!==b.hasLetter) return a.hasLetter?-1:1; if(a.hasLetter&&b.hasLetter) return a.letter.localeCompare(b.letter,"da"); return a.parti.localeCompare(b.parti,"da"); });
     return res;
   }
+
   function renderPartyCombobox(){
     const hasRows=(state.rows||[]).length>0; const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
     btn.disabled=!hasRows;
@@ -639,11 +682,147 @@
     function closePartyMenu(){ btn.setAttribute('aria-expanded','false'); menu.classList.add('hidden'); }
     window.closePartyMenu=closePartyMenu; renderButton();
     el("partyDetailHeader").textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område.";
-    el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
+    el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML=""; el("partyHierarchy").classList.add("hidden"); el("partyHierarchy").innerHTML="";
   }
+
+  function renderPartyHierarchy(parti){
+    const container = el("partyHierarchy");
+    if(!container) return;
+    container.innerHTML = "";
+    // Kun på Danmark-niveau
+    if(!parti || !state.rows.length || state.region){
+      container.classList.add("hidden");
+      return;
+    }
+
+    const rows = state.rows.filter(r => r.parti === parti);
+    if(!rows.length){
+      container.classList.add("hidden");
+      return;
+    }
+
+    container.classList.remove("hidden");
+
+    // Byg hierarki: Region -> Kommune -> Valgsted
+    const byRegion = new Map();
+    for(const r of rows){
+      let reg = r.region || findRegionForKommune(r.kommune);
+      if(!reg) reg = "Ukendt region";
+      if(!byRegion.has(reg)) byRegion.set(reg, { name: reg, rows: [] });
+      byRegion.get(reg).rows.push(r);
+    }
+
+    const regions = Array.from(byRegion.values()).sort((a,b)=>a.name.localeCompare(b.name,"da"));
+
+    let html = `<h3 class="text-sm font-medium text-gray-700 mb-2">Geografisk fordeling af stemmer til ${escapeHtml(parti)} (Danmark)</h3>
+      <div class="space-y-2">`;
+
+    for(const region of regions){
+      const regRows = region.rows;
+      const regTotal = regRows.reduce((s,r)=>s+(r.stemmer||0),0);
+
+      const byKommune = new Map();
+      for(const r of regRows){
+        const k = r.kommune || "(ukendt kommune)";
+        if(!byKommune.has(k)) byKommune.set(k,{ name:k, rows:[] });
+        byKommune.get(k).rows.push(r);
+      }
+      const kommuner = Array.from(byKommune.values()).sort((a,b)=>a.name.localeCompare(b.name,"da"));
+
+      html += `
+        <div class="border rounded-xl overflow-hidden">
+          <button type="button"
+                  class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium bg-gray-50 hover:bg-gray-100"
+                  data-ph-region>
+            <span>${escapeHtml(region.name)}</span>
+            <span class="tabular-nums text-xs text-gray-600">${fmt(regTotal)} stemmer</span>
+          </button>
+          <div class="border-t hidden" data-ph-region-body>
+            <div class="p-2 space-y-2">`;
+
+      for(const kommune of kommuner){
+        const kRows = kommune.rows;
+        const kTotal = kRows.reduce((s,r)=>s+(r.stemmer||0),0);
+
+        const byPS = new Map();
+        for(const r of kRows){
+          const key = r.valgsted_id || r.valgsted_navn || "–";
+          if(!byPS.has(key)) byPS.set(key,{ navn:r.valgsted_navn||r.valgsted_id||"–", rows:[] });
+          byPS.get(key).rows.push(r);
+        }
+        const psList = Array.from(byPS.values()).sort((a,b)=>a.navn.localeCompare(b.navn,"da",{numeric:true}));
+
+        const vsRowsHtml = psList.map(ps=>{
+          const sum = ps.rows.reduce((s,r)=>s+(r.stemmer||0),0);
+          return `<tr class="border-b last:border-0">
+              <td class="py-1 pr-2">${escapeHtml(ps.navn)}</td>
+              <td class="py-1 pr-2 text-right tabular-nums">${fmt(sum)}</td>
+            </tr>`;
+        }).join("");
+
+        html += `
+          <div class="border rounded-lg overflow-hidden bg-white">
+            <button type="button"
+                    class="w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                    data-ph-kommune>
+              <span>${escapeHtml(kommune.name)}</span>
+              <span class="tabular-nums text-[11px] text-gray-600">${fmt(kTotal)} stemmer</span>
+            </button>
+            <div class="border-t hidden" data-ph-kommune-body>
+              <div class="overflow-auto">
+                <table class="w-full text-[11px]">
+                  <thead>
+                    <tr class="border-b text-left">
+                      <th class="py-1 pr-2">Valgsted</th>
+                      <th class="py-1 pr-2 text-right">Stemmer i alt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${vsRowsHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      html += `
+            </div>
+          </div>
+        </div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    // Interaktion: fold regioner
+    container.querySelectorAll('button[data-ph-region]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const wrapper = btn.parentElement;
+        const body = wrapper.querySelector('[data-ph-region-body]');
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        body?.classList.toggle('hidden', expanded);
+      });
+    });
+
+    // Interaktion: fold kommuner
+    container.querySelectorAll('button[data-ph-kommune]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const wrapper = btn.parentElement;
+        const body = wrapper.querySelector('[data-ph-kommune-body]');
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        body?.classList.toggle('hidden', expanded);
+      });
+    });
+  }
+
   function renderPartyDetail(parti){
     const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
-    left.innerHTML=""; right.innerHTML=""; if(!parti){ header.textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; return; }
+    left.innerHTML=""; right.innerHTML="";
+    el("partyHierarchy").classList.add("hidden"); el("partyHierarchy").innerHTML="";
+    if(!parti){ header.textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; return; }
     header.textContent=parti;
     const kandidaterAll=getPartyStats().find(x=>x.parti===parti)?.kandidater||[];
     const sorted=kandidaterAll.slice().sort(state.candidateSortMode==='alpha'?sortKandidaterAlpha:sortKandidaterVotes);
@@ -653,41 +832,48 @@
     const totalValid = !isDK ? totalValidVotes(state.rows || []) : 0;
 
     function card(k){
-      const listestemmer = isListestemmer(k.kandidat_navn);
-      const share = (!isDK && !listestemmer && totalValid > 0) ? (k.total || 0) / totalValid : null;
+      const listestemmerFlag = isListestemmer(k.kandidat_navn);
+      const sumForCandidate = totalForCandidateInScope(k); // sikrer konsistens
+      const share = (!isDK && !listestemmerFlag && totalValid > 0) ? (sumForCandidate || 0) / totalValid : null;
       const shareLabel = share !== null ? fmtPct(share) : null;
 
-      const subtitleBase = listestemmer
-        ? `${fmt(k.total)} listestemmer`
-        : `${fmt(k.total)} personlige stemmer`;
+      const subtitleBase = listestemmerFlag
+        ? `${fmt(sumForCandidate)} listestemmer`
+        : `${fmt(sumForCandidate)} personlige stemmer`;
 
       const subtitle = shareLabel ? `${subtitleBase} · ${shareLabel}` : subtitleBase;
       const meta=`${escapeHtml(k.parti)} · ${subtitle}`;
 
       const div=document.createElement('div'); div.className='rounded-xl border px-3 py-2';
       div.innerHTML=`<div class="flex items-center justify-between"><div><div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div><div class="text-xs text-gray-500">${meta}</div></div><div class="flex gap-2"><button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button></div></div>`;
-      div.querySelector('button[data-add]').onclick=()=>{ state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti}); renderAll(); persistUrl(false); }; return div; }
+      div.querySelector('button[data-add]').onclick=()=>{ state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti}); renderAll(); persistUrl(false); };
+      return div;
+    }
     leftArr.forEach(k=>left.appendChild(card(k))); rightArr.forEach(k=>right.appendChild(card(k)));
+
+    // Ny: geografisk fordeling for parti på Danmark-niveau
+    renderPartyHierarchy(parti);
   }
 
   function getSelectedInScope(){ const idsInRows=new Set((state.rows||[]).map(r=>r.kandidat_id)); return Array.from(state.selected.values()).filter(k=>idsInRows.has(k.kandidat_id)); }
   const getSelected=()=>getSelectedInScope(); const getSelectedOrdered=()=>{ const s=getSelectedInScope().slice(); s.sort(sortKandidaterAlpha); return s; };
   function renderAll(){ renderSelected(); renderScopeTable(); const hasSel=getSelected().length>0; el("compareSection").classList.toggle("hidden",!hasSel); el("tabsCard").classList.toggle("hidden",!hasSel); }
-  function computeTotalsByCandidate(){ const m=new Map(); for(const r of state.rows) m.set(r.kandidat_id,(m.get(r.kandidat_id)||0)+r.stemmer); return m; }
+
   const stemmerLabel=n=>n===1?'stemme':'stemmer';
+
   function renderSelected(){
-    const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
+    const root=el("selectedList"), sel=getSelectedOrdered();
     const isDK = !state.region;
     const totalValid = !isDK ? totalValidVotes(state.rows || []) : 0;
 
     function letterForParti(parti){ const rowsFor=(state.rows||[]).filter(r=>r.parti===parti); return detectPartyLetter(rowsFor)||null; }
     root.innerHTML= sel.map(k=>{
-      const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.kandidat_id)||0;
-      const listestemmer = isListestemmer(k.kandidat_navn);
-      const share = (!isDK && !listestemmer && totalValid > 0) ? total / totalValid : null;
+      const letter=letterForParti(k.parti), bd=badge(letter), total=totalForCandidateInScope(k);
+      const listestemmerFlag = isListestemmer(k.kandidat_navn);
+      const share = (!isDK && !listestemmerFlag && totalValid > 0) ? total / totalValid : null;
       const shareLabel = share !== null ? fmtPct(share) : null;
 
-      const totalTekstBase = listestemmer
+      const totalTekstBase = listestemmerFlag
         ? `${fmt(total)} listestemmer i alt`
         : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
 
@@ -714,11 +900,24 @@
 
       const kommuner=Array.from(new Set(state.rows.map(r=>r.kommune))).sort((a,b)=>a.localeCompare(b,'da',{numeric:true}));
       const rowsHTML=[];
-      const candLetters=new Map(sel.map(s=>[s.kandidat_id, detectPartyLetter(state.rows.filter(r=>r.parti===s.parti))]));
 
       for(const k of kommuner){
         const rowsK=state.rows.filter(r=>r.kommune===k);
-        const totals=new Map(); sel.forEach(s=>totals.set(s.kandidat_id, rowsK.filter(r=>r.kandidat_id===s.kandidat_id).reduce((x,r)=>x+(r.stemmer||0),0)));
+        const totals=new Map();
+        sel.forEach(s=>{
+          let sum=0;
+          if(isListestemmer(s.kandidat_navn)){
+            const stats=partyTotalsInScope(rowsK.filter(r=>r.parti===s.parti), s.parti);
+            sum=stats.list;
+          }else{
+            for(const r of rowsK){
+              if(r.kandidat_id===s.kandidat_id && r.parti===s.parti && !isListestemmer(r.kandidat_navn)){
+                sum += r.stemmer||0;
+              }
+            }
+          }
+          totals.set(s.kandidat_id,sum);
+        });
 
         const byPS=new Map();
         rowsK.forEach(r=>{ const key=r.valgsted_id||r.valgsted_navn||"–";
@@ -750,7 +949,9 @@
                   ${Array.from(byPS.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da',{numeric:true})).map(ps=>`<tr class="border-b last:border-0">
                     <td class="py-1 pr-3">${escapeHtml(ps.navn)}</td>
                     ${sel.map(s=>{
-                      return `<td class="py-1 pr-3 tabular-nums text-right tint-cell">${fmt(ps.map.get(s.kandidat_id)||0)}</td>`;
+                      const raw = ps.map.get(s.kandidat_id)||0;
+                      // her viser vi rå tal pr. valgsted; de summerer op til totals ovenfor
+                      return `<td class="py-1 pr-3 tabular-nums text-right tint-cell">${fmt(raw)}</td>`;
                     }).join("")}
                   </tr>`).join("")}
                 </tbody>
@@ -773,12 +974,11 @@
         });
       });
 
-      const totalsAll=computeTotalsByCandidate();
       const totalValid = totalValidVotes(state.rows || []);
 
       tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">Regionstotal</th>
         ${sel.map(s=>{
-          const total = totalsAll.get(s.kandidat_id)||0;
+          const total = totalForCandidateInScope(s);
           const share = totalValid > 0 ? total / totalValid : null;
           const shareLabel = share !== null ? fmtPct(share) : null;
           return `<td class="py-2 pr-3 tabular-nums font-medium">
@@ -803,12 +1003,11 @@
         ${sel.map(s=>`<td class="py-2 pr-3 tabular-nums text-right tint-cell">${fmt(ps[s.kandidat_id]||0)}</td>`).join("")}
       </tr>`).join("");
 
-      const totals=computeTotalsByCandidate();
       const totalValid = totalValidVotes(state.rows || []);
 
       tfoot.innerHTML=`<tr class="border-t"><th class="py-2 pr-3 text-left">Kommunetotal</th>
         ${sel.map(s=>{
-          const total = totals.get(s.kandidat_id)||0;
+          const total = totalForCandidateInScope(s);
           const share = totalValid > 0 ? total / totalValid : null;
           const shareLabel = share !== null ? fmtPct(share) : null;
           return `<td class="py-2 pr-3 tabular-nums font-medium">
