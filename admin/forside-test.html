@@ -103,6 +103,18 @@
       background:#e5e7eb;
       color:#111827;
     }
+
+    /* LIVE-boks over søgefeltet */
+    .vb-live-banner{
+      border:1px solid #e11d48;
+      background:#fef2f2;
+      padding:0.85rem 1rem;
+      border-radius:0.75rem;
+      font-size:0.9rem;
+    }
+    .vb-live-banner p{
+      margin:0.15rem 0;
+    }
   </style>
 </head>
 
@@ -124,6 +136,16 @@
 
     <!-- KANDIDATSØGNING -->
     <section class="vb-row p-4 md:p-5 space-y-3">
+
+      <!-- LIVE-boks over søgefeltet -->
+      <div class="vb-live-banner">
+        <p><strong>🔴 LIVE: Kommunal- og regionsrådsvalg</strong></p>
+        <p><strong>Data opdateres, når kommuner melder resultater ind til valg.dk.</strong></p>
+        <p>Der er data for følgende kommuner for kommunalvalget: <span class="vb-live-kv">X, Y, Z</span>.</p>
+        <p>Der er data for følgende kommuner for regionsrådsvalget: <span class="vb-live-rv">X, Y, Z</span>.</p>
+        <p>Sidst opdateret klokken: <span class="vb-live-updated-time">21.29</span></p>
+      </div>
+
       <div class="flex flex-col gap-1">
         <label for="candidateSearch" class="text-sm font-semibold text-slate-800">
           Søg efter en kandidat
