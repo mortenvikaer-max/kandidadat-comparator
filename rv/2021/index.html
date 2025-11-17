@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="da">
 <head>
@@ -511,7 +510,23 @@
     } catch(e){ el("error").textContent=`Kunne ikke hente kommunedata for ${k} fra regionsfilen.`; } finally{ hideLoading(); } }
 
   function afterDataLoaded(){ applyPendingSelections(); renderOverview(); renderAll(); renderContextBar(); closePartyMenu(); }
-  function applyPendingSelections(){ if(state.pendingCandidateIds && state.pendingCandidateIds.length){ for(const id of state.pendingCandidateIds){ const sample=state.rows.find(r=>r.kandidat_id===id); if(sample){ state.selected.set(sample.kandidat_id,{kandidat_id:sample.kandidat_id,kandidat_navn:sample.kandidat_navn,parti:sample.parti}); } } state.pendingCandidateIds=[]; } }
+
+  // ÆNDRING: undgå at tilføje "Listestemmer" fra URL-parametret cand
+  function applyPendingSelections(){
+    if(state.pendingCandidateIds && state.pendingCandidateIds.length){
+      for(const id of state.pendingCandidateIds){
+        const sample=state.rows.find(r=>r.kandidat_id===id);
+        if(sample && !isListestemmer(sample.kandidat_navn)){
+          state.selected.set(sample.kandidat_id,{
+            kandidat_id:sample.kandidat_id,
+            kandidat_navn:sample.kandidat_navn,
+            parti:sample.parti
+          });
+        }
+      }
+      state.pendingCandidateIds=[];
+    }
+  }
 
   const sortKandidaterAlpha=(a,b)=>{ const aN=normalizeCandidateName(a.kandidat_navn), bN=normalizeCandidateName(b.kandidat_navn); const al=isListestemmer(aN), bl=isListestemmer(bN); if(al&&!bl) return 1; if(!al&&bl) return -1; return aN.localeCompare(bN,"da"); };
   const sortKandidaterVotes=(a,b)=>{ const aN=normalizeCandidateName(a.kandidat_navn), bN=normalizeCandidateName(b.kandidat_navn); const al=isListestemmer(aN), bl=isListestemmer(bN); if(al&&!bl) return 1; if(!al&&bl) return -1; const dv=(b.total||0)-(a.total||0); if(dv!==0) return dv; return aN.localeCompare(bN,"da"); };
@@ -641,6 +656,7 @@
     el("partyDetailHeader").textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område.";
     el("candidateColLeft").innerHTML=""; el("candidateColRight").innerHTML="";
   }
+
   function renderPartyDetail(parti){
     const header=el("partyDetailHeader"), left=el("candidateColLeft"), right=el("candidateColRight");
     left.innerHTML=""; right.innerHTML=""; if(!parti){ header.textContent="Vælg et parti for at se kandidater og stemmetal i det aktuelle område."; return; }
@@ -664,9 +680,34 @@
       const subtitle = shareLabel ? `${subtitleBase} · ${shareLabel}` : subtitleBase;
       const meta=`${escapeHtml(k.parti)} · ${subtitle}`;
 
-      const div=document.createElement('div'); div.className='rounded-xl border px-3 py-2';
-      div.innerHTML=`<div class="flex items-center justify-between"><div><div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div><div class="text-xs text-gray-500">${meta}</div></div><div class="flex gap-2"><button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button></div></div>`;
-      div.querySelector('button[data-add]').onclick=()=>{ state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti}); renderAll(); persistUrl(false); }; return div; }
+      const div=document.createElement('div');
+      div.className='rounded-xl border px-3 py-2';
+
+      // ÆNDRING: ingen "Tilføj"-knap for Listestemmer
+      const actionsHtml = listestemmer
+        ? `<span class="text-xs text-gray-400 italic">Kan ikke vælges til sammenligning</span>`
+        : `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`;
+
+      div.innerHTML=`<div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div>
+          <div class="text-xs text-gray-500">${meta}</div>
+        </div>
+        <div class="flex gap-2">
+          ${actionsHtml}
+        </div>
+      </div>`;
+
+      if (!listestemmer) {
+        const btn = div.querySelector('button[data-add]');
+        if (btn) {
+          btn.onclick=()=>{ state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti}); renderAll(); persistUrl(false); };
+        }
+      }
+
+      return div;
+    }
+
     leftArr.forEach(k=>left.appendChild(card(k))); rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
