@@ -82,6 +82,10 @@
           <p class="text-sm text-emerald-900/80" id="liveDescription">
             Følg med i de valg, hvor der løbende tikker nye stemmetal ind.
           </p>
+
+          <div class="mt-3 space-y-1 text-xs md:text-sm text-emerald-900/80">
+            <p>Der er endnu ikke opgjort stemmer for kommunal- eller regionsrådsvalg.
+          </div>
         </div>
         <div id="liveLinks" class="flex flex-col sm:flex-row gap-2 md:gap-3 mt-3 md:mt-0"></div>
       </div>
@@ -115,14 +119,12 @@
   <script>
     /* ====== KONFIG ====== */
 
-    // Live-konfiguration – ret/udvid efter behov
-    // href bruger samme struktur som DEST, så du kan ændre stier ét sted
+    // Live-konfiguration
     const LIVE = [
       {
         type: 'kv',
         year: 2025,
         title: 'Kommunalvalg 2025',
-        // evt. 'kv/2025/live/' hvis du har særskilte live-sider
         href: 'kv/2025/'
       },
       {
@@ -136,11 +138,11 @@
     const YEARS = {
       // FT: 2007, 2011, 2015, 2019, 2022 (2005 fjernet)
       ft: [2022, 2019, 2015, 2011, 2007],
-      // KV: 2025, 2021, 2017, 2013, 2009, 2005 (2001 fjernet)
+      // KV: 2025, 2021, 2017, 2013, 2009, 2005
       kv: [2025, 2021, 2017, 2013, 2009, 2005],
-      // RV: 2025, 2021, 2017 (2013 fjernet)
+      // RV: 2025, 2021, 2017
       rv: [2025, 2021, 2017],
-      // EP: 2009, 2014, 2019, 2024 (2004 fjernet)
+      // EP: 2009, 2014, 2019, 2024
       ep: [2024, 2019, 2014, 2009],
       // FA: Folkeafstemning
       fa: [2022, 2015, 2014]
@@ -160,7 +162,7 @@
         2013: 'kv/2013/',
         2009: 'kv/2009/',
         2005: 'kv/2005/',
-        2001: 'kv/2001/'   // må gerne blive, selv om 2001 ikke vises i YEARS
+        2001: 'kv/2001/'
       }},
       ft: { perYear: {
         2022: 'ft/2022/',
@@ -183,7 +185,6 @@
         2009: 'ep/2009/',
         2004: 'ep/2004/'
       }},
-      // Folkeafstemning – aktiveret med dine stier
       fa: { perYear: {
         2022: 'fa/2022/',
         2015: 'fa/2015/',
@@ -199,7 +200,6 @@
       fa:'Folkeafstemning'
     };
 
-    // rækkefølge på forsiden
     const ORDER = ['ft','kv','rv','ep','fa'];
 
     /* ====== RENDER ====== */
@@ -255,7 +255,6 @@
 
       liveRoot.classList.remove('hidden');
 
-      // Hvis kun ét live-valg, tilpas tekst en smule
       if (activeLive.length === 1) {
         const d = document.getElementById('liveDescription');
         if (d) {
