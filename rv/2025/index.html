@@ -263,9 +263,17 @@
   const BASE_PATH='../../data/rv/2025/';
   const ALL_IN_REGION="__ALL_REGION__";
 
+  /* 
+     Region Østdanmark = Hovedstaden + Sjælland
+     Data-filer: data/rv/2025/Region Østdanmark/[Kommune]_allepartier.csv
+  */
   const REGIONS={
-    "Region Hovedstaden":["Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk"],
-    "Region Sjælland":["Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"],
+    "Region Østdanmark":[
+      /* tidligere Region Hovedstaden */
+      "Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal","Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe","Glostrup","Gribskov","Halsnæs","Herlev","Hillerød","Hvidovre","Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal","Rødovre","Tårnby","Vallensbæk",
+      /* tidligere Region Sjælland */
+      "Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland","Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø","Stevns","Vordingborg"
+    ],
     "Region Syddanmark":["Assens","Billund","Esbjerg","Fanø","Fredericia","Faaborg-Midtfyn","Haderslev","Kerteminde","Kolding","Langeland","Middelfart","Nordfyns","Nyborg","Odense","Svendborg","Tønder","Varde","Vejen","Vejle","Ærø","Aabenraa","Sønderborg"],
     "Region Midtjylland":["Favrskov","Hedensted","Herning","Holstebro","Horsens","Ikast-Brande","Lemvig","Norddjurs","Odder","Randers","Ringkøbing-Skjern","Samsø","Silkeborg","Skanderborg","Skive","Struer","Syddjurs","Viborg","Aarhus"],
     "Region Nordjylland":["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
@@ -331,6 +339,14 @@
   const fold=s=>(s||"").toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
   const normalizeCandidateName=name=>(name||"").replace(/,(\S)/g,', $1');
   const isListestemmer=name=>{ const t=(canon(name)).toLowerCase(); return t==="partiliste"||t==="listestemmer"||t==="liste"; };
+
+  /* Normalisér regionsnavne fra CSV til vores UI-navne */
+  function normalizeRegionName(name){
+    const n = canon(name);
+    if(!n) return "";
+    if(n === "Region Hovedstaden" || n === "Region Sjælland") return "Region Østdanmark";
+    return n;
+  }
 
   function totalValidVotes(rows){
     let sum = 0;
@@ -768,7 +784,7 @@
     }
 
     return res.data.map(r=>({
-      region: canon(r.region || regionName || ""),
+      region: normalizeRegionName(r.region || regionName || ""),
       kommune: canon(r.kommune || kommuneName || ""),
       valgsted_id: canon(
         r.valgsted_id ||
@@ -978,7 +994,7 @@
     const count=new Map();
     for(const r of rows){
       if(r.kandidat_id===candId){
-        const reg=r.region||findRegionForKommune(r.kommune);
+        const reg=normalizeRegionName(r.region) || findRegionForKommune(r.kommune);
         if(reg) count.set(reg,(count.get(reg)||0)+1);
       }
     }
