@@ -1130,6 +1130,7 @@
     for(const [parti,rowsP] of byParti.entries()){
       const map=new Map();
       for(const r of rowsP){
+        if(isListestemmer(r.kandidat_navn)) continue; // udelad listestemmer fra kandidatlisten
         if(!map.has(r.kandidat_id))
           map.set(r.kandidat_id,{kandidat_id:r.kandidat_id,kandidat_navn:r.kandidat_navn,parti:r.parti,total:0});
         map.get(r.kandidat_id).total+=r.stemmer;
@@ -1140,7 +1141,7 @@
         parti,
         letter,
         hasLetter:!!letter,
-        kandidatAntal:kandidater.filter(k=>!isListestemmer(k.kandidat_navn)).length,
+        kandidatAntal:kandidater.length,
         kandidater
       });
     }
