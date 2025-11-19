@@ -436,19 +436,27 @@
 
   function badge(letter){ const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG; const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG; return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") }; }
 
-  function detectPartyLetter(rowsForParti){
-    if(!rowsForParti || !rowsForParti.length) return null;
-    const partyName = rowsForParti[0].parti;
-    // Kun de definerede nationale partier får bogstav
-    if(!LETTER_PARTIES.has(partyName)) return null;
+function detectPartyLetter(rowsForParti){
+  if(!rowsForParti || !rowsForParti.length) return null;
+  const name = (rowsForParti[0].parti || "").trim();
 
-    for(const r of rowsForParti){
-      const m=(r.parti_bogstav||r.listebogstav||r.kandidat_id||"").toString().trim().toUpperCase().match(/^([A-ZÆØÅ])/);
-      const L=m?.[1];
-      if(L && PARTY_COLORS[L]) return L;
-    }
-    return null;
-  }
+  const map = {
+    "Socialdemokratiet": "A",
+    "Radikale Venstre": "B",
+    "Det Konservative Folkeparti": "C",
+    "Nye Borgerlige": "D",
+    "SF - Socialistisk Folkeparti": "F",
+    "Liberal Alliance": "I",
+    "Kristendemokraterne": "K",
+    "Dansk Folkeparti": "O",
+    "Venstre, Danmarks Liberale Parti": "V",
+    "Enhedslisten - De Rød-Grønne": "Ø",
+    "Alternativet": "Å"
+  };
+
+  const letter = map[name] || null;
+  return letter;
+}
 
   /* ===== Region-lookup ===== */
   function findRegionForKommune(kommune){
