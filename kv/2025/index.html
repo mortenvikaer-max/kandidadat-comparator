@@ -289,7 +289,7 @@
 
 <script>
   /* ===== DATA-STI ===== */
-  const BASE_PATH = '../../data/kv/2025/';
+  const BASE_PATH = '../../data/kv/2025';
   const VALGSTED_ALL_VALUE = "__ALL__";
 
   /* Regioner & kommuner */
@@ -436,6 +436,18 @@
       if(kommuner.includes(kommune)) return reg;
     }
     return "";
+  }
+
+  /* Mapper kommune -> regionsmappe i filsystemet */
+  function regionFolderForKommune(kommune){
+    const region = findRegionForKommune(kommune);
+    if(!region) return null;
+    // Hovedstaden + Sjælland ligger i Region Østdanmark-mappen
+    if(region === "Region Hovedstaden" || region === "Region Sjælland"){
+      return "Region Østdanmark";
+    }
+    // De øvrige matcher mappenavn 1:1
+    return region;
   }
 
   /* ===== URL helpers ===== */
@@ -958,12 +970,23 @@
       };
     });
   }
+
   async function loadRowsForKommune(k){
     if(state.csvCache.has(k)) return state.csvCache.get(k);
-    const safe=encodeURIComponent(k);
-    const candidates=[`${BASE_PATH}${safe}_allepartier.csv`, `${BASE_PATH}${safe}.csv`];
+    const folder = regionFolderForKommune(k);
+    const safeK = encodeURIComponent(k);
+    const baseDir = folder ? `${BASE_PATH}/${encodeURIComponent(folder)}` : BASE_PATH;
+    const candidates=[
+      `${baseDir}/${safeK}_allepartier.csv`,
+      `${baseDir}/${safeK}.csv`
+    ];
     for(const url of candidates){
-      try{ const text = await fetchCsvText(url); const rows = parseCsvTextToRows(text); state.csvCache.set(k, rows); return rows; }catch(_){ }
+      try{
+        const text = await fetchCsvText(url);
+        const rows = parseCsvTextToRows(text);
+        state.csvCache.set(k, rows);
+        return rows;
+      }catch(_){}
     }
     throw new Error('not found');
   }
@@ -997,7 +1020,8 @@
       const rows = await loadRowsForKommune(k);
       state.rows = rows; afterDataLoaded();
     }catch(e){
-      el("error").textContent=`Kunne ikke finde data for ${k}. Forventede fx /${BASE_PATH}${k}_allepartier.csv`;
+      const folder = regionFolderForKommune(k) || '[Region]';
+      el("error").textContent=`Kunne ikke finde data for ${k}. Forventede fx ${BASE_PATH}/${folder}/${k}_allepartier.csv`;
     }finally{ hideLoading(); }
   }
 
