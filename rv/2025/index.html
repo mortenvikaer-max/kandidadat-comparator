@@ -106,6 +106,17 @@
 </header>
 
 <main class="mx-auto max-w-6xl p-4 space-y-6">
+
+  <!-- LIVE STATUS -->
+  <section id="liveStatus" class="vb-card p-3 flex items-center gap-2 bg-emerald-50 border-emerald-200 text-sm">
+    <span class="inline-flex items-center justify-content-center rounded-full bg-emerald-600 text-white text-xs font-semibold px-2 py-0.5">
+      LIVE
+    </span>
+    <span id="liveStatusText" class="text-gray-800">
+      Scanner efter kommuner med opgjorte data…
+    </span>
+  </section>
+
   <div id="contextBar" class="context-bar"></div>
 
   <!-- LANDING -->
@@ -259,6 +270,13 @@
     "Region Nordjylland":["Brønderslev","Frederikshavn","Hjørring","Jammerbugt","Læsø","Mariagerfjord","Morsø","Rebild","Thisted","Vesthimmerlands","Aalborg"]
   };
 
+  /* Total antal kommuner (unikke) – bruges til LIVE-boks */
+  const TOTAL_MUNICIPALITIES = (() => {
+    const s = new Set();
+    Object.values(REGIONS).forEach(list => list.forEach(k => s.add(k)));
+    return s.size;
+  })();
+
   /* --- Partifarver (inkl. nye) --- */
   const PARTY_COLORS={
     A:"#e03a3e", B:"#712082", C:"#2e7d32",
@@ -288,8 +306,21 @@
 
   /* ===== generelle helpers og state ===== */
 
-  const state={ rows:[], region:"", kommune:"", activeParty:"", selected:new Map(),
-    candidateSortMode:"alpha", topListMode:"top10", overviewMode:"cand", csvCache:new Map(), isLoading:false, pendingCandidateIds:[] };
+  const state={
+    rows:[],
+    region:"",
+    kommune:"",
+    activeParty:"",
+    selected:new Map(),
+    candidateSortMode:"alpha",
+    topListMode:"top10",
+    overviewMode:"cand",
+    csvCache:new Map(),
+    isLoading:false,
+    pendingCandidateIds:[],
+    availableKommuner:new Set(),
+    isAvailabilityScanDone:false
+  };
 
   const el=id=>document.getElementById(id);
   const fmt=n=>new Intl.NumberFormat("da-DK").format(n);
@@ -367,6 +398,45 @@
     renderOverview(); renderAll(); renderContextBar();
   }
 
+  /* ===== LIVE STATUS ===== */
+  function renderLiveStatus(){
+    const box = el('liveStatusText');
+    if(!box) return;
+    const count = state.availableKommuner ? state.availableKommuner.size : 0;
+    if(!state.isAvailabilityScanDone && count === 0){
+      box.textContent = 'Scanner efter kommuner med opgjorte data…';
+    } else {
+      box.textContent = `Der er opgjort data for ${count} ud af ${TOTAL_MUNICIPALITIES} kommuner.`;
+    }
+  }
+
+  async function scanDataAvailability(){
+    const allKommuner = Array.from(new Set(Object.values(REGIONS).flat()));
+    const available = new Set(state.availableKommuner || []);
+    for(const k of allKommuner){
+      if(available.has(k)) continue;
+      try{
+        const rows = await loadRowsForKommune(k);
+        if(rows && rows.length) available.add(k);
+      }catch(_){
+        // ingen data for denne kommune endnu
+      }
+    }
+    state.availableKommuner = available;
+    state.isAvailabilityScanDone = true;
+    renderLiveStatus();
+
+    // Opdater kommune-dropdown for nuværende region, så kommuner uden data bliver disabled/grå
+    if(state.region){
+      const ksel = el('kommuneSelect');
+      const current = ksel?.value || state.kommune || "";
+      populateKommuner(state.region);
+      if(ksel && current && (current === ALL_IN_REGION || state.availableKommuner.has(current))){
+        ksel.value = current;
+      }
+    }
+  }
+
   window.addEventListener("DOMContentLoaded", async ()=>{
 
     /* Årsvælger – skift mellem 2025 / 2021 / 2017 */
@@ -397,6 +467,11 @@
 
     renderContextBar();
     window.addEventListener('popstate', ()=>{ hydrateFromUrl(); });
+
+    // Init LIVE-boks
+    renderLiveStatus();
+    // Scan alle kommuner for tilgængelige data (til LIVE-boks + disable kommuner uden data)
+    scanDataAvailability().catch(()=>{ /* ignore errors i live-scan */ });
   });
 
   function updateCandSortToggleUI(){ const a=el("btnSortAlpha"), b=el("btnSortVotes"); if(state.candidateSortMode==="alpha"){ a.classList.add("active"); b.classList.remove("active"); } else { b.classList.add("active"); a.classList.remove("active"); } }
@@ -455,9 +530,21 @@
       clearAll(); if(r){ persistUrl(true); loadRegionData(r);} else { persistUrl(true); loadNationalData(); } renderContextBar(); };
     el("kommuneSelect").disabled=true;
   }
+
   function populateKommuner(region){
     const ksel=el("kommuneSelect"), kommuner=REGIONS[region]||[];
-    const first=`<option value="${ALL_IN_REGION}">Alle kommuner i regionen</option>`, items=kommuner.map(k=>`<option value="${k}">${k}</option>`).join("");
+    const hasAvailabilityInfo = state.isAvailabilityScanDone;
+    const available = state.availableKommuner || new Set();
+
+    const first=`<option value="${ALL_IN_REGION}">Alle kommuner i regionen</option>`;
+    const items=kommuner.map(k=>{
+      const isAvailable = !hasAvailabilityInfo || available.has(k);
+      const disabledAttr = isAvailable ? "" : " disabled";
+      const label = isAvailable ? k : `${k} (ingen data endnu)`;
+      const classAttr = isAvailable ? "" : " text-gray-400";
+      return `<option value="${k}"${disabledAttr} class="${classAttr}">${label}</option>`;
+    }).join("");
+
     ksel.innerHTML=`<option value="">Vælg kommune…</option>${first}${items}`;
     ksel.onchange=()=>{ const k=ksel.value; state.kommune=k; state.activeParty=""; clearAll();
       if(k===ALL_IN_REGION){ persistUrl(true); loadRegionData(state.region);} else if(k){ persistUrl(true); loadKommuneData(k);} else { persistUrl(true); loadRegionData(state.region);} renderContextBar(); };
@@ -836,4 +923,3 @@
 </script>
 </body>
 </html>
-
