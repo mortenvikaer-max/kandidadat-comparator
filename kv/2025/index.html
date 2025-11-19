@@ -430,7 +430,7 @@
     return null;
   }
 
-  /* ===== Region-lookup (NY) ===== */
+  /* ===== Region-lookup ===== */
   function findRegionForKommune(kommune){
     for(const [reg, kommuner] of Object.entries(REGIONS)){
       if(kommuner.includes(kommune)) return reg;
@@ -938,14 +938,24 @@
 
   /* ===== DATA ===== */
   async function fetchCsvText(url){ const r=await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("404"); return await r.text(); }
-  function parseCsvTextToRows(text){
-    const res=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>canon(h.toLowerCase())});
+
+  function parseCsvTextToRows(text, kommuneName){
+    const res = Papa.parse(text,{
+      header:true,
+      skipEmptyLines:true,
+      transformHeader:h=>canon(h.toLowerCase())
+    });
+
+    const kommuneFixed = canon(kommuneName || "");
+    const regionFixed = kommuneFixed ? findRegionForKommune(kommuneFixed) : "";
+
     return res.data.map(r=>{
-      const region = canon(r.region||"");
-      const kommune = canon(r.kommune||"");
+      // Region & kommune – brug evt. kolonner fra fil, ellers fra filnavn
+      const region = canon(r.region || regionFixed || "");
+      const kommune = canon(r.kommune || kommuneFixed || "");
 
       // Fix partinavn hvis nødvendigt
-      let partiRaw = canon(r.parti);
+      let partiRaw = canon(r.parti || r.listenavn);
       const fixedName = PARTY_NAME_FIX[partiRaw] || partiRaw;
       let parti = fixedName;
 
@@ -955,18 +965,40 @@
       }
 
       const noLetter = NO_LETTER_PARTIES.has(parti);
-      const parti_bogstav = noLetter ? "" : canon(r.parti_bogstav||r.listebogstav||"");
+      const parti_bogstav_raw = canon(
+        r.parti_bogstav || r.listebogstav || r.bogstavbetegnelse || ""
+      );
+      const parti_bogstav = noLetter ? "" : parti_bogstav_raw;
+
+      const valgstedNavn = canon(
+        r.valgsted_navn || r.sted_navn || r["afstemningsområde"] || ""
+      );
+      const valgstedId = canon(
+        r.valgsted_id || r.sted_id || valgstedNavn
+      );
+
+      const kandidatNavnRaw = canon(
+        r.kandidat_navn || r.navn || ""
+      );
+      const kandidatNavn = normalizeCandidateName(kandidatNavnRaw);
+      const kandidatId = canon(
+        r.kandidat_id || r.kandidat_navn || r.navn || kandidatNavn
+      );
+
+      const stemmer = Number(
+        r.stemmer || r.stemmetal || 0
+      ) || 0;
 
       return {
         region,
         kommune,
-        valgsted_id:canon(r.valgsted_id||r.sted_id||""),
-        valgsted_navn:canon(r.valgsted_navn||r.sted_navn||""),
-        kandidat_id:canon(r.kandidat_id||r.kandidat_navn),
-        kandidat_navn: normalizeCandidateName(canon(r.kandidat_navn)),
+        valgsted_id: valgstedId,
+        valgsted_navn: valgstedNavn,
+        kandidat_id: kandidatId,
+        kandidat_navn: kandidatNavn,
         parti,
         parti_bogstav,
-        stemmer:Number(r.stemmer||0)||0
+        stemmer
       };
     });
   }
@@ -983,7 +1015,7 @@
     for(const url of candidates){
       try{
         const text = await fetchCsvText(url);
-        const rows = parseCsvTextToRows(text);
+        const rows = parseCsvTextToRows(text, k);
         state.csvCache.set(k, rows);
         return rows;
       }catch(_){}
@@ -1101,7 +1133,7 @@
     return entries;
   }
 
-  /* NY: fallback-region i primaryKommuneForCandidate */
+  /* Fallback-region i primaryKommuneForCandidate */
   function primaryKommuneForCandidate(candId, rows){
     const count=new Map(); const reg=new Map();
     for(const r of rows){
