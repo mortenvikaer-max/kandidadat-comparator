@@ -404,13 +404,6 @@
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-  // Rens valgstedsnavn: fjern evt. første "tal. " (fx "55. 9. Sydhavn" -> "9. Sydhavn")
-  function cleanValgstedName(name){
-    const n = canon(name);
-    const m = n.match(/^\d+\.\s+(.*)$/);
-    return m ? m[1] : n;
-  }
-
   // Normaliser tekst til brug som nøgle (bindestreger, mellemrum, case)
   function normalizePartyKey(raw){
     return canon(raw)
@@ -582,7 +575,7 @@
     const p=new URLSearchParams(location.search);
     const r=p.get("region"); const k=p.get("kommune"); const parti=p.get("parti");
     // cand kan være ét kandidat-id eller flere adskilt med '|'
-    anconst candParam = (p.get("cand") || "").trim();
+    const candParam = (p.get("cand") || "").trim();
     const cand = candParam
       ? (candParam.includes('|')
           ? candParam.split('|').map(s=>s.trim()).filter(Boolean)
@@ -1137,12 +1130,11 @@
       );
       const parti_bogstav = noLetter ? "" : parti_bogstav_raw;
 
-      const valgstedNavnRaw = canon(
+      const valgstedNavn = canon(
         r.valgsted_navn || r.sted_navn || r["afstemningsområde"] || ""
       );
-      const valgstedNavn = cleanValgstedName(valgstedNavnRaw);
       const valgstedId = canon(
-        r.valgsted_id || r.sted_id || valgstedNavnRaw
+        r.valgsted_id || r.sted_id || valgstedNavn
       );
 
       const kandidatNavnRaw = canon(
@@ -1229,7 +1221,7 @@
     // pending enkelt-id (legacy)
     if(state.pendingCandidateId){
       const sample = state.rows.find(r=>r.kandidat_id===state.pendingCandidateId);
-      if(sample && !isListestemmer(sample.kandidat_navn)){
+      if(sample){
         state.selected.set(sample.kandidat_id, { kandidat_id: sample.kandidat_id, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
       }
       state.pendingCandidateId = null;
@@ -1265,7 +1257,7 @@
     if(state.pendingCandidateIds && state.pendingCandidateIds.length){
       for(const id of state.pendingCandidateIds){
         const sample = state.rows.find(r=>r.kandidat_id===id);
-        if(sample && !isListestemmer(sample.kandidat_navn)){
+        if(sample){
           state.selected.set(sample.kandidat_id, { kandidat_id: sample.kandidat_id, kandidat_navn: sample.kandidat_navn, parti: sample.parti });
         }
       }
@@ -1494,7 +1486,7 @@
 
     // Allerede i korrekt kommune → toggle i udvalgte
     const sample = (state.rows||[]).find(r=>r.kandidat_id===candId);
-    if(!sample || isListestemmer(sample.kandidat_navn)) return;
+    if(!sample) return;
     if(state.selected.has(candId)){
       state.selected.delete(candId);
       renderAll(); persistUrl(false);
@@ -1627,23 +1619,17 @@
       const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
       const div=document.createElement('div');
       div.className='rounded-xl border px-3 py-2';
-      const buttonHtml = listestemmer ? '' : `<button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>`;
       div.innerHTML=`<div class="flex items-center justify-between">
         <div>
           <div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div>
           <div class="text-xs text-gray-500">${meta}</div>
         </div>
-        ${buttonHtml}
+        <button class="vb-btn" data-add="${k.kandidat_id}">Tilføj</button>
       </div>`;
-      if(!listestemmer){
-        const btn = div.querySelector('button[data-add]');
-        if(btn){
-          btn.onclick=()=>{
-            state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
-            renderAll(); persistUrl(false);
-          };
-        }
-      }
+      div.querySelector('button[data-add]').onclick=()=>{
+        state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
+        renderAll(); persistUrl(false);
+      };
       return div;
     }
     leftArr.forEach(k=>left.appendChild(card(k)));
