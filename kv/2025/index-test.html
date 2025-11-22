@@ -70,11 +70,24 @@
     .hier-indent-1{ padding-left:1.5rem; }
     .hier-indent-2{ padding-left:3rem; }
 
-    /* Mini-barer til partisammenligning (andel af gyldige stemmer) */
+    /* Parti-sammenligningstabel: lige brede parti-kolonner */
+    #partyTable{
+      table-layout:fixed;
+    }
+    #partyTable th:first-child,
+    #partyTable td:first-child{
+      width:auto;
+    }
+    #partyTable th.party-col,
+    #partyTable td.party-col{
+      width:150px;
+    }
+
+    /* Mini-barer til partisammenligning (andel af gyldige stemmer) – Model A */
     .mini-bar-wrap{
       width:100%;
-      max-width:90px;
-      height:4px;
+      max-width:180px;
+      height:6px;
       border-radius:9999px;
       background:transparent;
       overflow:hidden;
@@ -84,7 +97,7 @@
     .mini-bar-fill{
       height:100%;
       border-radius:9999px;
-      opacity:.8;
+      opacity:.85;
     }
   </style>
 </head>
@@ -252,9 +265,15 @@
 
   <!-- SAMMENLIGN PARTIER -->
   <section id="partyCompareSection" class="vb-card p-4 space-y-3 hidden">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
       <h2 class="font-medium">Sammenlign partier</h2>
-      <button id="btnClearParties" class="vb-btn">Nulstil valgte partier</button>
+      <div class="flex items-center gap-2">
+        <select id="partyCompareAddSelect"
+                class="rounded-xl border px-2 py-1 text-sm">
+          <option value="">Tilføj parti…</option>
+        </select>
+        <button id="btnClearParties" class="vb-btn text-sm">Nulstil valgte partier</button>
+      </div>
     </div>
 
     <div id="partySelectedList" class="space-y-2 text-sm"></div>
@@ -477,9 +496,9 @@
   // Normaliser tekst til brug som nøgle (bindestreger, mellemrum, case)
   function normalizePartyKey(raw){
     return canon(raw)
-      .replace(/[–—]/g, "-")        // en-/em-dash -> hyphen
-      .replace(/\s*-\s*/g, " - ")   // ens mellemrum omkring '-'
-      .replace(/\s+/g, " ")         // flere mellemrum -> ét
+      .replace(/[–—]/g, "-")
+      .replace(/\s*-\s*/g, " - ")
+      .replace(/\s+/g, " ")
       .toLowerCase();
   }
 
@@ -549,7 +568,6 @@
     return rows;
   }
 
-  // Stripper evt. foranstillet rækkenummer: "55. 9. Sydhavn" -> "9. Sydhavn"
   function formatValgstedNameForDisplay(name){
     const s = canon(name);
     const m = s.match(/^\d+\.\s*(.+)$/);
@@ -787,10 +805,18 @@
       partyScopeSel.addEventListener("change", () => {
         const val = partyScopeSel.value || "";
         if (!val) return;
-        state.selectedParties.add(val);
         partyScopeSel.value = "";
-        renderPartyCompare();
-        persistUrl(false);
+        addPartyForComparison(val);
+      });
+    }
+
+    const cmpSel = el("partyCompareAddSelect");
+    if (cmpSel) {
+      cmpSel.addEventListener("change", () => {
+        const val = cmpSel.value || "";
+        if (!val) return;
+        cmpSel.value = "";
+        addPartyForComparison(val);
       });
     }
 
@@ -799,6 +825,7 @@
       btnClearParties.addEventListener("click", () => {
         state.selectedParties.clear();
         renderPartyCompare();
+        updatePartyScopeSelect();
         persistUrl(false);
       });
     }
@@ -818,6 +845,26 @@
 
     scanDataAvailability().catch(()=>{});
   });
+
+  /* Hjælper: tilføj parti til sammenligning + skift til partitotaler */
+  function addPartyForComparison(p){
+    if(!p) return;
+    state.selectedParties.add(p);
+
+    // ryd kandidat-sammenligning
+    state.selected.clear();
+    renderAll();
+
+    // skift til partitotaler
+    state.overviewMode = "party";
+    updateModeToggleUI();
+    updateTopButtonsForScope();
+    renderOverview();
+
+    updatePartyScopeSelect();
+    renderPartyCompare();
+    persistUrl(false);
+  }
 
   function updateCandSortToggleUI(){
     const a=el("btnSortAlpha"), b=el("btnSortVotes");
@@ -1465,10 +1512,7 @@
           const parti=item.getAttribute('data-parti');
           const activate = ()=>{
             if(!state.kommune){
-              state.selectedParties.add(parti);
-              renderPartyCompare();
-              persistUrl(false);
-              el('partyScopeSelect') && (el('partyScopeSelect').value = "");
+              addPartyForComparison(parti);
               document.getElementById('partyCompareSection')?.scrollIntoView({behavior:'smooth'});
               return;
             }
@@ -1544,6 +1588,17 @@
   }
 
   function toggleCandidateFromTop(candId, rows){
+    // Hvis man går i kandidatsammenligning -> ryd partier
+    if (state.selectedParties.size > 0) {
+      state.selectedParties.clear();
+      renderPartyCompare();
+      updatePartyScopeSelect();
+    }
+    state.overviewMode = "cand";
+    updateModeToggleUI();
+    updateTopButtonsForScope();
+    renderOverview();
+
     const target = primaryKommuneForCandidate(candId, rows);
     if(!state.kommune || (target && target.kommune && state.kommune!==target.kommune)){
       if(target){
@@ -1713,6 +1768,17 @@
       if(!listestemmer){
         const btn = div.querySelector('button[data-add]');
         btn.onclick=()=>{
+          // Går man i kandidatsammenligning -> ryd partier
+          if (state.selectedParties.size > 0) {
+            state.selectedParties.clear();
+            renderPartyCompare();
+            updatePartyScopeSelect();
+          }
+          state.overviewMode = "cand";
+          updateModeToggleUI();
+          updateTopButtonsForScope();
+          renderOverview();
+
           state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
           renderAll(); persistUrl(false);
         };
@@ -1723,15 +1789,21 @@
     rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
-  /* ===== Parti-oversigts-dropdown (øverst) ===== */
+  /* ===== Parti-oversigts-dropdowns (øverst + i boksen) ===== */
   function updatePartyScopeSelect(){
-    const sel = el("partyScopeSelect");
-    if (!sel) return;
-
+    const topSel = el("partyScopeSelect");
+    const cmpSel = el("partyCompareAddSelect");
     const rows = state.rows || [];
+
     if (!rows.length) {
-      sel.disabled = true;
-      sel.innerHTML = '<option value="">Vælg parti…</option>';
+      if(topSel){
+        topSel.disabled = true;
+        topSel.innerHTML = '<option value="">Vælg parti…</option>';
+      }
+      if(cmpSel){
+        cmpSel.disabled = true;
+        cmpSel.innerHTML = '<option value="">Tilføj parti…</option>';
+      }
       return;
     }
 
@@ -1739,15 +1811,27 @@
     for (const r of rows) {
       if (r.parti) set.add(r.parti);
     }
-
     const partier = Array.from(set).sort(priorityPartySort);
 
-    sel.disabled = false;
-    sel.innerHTML =
-      '<option value="">Vælg parti…</option>' +
-      partier
-        .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
-        .join("");
+    if(topSel){
+      topSel.disabled = false;
+      topSel.innerHTML =
+        '<option value="">Vælg parti…</option>' +
+        partier
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+          .join("");
+    }
+
+    if(cmpSel){
+      cmpSel.disabled = false;
+      const selected = state.selectedParties || new Set();
+      cmpSel.innerHTML =
+        '<option value="">Tilføj parti…</option>' +
+        partier
+          .filter(p => !selected.has(p))
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+          .join("");
+    }
   }
 
   /* ===== Parti-sammenligning ===== */
@@ -1807,6 +1891,7 @@
       btnEl.addEventListener('click', () => {
         state.selectedParties.delete(partyName);
         renderPartyCompare();
+        updatePartyScopeSelect();
         persistUrl(false);
       });
     });
@@ -1822,7 +1907,6 @@
       return;
     }
 
-    // Map: parti -> bogstav -> farve
     const partyLetters = new Map();
     const partyColors  = new Map();
     parties.forEach(p => {
@@ -1836,7 +1920,6 @@
     const regionMap = new Map();
     const totalPerParty = new Map();
 
-    // Byg hierarkiet – regn totalAll = alle gyldige stemmer i rækken
     for (const r of rows) {
       const regionName = r.region || findRegionForKommune(r.kommune) || "(Ukendt region)";
       const kommuneName = r.kommune || "(Ukendt kommune)";
@@ -1885,7 +1968,7 @@
     const headCols = parties.map(p => {
       const letter = partyLetters.get(p);
       const bd = badge(letter);
-      return `<th class="py-2 pr-3 text-right">
+      return `<th class="py-2 pr-3 text-right party-col">
         <div class="flex items-center justify-end gap-2">
           <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
           <span class="text-right">${escapeHtml(p)}</span>
@@ -1903,13 +1986,15 @@
     function partyCellHtml(n, totalAll, p){
       const total = totalAll || 0;
       const share = total > 0 ? n / total : 0;
-      const pct = share * 100;
+      let pct = share * 100;
+      const minPct = 3; // minimum 3% bredde for synlighed
+      if (share > 0 && pct < minPct) pct = minPct;
       const pctLabel = total > 0 ? fmtPct(share) : "";
       const color = partyColors.get(p) || "#9ca3af";
       if (total === 0 && n === 0) {
-        return `<td class="py-2 pr-3 text-right tabular-nums cell-na">0</td>`;
+        return `<td class="py-2 pr-3 text-right tabular-nums cell-na party-col">0</td>`;
       }
-      return `<td class="py-2 pr-3 text-right tabular-nums">
+      return `<td class="py-2 pr-3 text-right tabular-nums party-col">
         <div>${fmt(n)}${pctLabel ? `<span class="text-[11px] text-gray-500 ml-1">${pctLabel}</span>` : ""}</div>
         <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:${pct}%; background:${color};"></div></div>
       </td>`;
@@ -1990,7 +2075,7 @@
 
     const totalCells = parties.map(p => {
       const n = totalPerParty.get(p) || 0;
-      return `<td class="py-2 pr-3 text-right tabular-nums font-medium">${fmt(n)}</td>`;
+      return `<td class="py-2 pr-3 text-right tabular-nums font-medium party-col">${fmt(n)}</td>`;
     }).join("");
 
     tfoot.innerHTML = `<tr class="border-t">
@@ -2144,7 +2229,7 @@
           const vName = getCurrentValgstedName() || "Valgsted";
           parts.push(`<span class="crumb-strong">${escapeHtml(vName)}</span>`);
         } else {
-          parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`);
+          parts.push(`<span class="crumb-strong">${escapeHtml(state.kommune)}</span>`;
         }
       }
     }
