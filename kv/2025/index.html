@@ -991,40 +991,53 @@
     el("kommuneSelect").disabled=true;
   }
 
-  function populateKommuner(region){
-    const ksel=el("kommuneSelect"), kommuner=REGIONS[region]||[];
-    const hasAvailabilityInfo = state.isAvailabilityScanDone;
-    const available = state.availableKommuner || new Set();
-    ksel.innerHTML=`<option value="">Vælg kommune…</option>`+
-      kommuner.map(k=>{
-        const isAvailable = !hasAvailabilityInfo || available.has(k);
-        const disabledAttr = isAvailable ? "" : " disabled";
-        const label = isAvailable ? k : `${k} (ingen data endnu)`;
-        const classAttr = isAvailable ? "" : " text-gray-400";
-        return `<option value="${k}"${disabledAttr} class="${classAttr}">${label}</option>`;
-      }).join("");
-    ksel.onchange=()=>{
-      const k=ksel.value; state.kommune=k; state.activeParty=""; state.valgsted=""; clearAll();
-      const vsel = el("valgstedSelect");
-      if(vsel){
-        if(k){
-          vsel.disabled = true;
-          vsel.innerHTML = `<option value="">Indlæser valgsteder…</option>`;
-        } else {
-          vsel.disabled = true;
-          vsel.innerHTML = `<option value="">(Vælg kommune for at vælge valgsted)</option>`;
-        }
+function populateKommuner(region){
+  const ksel = el("kommuneSelect");
+  // Lav en *kopi* af listen og sorter alfabetisk (A–Å) med dansk sortering
+  const kommuner = (REGIONS[region] || []).slice().sort((a, b) =>
+    a.localeCompare(b, "da")
+  );
+
+  const hasAvailabilityInfo = state.isAvailabilityScanDone;
+  const available = state.availableKommuner || new Set();
+
+  ksel.innerHTML = `<option value="">Vælg kommune…</option>` +
+    kommuner.map(k => {
+      const isAvailable = !hasAvailabilityInfo || available.has(k);
+      const disabledAttr = isAvailable ? "" : " disabled";
+      const label = isAvailable ? k : `${k} (ingen data endnu)`;
+      const classAttr = isAvailable ? "" : " text-gray-400";
+      return `<option value="${k}"${disabledAttr} class="${classAttr}">${label}</option>`;
+    }).join("");
+
+  ksel.onchange = () => {
+    const k = ksel.value;
+    state.kommune = k;
+    state.activeParty = "";
+    state.valgsted = "";
+    clearAll();
+
+    const vsel = el("valgstedSelect");
+    if (vsel) {
+      if (k) {
+        vsel.disabled = true;
+        vsel.innerHTML = `<option value="">Indlæser valgsteder…</option>`;
+      } else {
+        vsel.disabled = true;
+        vsel.innerHTML = `<option value="">(Vælg kommune for at vælge valgsted)</option>`;
       }
-      if(k){
-        persistUrl(true);
-        loadKommuneData(k);
-      }else{
-        persistUrl(true);
-        loadRegionData(state.region);
-      }
-      renderContextBar();
-    };
-  }
+    }
+
+    if (k) {
+      persistUrl(true);
+      loadKommuneData(k);
+    } else {
+      persistUrl(true);
+      loadRegionData(state.region);
+    }
+    renderContextBar();
+  };
+}
 
   function clearAll(){
     state.rows=[]; state.selected.clear();
