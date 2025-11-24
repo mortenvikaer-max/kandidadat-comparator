@@ -33,9 +33,25 @@
     .vb-option span{ white-space:normal; word-break:break-word; }
     .vb-option:hover, .vb-option[aria-selected="true"]{ background:#f3f4f6; }
 
-    .table-sticky thead th:first-child, .table-sticky tbody td:first-child, .table-sticky tfoot th:first-child{
-      position:sticky; left:0; background:#fff;
+    /* Sticky tabel: både første kolonne og header-rækken */
+    .table-sticky thead th{
+      position:sticky;
+      top:0;
+      background:#fff;
+      z-index:20;
     }
+    .table-sticky thead th:first-child,
+    .table-sticky tbody td:first-child,
+    .table-sticky tfoot th:first-child{
+      position:sticky;
+      left:0;
+      background:#fff;
+      z-index:10;
+    }
+    .table-sticky thead th:first-child{
+      z-index:30;
+    }
+
     .vb-hero{ background:linear-gradient(180deg, var(--vb-navy) 0%, var(--vb-navy-2) 100%); color:#fff; }
 
     .rank-pill{ width:28px; height:28px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center;
@@ -415,7 +431,39 @@
   /* Navnefix for partier */
   const PARTY_NAME_FIX = {
     "Venstre, Danmarks Liberale Part": "Venstre, Danmarks Liberale Parti",
-   "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
+    "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
+  };
+
+  /* Korte partinavne (standard) */
+  const PARTY_SHORT_NAMES = {
+    "Socialdemokratiet": "Socialdem.",
+    "Radikale Venstre": "Radikale V.",
+    "Det Konservative Folkeparti": "Konservative",
+    "SF - Socialistisk Folkeparti": "SF",
+    "Enhedslisten - De Rød-Grønne": "Enhedslisten",
+    "Venstre, Danmarks Liberale Parti": "Venstre",
+    "Dansk Folkeparti": "Dansk Folkep.",
+    "Liberal Alliance": "Liberal All.",
+    "Alternativet": "Alternativet",
+    "Moderaterne": "Moderaterne",
+    "Danmarksdemokraterne - Inger Støjberg": "Danmarksdem.",
+    "Borgernes Parti": "Borgernes Parti"
+  };
+
+  /* Meget korte partinavne (fx til smalle kolonner/mobil) */
+  const PARTY_SHORT_NAMES_MOBILE = {
+    "Socialdemokratiet": "Soc.dem.",
+    "Det Konservative Folkeparti": "Kons.",
+    "Danmarksdemokraterne - Inger Støjberg": "Danmarksdem.",
+    "Dansk Folkeparti": "DF",
+    "Radikale Venstre": "Rad. V.",
+    "Venstre, Danmarks Liberale Parti": "Venstre",
+    "Enhedslisten - De Rød-Grønne": "Enhl.",
+    "SF - Socialistisk Folkeparti": "SF",
+    "Liberal Alliance": "LA",
+    "Alternativet": "Alt.",
+    "Moderaterne": "Mod.",
+    "Borgernes Parti": "Borgernes P."
   };
 
   /* Lokale lister i flere kommuner */
@@ -525,6 +573,12 @@
     return p;
   }
 
+  function getPartyShortName(rawName, veryShort=false){
+    const std = standardizePartyName(rawName || "");
+    const map = veryShort ? PARTY_SHORT_NAMES_MOBILE : PARTY_SHORT_NAMES;
+    return map[std] || std;
+  }
+
   function priorityPartySort(a, b){
     const ia = PRIORITY_PARTIES.indexOf(a);
     const ib = PRIORITY_PARTIES.indexOf(b);
@@ -586,14 +640,22 @@
   };
 
   function badge(letter){
-    const bg=letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : DEFAULT_BADGE_BG;
-    const fg=letter && PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG;
-    return { style:`background-color:${bg};color:${fg};border-color:${bg}`, text:(letter||" ") };
+    if(!letter){
+      return { hasBadge:false, style:"", text:"" };
+    }
+    const bg = PARTY_COLORS[letter] || DEFAULT_BADGE_BG;
+    const fg = PARTY_COLORS[letter] ? "#fff" : DEFAULT_BADGE_FG;
+    return {
+      hasBadge:true,
+      style:`background-color:${bg};color:${fg};border-color:${bg}`,
+      text:letter
+    };
   }
 
   function detectPartyLetter(rowsForParti){
     if (!rowsForParti || !rowsForParti.length) return null;
     const name = standardizePartyName(rowsForParti[0].parti || "");
+    if (NO_LETTER_PARTIES.has(name)) return null;
     const map = {
       "Socialdemokratiet": "A",
       "Radikale Venstre": "B",
@@ -995,8 +1057,9 @@
         const letter = detectPartyLetter((state.rows||[]).filter(r=>r.parti===c.parti));
         const bd = badge(letter);
         const sub = `${escapeHtml(c.parti)}`;
+        const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<div class="vb-option" role="option" data-idx="${i}" data-cand="${escapeHtml(c.kandidat_id)}" aria-selected="${i===activeIndex}">
-          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          ${badgeHtml}
           <span class="flex-1">
             <span class="font-medium">${escapeHtml(normalizeCandidateName(c.kandidat_navn))}</span><br/>
             <span class="text-xs text-gray-500">${sub}</span>
@@ -1104,6 +1167,8 @@
         const isAvailable = !hasAvailabilityInfo || available.has(k);
         const disabledAttr = isAvailable ? "" : " disabled";
         const label = isAvailable ? k : `${k} (ingen data endnu)`;
+
+
         const classAttr = isAvailable ? "" : " text-gray-400";
         return `<option value="${k}"${disabledAttr} class="${classAttr}">${label}</option>`;
       }).join("");
@@ -1463,15 +1528,17 @@
         const bd = badge(p.letter);
         const share = totalValid > 0 ? p.total / totalValid : null;
         const shareLabel = share !== null ? fmtPct(share) : null;
-        const base = `${fmt(p.total)} stemmer i alt (personlige + liste)`;
-        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+        const votesHtml = `<span class="font-semibold tabular-nums">${fmt(p.total)}</span> stemmer i alt (personlige + liste)`;
+        const pctHtml = shareLabel ? ` · <span>${shareLabel}</span>` : "";
+        const partyLabel = escapeHtml(getPartyShortName(p.parti, true));
+        const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">${escapeHtml(p.parti)}</div>
-            <div class="text-xs text-gray-500 truncate">${meta}</div>
+            <div class="font-medium truncate">${partyLabel}</div>
+            <div class="text-xs text-gray-500 truncate">${votesHtml}${pctHtml}</div>
           </div>
-          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          ${badgeHtml}
         </li>`;
       }
 
@@ -1531,15 +1598,17 @@
         const bd = badge(letter);
         const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
         const shareLabel = share !== null ? fmtPct(share) : null;
-        const base = `${escapeHtml(k.parti)} · ${fmt(k.total)} personlige stemmer`;
-        const meta = shareLabel ? `${base} · ${shareLabel}` : base;
+        const partyLabel = escapeHtml(getPartyShortName(k.parti, false));
+        const votesHtml = `${partyLabel} · <span class="font-semibold tabular-nums">${fmt(k.total)}</span> personlige stemmer`;
+        const pctHtml = shareLabel ? ` · <span>${shareLabel}</span>` : "";
+        const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<li class="top10-item" data-cand="${escapeHtml(k.kandidat_id)}" role="button" tabindex="0" title="Klik for at se kandidatens kommune">
           <span class="rank-pill">${idx}</span>
           <div class="min-w-0 flex-1">
             <div class="font-medium truncate">${escapeHtml(normalizeCandidateName(k.kandidat_navn))}</div>
-            <div class="text-xs text-gray-500 truncate">${meta}</div>
+            <div class="text-xs text-gray-500 truncate">${votesHtml}${pctHtml}</div>
           </div>
-          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          ${badgeHtml}
         </li>`;
       }
 
@@ -1679,17 +1748,21 @@
         return;
       }
       const cur=stats.find(s=>s.parti===state.activeParty);
-      const {style,text}=badge(cur?.letter||null);
-      btnc.innerHTML=`<span class="vb-badge" style="${style}">${text}</span><span class="truncate">${escapeHtml(state.activeParty)}</span>`;
+      const bd=badge(cur?.letter||null);
+      const label = escapeHtml(getPartyShortName(state.activeParty, false));
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
+      btnc.innerHTML=`${badgeHtml}<span class="truncate">${label}</span>`;
     }
 
     function renderMenu(){
       menu.innerHTML=stats.map(s=>{
-        const {style,text}=badge(s.letter);
+        const bd=badge(s.letter);
         const sel=s.parti===state.activeParty;
+        const label = escapeHtml(getPartyShortName(s.parti, false));
+        const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<div class="vb-option" role="option" data-parti="${escapeHtml(s.parti)}" aria-selected="${sel}">
-          <span class="vb-badge" style="${style}">${text}</span>
-          <span class="flex-1">${escapeHtml(s.parti)}</span>
+          ${badgeHtml}
+          <span class="flex-1">${label}</span>
           <span class="text-xs text-gray-500">${s.kandidatAntal} kandidater</span>
         </div>`;
       }).join("");
@@ -1730,7 +1803,10 @@
     const mid=Math.ceil(sorted.length/2), leftArr=sorted.slice(0,mid), rightArr=sorted.slice(mid);
     function card(k){
       const listestemmer=isListestemmer(k.kandidat_navn);
-      const subtitle = listestemmer ? `${fmt(k.total)} listestemmer` : `${fmt(k.total)} stemmer i alt`;
+      const votesHtml = `<span class="font-semibold tabular-nums">${fmt(k.total)}</span>`;
+      const subtitle = listestemmer
+        ? `${votesHtml} listestemmer`
+        : `${votesHtml} stemmer i alt`;
       const meta = `${escapeHtml(k.parti)} · ${subtitle}`;
       const div=document.createElement('div');
       div.className='rounded-xl border px-3 py-2';
@@ -1796,7 +1872,7 @@
       topSel.innerHTML =
         '<option value="">Vælg parti…</option>' +
         partier
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(getPartyShortName(p, false))}</option>`)
           .join("");
     }
 
@@ -1807,7 +1883,7 @@
         '<option value="">Tilføj parti…</option>' +
         partier
           .filter(p => !selected.has(p))
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(getPartyShortName(p, false))}</option>`)
           .join("");
     }
   }
@@ -1852,13 +1928,14 @@
       const letter = detectPartyLetter(rowsForParti);
       const bd = badge(letter);
       const total = rowsForParti.reduce((sum, r) => sum + (r.stemmer || 0), 0);
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
       return `<div class="rounded-xl border p-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          ${badgeHtml}
           <span class="font-medium">${escapeHtml(p)}</span>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-sm tabular-nums">${fmt(total)} stemmer i alt</span>
+          <span class="text-sm tabular-nums"><span class="font-semibold">${fmt(total)}</span> stemmer i alt</span>
           <button class="vb-btn" data-party="${escapeHtml(p)}">Fjern</button>
         </div>
       </div>`;
@@ -1946,10 +2023,12 @@
     const headCols = parties.map(p => {
       const letter = partyLetters.get(p);
       const bd = badge(letter);
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>` : "";
+      const label = escapeHtml(getPartyShortName(p, true));
       return `<th class="py-2 pr-3 text-right party-col" style="width:${colWidthPct}%">
         <div class="flex items-center justify-end gap-2">
-          <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
-          <span class="text-right">${escapeHtml(p)}</span>
+          ${badgeHtml}
+          <span class="text-right">${label}</span>
         </div>
       </th>`;
     }).join("");
@@ -1969,7 +2048,7 @@
         return `<td class="py-2 pr-3 text-right tabular-nums cell-na party-col" style="width:${widthPct}%">0</td>`;
       }
       return `<td class="py-2 pr-3 text-right tabular-nums party-col" style="width:${widthPct}%">
-        <span>${fmt(n)}</span>${pctLabel ? `<span class="text-[11px] text-gray-500 ml-1">${pctLabel}</span>` : ""}
+        <span class="font-semibold">${fmt(n)}</span>${pctLabel ? `<span class="text-[11px] text-gray-500 ml-1">${pctLabel}</span>` : ""}
       </td>`;
     }
 
@@ -2119,12 +2198,14 @@
     root.innerHTML= sel.map(k=>{
       const letter=letterForParti(k.parti), bd=badge(letter), total=totals.get(k.kandidat_id)||0;
       const listestemmer=isListestemmer(k.kandidat_navn);
+      const votesHtml = `<span class="font-semibold tabular-nums">${fmt(total)}</span>`;
       const totalTekst=listestemmer
-        ? `${fmt(total)} ${total===1?'listestemme':'listestemmer'}`
-        : `${fmt(total)} personlige ${stemmerLabel(total)} i alt`;
+        ? `${votesHtml} ${total===1?'listestemme':'listestemmer'}`
+        : `${votesHtml} personlige ${stemmerLabel(total)} i alt`;
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
       return `<div class="rounded-xl border p-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <span class="vb-badge" style="${bd.style}">${bd.text}</span>
+          ${badgeHtml}
           <div class="font-medium">${escapeHtml(normalizeCandidateName(k.kandidat_navn))} <span class="text-gray-500">(${escapeHtml(k.parti)})</span></div>
         </div>
         <div class="flex items-center gap-3">
@@ -2159,8 +2240,9 @@
     const header = sel.map(s=>{
       const stat= state.kommune ? getPartyStats().find(x=>x.parti===s.parti) : null;
       const bd = badge(stat?.letter || null);
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>` : "";
       return `<th class="py-2 pr-3"><div class="flex items-center gap-2">
-        <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
+        ${badgeHtml}
         <span>${escapeHtml(normalizeCandidateName(s.kandidat_navn))} (${escapeHtml(s.parti)})</span></div></th>`;
     }).join("");
     thead.innerHTML=`<tr class="text-left border-b"><th class="py-2 pr-3">Valgsted</th>${header}</tr>`;
