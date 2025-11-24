@@ -70,7 +70,7 @@
     .hier-indent-1{ padding-left:1.5rem; }
     .hier-indent-2{ padding-left:3rem; }
 
-    /* Parti-sammenligningstabel: lige brede parti-kolonner */
+    /* Parti-sammenligningstabel */
     #partyTable{
       table-layout:fixed;
     }
@@ -80,10 +80,10 @@
     }
     #partyTable th.party-col,
     #partyTable td.party-col{
-      width:150px;
+      /* bredde sættes dynamisk via inline style afhængigt af antal partier */
     }
 
-    /* Mini-barer til partisammenligning (andel af gyldige stemmer) – Model A */
+    /* (Bar-classes beholdes men bruges ikke længere) */
     .mini-bar-wrap{
       width:100%;
       max-width:180px;
@@ -286,7 +286,7 @@
       </table>
     </div>
     <p class="text-xs text-gray-500">
-      Barerne viser partiets andel af alle gyldige stemmer i den valgte region / kommune / valgsted.
+      Procenttallet viser partiets andel af alle gyldige stemmer i den valgte region / kommune / valgsted.
       Klik på ▸ for at folde regioner ud til kommuner og videre til valgsteder.
     </p>
   </section>
@@ -338,7 +338,7 @@
     <div id="selectedList" class="space-y-2"></div>
   </section>
 
-  <!-- KUN TABEL (diagram) -->
+  <!-- TABEL pr. valgsted -->
   <section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
     <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
     <div class="overflow-auto">
@@ -378,13 +378,11 @@
   /* Regioner & kommuner (Hovedstaden + Sjælland slået sammen til Region Østdanmark) */
   const REGIONS = {
     "Region Østdanmark": [
-      // Tidligere Region Hovedstaden
       "Albertslund","Allerød","Ballerup","Bornholm","Brøndby","Dragør","Egedal",
       "Fredensborg","Frederiksberg","Frederikssund","Furesø","Gentofte","Gladsaxe",
       "Glostrup","Gribskov","Halsnæs","Helsingør","Herlev","Hillerød","Hvidovre",
       "Høje-Taastrup","Hørsholm","Ishøj","København","Lyngby-Taarbæk","Rudersdal",
       "Rødovre","Tårnby","Vallensbæk",
-      // Tidligere Region Sjælland
       "Faxe","Greve","Guldborgsund","Holbæk","Kalundborg","Køge","Lejre","Lolland",
       "Næstved","Odsherred","Ringsted","Roskilde","Slagelse","Solrød","Sorø",
       "Stevns","Vordingborg"
@@ -414,13 +412,13 @@
   const DEFAULT_BADGE_BG = "#e5e7eb";
   const DEFAULT_BADGE_FG = "#111827";
 
-  /* Navnefix for partier (stavning – meget specifikke tastefejl) */
+  /* Navnefix for partier */
   const PARTY_NAME_FIX = {
     "Venstre, Danmarks Liberale Part": "Venstre, Danmarks Liberale Parti",
-    "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
+   "Enhedslisten - De Rød - Grønne": "Enhedslisten - De Rød-Grønne"
   };
 
-  /* Lokale lister der findes i flere kommuner – skal have kommunenavn på */
+  /* Lokale lister i flere kommuner */
   const LOCAL_MULTI_COMMUNE_PARTIES = new Set([
     "Lokallisten",
     "Fælleslisten",
@@ -428,7 +426,7 @@
     "Beboerlisten"
   ]);
 
-  /* Partier der ikke må have partibogstav/badge-bogstav */
+  /* Partier der ikke skal have bogstav */
   const NO_LETTER_PARTIES = new Set([
     "Frihedslisten",
     "Bornholmerlisten",
@@ -446,7 +444,7 @@
     "Sten i Skoen"
   ]);
 
-  /* Partier der altid skal ligge øverst i lister */
+  /* Partier der altid skal ligge øverst */
   const PRIORITY_PARTIES = [
     "Alternativet",
     "Borgernes Parti",
@@ -462,38 +460,38 @@
     "Venstre, Danmarks Liberale Parti"
   ];
 
-  /* Total antal kommuner (unikke) */
+  /* Total antal kommuner */
   const TOTAL_MUNICIPALITIES = (() => {
     const s = new Set();
     Object.values(REGIONS).forEach(list => list.forEach(k => s.add(k)));
     return s.size;
   })();
 
-  /* State & helpers */
+  /* State */
   const state = {
     rows:[],
     region:"",
     kommune:"",
     valgsted:"",
     activeParty:"",
-    selected:new Map(),         // valgte kandidater
-    selectedParties:new Set(),  // valgte partier til sammenligning
-    candidateSortMode:"alpha",  // alpha | votes
-    topListMode:"top10",        // top10 | all
-    overviewMode:"cand",        // "cand" | "party"
+    selected:new Map(),         // kandidater
+    selectedParties:new Set(),  // partier
+    candidateSortMode:"alpha",
+    topListMode:"top10",
+    overviewMode:"cand",
     csvCache:new Map(), isLoading:false,
     pendingCandidateId:null,
     pendingCandidateIds:[],
     availableKommuner:new Set(),
     isAvailabilityScanDone:false
   };
+
   const el = id => document.getElementById(id);
   const fmt = n => new Intl.NumberFormat("da-DK").format(n);
   const fmtPct = v => new Intl.NumberFormat("da-DK",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
   const canon = s => (s||"").toString().trim();
   const escapeHtml = s => (s||"").replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-  // Normaliser tekst til brug som nøgle (bindestreger, mellemrum, case)
   function normalizePartyKey(raw){
     return canon(raw)
       .replace(/[–—]/g, "-")
@@ -502,42 +500,31 @@
       .toLowerCase();
   }
 
-  // Gør et råt partinavn til "rigtigt" navn (stavningsfix + heuristik)
   function standardizePartyName(raw){
     let p = canon(raw);
     if(!p) return "";
-
-    if (PARTY_NAME_FIX[p]) {
-      p = PARTY_NAME_FIX[p];
-    }
-
+    if (PARTY_NAME_FIX[p]) p = PARTY_NAME_FIX[p];
     const key = normalizePartyKey(p);
 
     if (key.startsWith("venstre") || key.startsWith("danmarks liberale parti")) {
       return "Venstre, Danmarks Liberale Parti";
     }
-
     if (key.startsWith("sf ") || key.startsWith("sf-") || key.startsWith("sf -") ||
         key.startsWith("sf,") || key.startsWith("socialistisk folkeparti")) {
       return "SF - Socialistisk Folkeparti";
     }
-
     if (key.startsWith("radikale venstre") || key.startsWith("det radikale venstre")) {
       return "Radikale Venstre";
     }
-
     if (key.startsWith("enhedslisten")) {
       return "Enhedslisten - De Rød-Grønne";
     }
-
     if (key.startsWith("danmarksdemokraterne")) {
       return "Danmarksdemokraterne - Inger Støjberg";
     }
-
     return p;
   }
 
-  /* Sortering med prioritetspartier først */
   function priorityPartySort(a, b){
     const ia = PRIORITY_PARTIES.indexOf(a);
     const ib = PRIORITY_PARTIES.indexOf(b);
@@ -607,7 +594,6 @@
   function detectPartyLetter(rowsForParti){
     if (!rowsForParti || !rowsForParti.length) return null;
     const name = standardizePartyName(rowsForParti[0].parti || "");
-
     const map = {
       "Socialdemokratiet": "A",
       "Radikale Venstre": "B",
@@ -621,11 +607,9 @@
       "Enhedslisten - De Rød-Grønne": "Ø",
       "Alternativet": "Å"
     };
-
     return map[name] || null;
   }
 
-  /* ===== Region-lookup ===== */
   function findRegionForKommune(kommune){
     for(const [reg, kommuner] of Object.entries(REGIONS)){
       if(kommuner.includes(kommune)) return reg;
@@ -659,7 +643,6 @@
     if(partiesList.length) u.searchParams.set("parties", partiesList.join("|")); else u.searchParams.delete("parties");
     if(state.topListMode !== "top10") u.searchParams.set("view", "top50"); else u.searchParams.delete("view");
     if(state.candidateSortMode !== "alpha") u.searchParams.set("sort", "votes"); else u.searchParams.delete("sort");
-
     if(push) history.pushState({}, "", u); else history.replaceState({}, "", u);
   }
 
@@ -851,11 +834,9 @@
     if(!p) return;
     state.selectedParties.add(p);
 
-    // ryd kandidat-sammenligning
     state.selected.clear();
     renderAll();
 
-    // skift til partitotaler
     state.overviewMode = "party";
     updateModeToggleUI();
     updateTopButtonsForScope();
@@ -939,7 +920,7 @@
     }
   }
 
-  /* ===== Kandidatsøgning helpers ===== */
+  /* ===== Kandidatsøgning ===== */
   const fold = (s) => (s||"").toString()
     .normalize("NFD").replace(/\p{Diacritic}/gu,"")
     .toLowerCase().trim();
@@ -980,7 +961,6 @@
     .slice(0, 15);
   }
 
-  /* ===== LANDING UI (inkl. kandidatsøgning) ===== */
   function renderLanding(){
     const inputK = el('kommuneSearch');
     if(inputK){
@@ -1392,7 +1372,7 @@
     }
   }
 
-  /* ===== TOP 10 / 50 – kandidater & partier ===== */
+  /* ===== Toplister ===== */
   function totalsByCandidate(rows){
     const m=new Map();
     for(const r of rows){
@@ -1588,7 +1568,6 @@
   }
 
   function toggleCandidateFromTop(candId, rows){
-    // Hvis man går i kandidatsammenligning -> ryd partier
     if (state.selectedParties.size > 0) {
       state.selectedParties.clear();
       renderPartyCompare();
@@ -1768,7 +1747,6 @@
       if(!listestemmer){
         const btn = div.querySelector('button[data-add]');
         btn.onclick=()=>{
-          // Går man i kandidatsammenligning -> ryd partier
           if (state.selectedParties.size > 0) {
             state.selectedParties.clear();
             renderPartyCompare();
@@ -1789,7 +1767,7 @@
     rightArr.forEach(k=>right.appendChild(card(k)));
   }
 
-  /* ===== Parti-oversigts-dropdowns (øverst + i boksen) ===== */
+  /* ===== Parti-oversigts-dropdowns ===== */
   function updatePartyScopeSelect(){
     const topSel = el("partyScopeSelect");
     const cmpSel = el("partyCompareAddSelect");
@@ -1908,17 +1886,15 @@
     }
 
     const partyLetters = new Map();
-    const partyColors  = new Map();
+    const totalPerParty = new Map();
+
     parties.forEach(p => {
       const rowsForParti = rows.filter(r => r.parti === p);
       const letter = detectPartyLetter(rowsForParti);
       partyLetters.set(p, letter);
-      const col = letter && PARTY_COLORS[letter] ? PARTY_COLORS[letter] : "#9ca3af";
-      partyColors.set(p, col);
     });
 
     const regionMap = new Map();
-    const totalPerParty = new Map();
 
     for (const r of rows) {
       const regionName = r.region || findRegionForKommune(r.kommune) || "(Ukendt region)";
@@ -1965,10 +1941,12 @@
     const regions = Array.from(regionMap.values())
       .sort((a, b) => a.name.localeCompare(b.name, "da"));
 
+    const colWidthPct = (100 / (parties.length + 1)).toFixed(2);
+
     const headCols = parties.map(p => {
       const letter = partyLetters.get(p);
       const bd = badge(letter);
-      return `<th class="py-2 pr-3 text-right party-col">
+      return `<th class="py-2 pr-3 text-right party-col" style="width:${colWidthPct}%">
         <div class="flex items-center justify-end gap-2">
           <span class="vb-badge" style="${bd.style};height:24px;width:24px;font-size:.75rem">${bd.text}</span>
           <span class="text-right">${escapeHtml(p)}</span>
@@ -1983,20 +1961,15 @@
 
     const rowsHtml = [];
 
-    function partyCellHtml(n, totalAll, p){
+    function partyCellHtml(n, totalAll, p, widthPct){
       const total = totalAll || 0;
       const share = total > 0 ? n / total : 0;
-      let pct = share * 100;
-      const minPct = 3; // minimum 3% bredde for synlighed
-      if (share > 0 && pct < minPct) pct = minPct;
       const pctLabel = total > 0 ? fmtPct(share) : "";
-      const color = partyColors.get(p) || "#9ca3af";
       if (total === 0 && n === 0) {
-        return `<td class="py-2 pr-3 text-right tabular-nums cell-na party-col">0</td>`;
+        return `<td class="py-2 pr-3 text-right tabular-nums cell-na party-col" style="width:${widthPct}%">0</td>`;
       }
-      return `<td class="py-2 pr-3 text-right tabular-nums party-col">
-        <div>${fmt(n)}${pctLabel ? `<span class="text-[11px] text-gray-500 ml-1">${pctLabel}</span>` : ""}</div>
-        <div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+      return `<td class="py-2 pr-3 text-right tabular-nums party-col" style="width:${widthPct}%">
+        <span>${fmt(n)}</span>${pctLabel ? `<span class="text-[11px] text-gray-500 ml-1">${pctLabel}</span>` : ""}
       </td>`;
     }
 
@@ -2006,7 +1979,7 @@
 
       const regCells = parties.map(p => {
         const n = reg.totals.get(p) || 0;
-        return partyCellHtml(n, reg.totalAll, p);
+        return partyCellHtml(n, reg.totalAll, p, colWidthPct);
       }).join("");
 
       rowsHtml.push(`
@@ -2030,7 +2003,7 @@
 
         const komCells = parties.map(p => {
           const n = kom.totals.get(p) || 0;
-          return partyCellHtml(n, kom.totalAll, p);
+          return partyCellHtml(n, kom.totalAll, p, colWidthPct);
         }).join("");
 
         rowsHtml.push(`
@@ -2053,7 +2026,7 @@
 
           const vsCells = parties.map(p => {
             const n = vs.totals.get(p) || 0;
-            return partyCellHtml(n, vs.totalAll, p);
+            return partyCellHtml(n, vs.totalAll, p, colWidthPct);
           }).join("");
 
           rowsHtml.push(`
@@ -2075,7 +2048,7 @@
 
     const totalCells = parties.map(p => {
       const n = totalPerParty.get(p) || 0;
-      return `<td class="py-2 pr-3 text-right tabular-nums font-medium party-col">${fmt(n)}</td>`;
+      return `<td class="py-2 pr-3 text-right tabular-nums font-medium party-col" style="width:${colWidthPct}%">${fmt(n)}</td>`;
     }).join("");
 
     tfoot.innerHTML = `<tr class="border-t">
