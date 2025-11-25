@@ -1239,7 +1239,26 @@
       if(!id || !navn) continue;
       if(!map.has(id)) map.set(id, navn);
     }
-    const entries = Array.from(map.entries()).sort((a,b)=>a[1].localeCompare(b[1],'da'));
+
+    // NY SORTERING: først efter nummer (1., 2., 3. ...), derefter alfabetisk
+    const entries = Array.from(map.entries()).sort((a, b) => {
+      const nameA = a[1];
+      const nameB = b[1];
+
+      const mA = nameA.match(/^(\d+)/);
+      const mB = nameB.match(/^(\d+)/);
+
+      if (mA && mB) {
+        const numA = parseInt(mA[1], 10);
+        const numB = parseInt(mB[1], 10);
+        if (numA !== numB) return numA - numB;
+        return nameA.localeCompare(nameB, 'da');
+      }
+      if (mA) return -1;   // navne med nummer først
+      if (mB) return 1;
+      return nameA.localeCompare(nameB, 'da');
+    });
+
     if(!entries.length){
       vsel.disabled = true;
       vsel.innerHTML = `<option value="">(Ingen valgsteder fundet)</option>`;
@@ -1268,6 +1287,7 @@
       persistUrl(true);
     };
   }
+
 
   /* ===== DATA ===== */
   async function fetchCsvText(url){
@@ -1481,7 +1501,7 @@
     return { kommune, region: regionFinal };
   }
 
-  function renderOverview(){
+    function renderOverview(){
     const rows = getActiveRows();
     const totalValid = totalValidVotes(rows);
     const showCandidatePercent = !!state.kommune;
@@ -1530,7 +1550,7 @@
         const shareLabel = share !== null ? fmtPct(share) : null;
         const votesHtml = `<span class="font-semibold tabular-nums">${fmt(p.total)}</span> stemmer i alt (personlige + liste)`;
         const pctHtml = shareLabel ? ` · <span>${shareLabel}</span>` : "";
-        const partyLabel = escapeHtml(getPartyShortName(p.parti, true));
+        const partyLabel = escapeHtml(p.parti); // FULDT NAVN
         const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<li class="top10-item" data-parti="${escapeHtml(p.parti)}" role="button" tabindex="0">
           <span class="rank-pill">${idx}</span>
@@ -1598,7 +1618,7 @@
         const bd = badge(letter);
         const share = showCandidatePercent && totalValid > 0 ? (k.total || 0) / totalValid : null;
         const shareLabel = share !== null ? fmtPct(share) : null;
-        const partyLabel = escapeHtml(getPartyShortName(k.parti, false));
+        const partyLabel = escapeHtml(k.parti); // FULDT NAVN
         const votesHtml = `${partyLabel} · <span class="font-semibold tabular-nums">${fmt(k.total)}</span> personlige stemmer`;
         const pctHtml = shareLabel ? ` · <span>${shareLabel}</span>` : "";
         const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
@@ -1628,7 +1648,7 @@
           item.addEventListener('keydown', (e)=>{
             if(e.key==='Enter'||e.key===' '){
               e.preventDefault();
-              toggleCandidateFromTop(candId, state.rows || []);
+              toggleCandidateFromTop(candId, state.rows || []));
             }
           });
         });
@@ -1754,11 +1774,35 @@
       btnc.innerHTML=`${badgeHtml}<span class="truncate">${label}</span>`;
     }
 
+  function renderPartyCombobox(){
+    if(!state.kommune){ resetPartyUI(); return; }
+
+    const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
+    if(!stats.length){
+      btn.disabled=true;
+      btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`;
+      menu.innerHTML="";
+      return;
+    }
+    btn.disabled=false;
+
+    function renderButton(){
+      if(!state.activeParty){
+        btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
+        return;
+      }
+      const cur=stats.find(s=>s.parti===state.activeParty);
+      const bd=badge(cur?.letter||null);
+      const label = escapeHtml(state.activeParty); // FULDT NAVN
+      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
+      btnc.innerHTML=`${badgeHtml}<span class="truncate">${label}</span>`;
+    }
+
     function renderMenu(){
       menu.innerHTML=stats.map(s=>{
         const bd=badge(s.letter);
         const sel=s.parti===state.activeParty;
-        const label = escapeHtml(getPartyShortName(s.parti, false));
+        const label = escapeHtml(s.parti); // FULDT NAVN
         const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
         return `<div class="vb-option" role="option" data-parti="${escapeHtml(s.parti)}" aria-selected="${sel}">
           ${badgeHtml}
@@ -1872,7 +1916,7 @@
       topSel.innerHTML =
         '<option value="">Vælg parti…</option>' +
         partier
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(getPartyShortName(p, false))}</option>`)
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`) // FULDT NAVN
           .join("");
     }
 
@@ -1883,10 +1927,11 @@
         '<option value="">Tilføj parti…</option>' +
         partier
           .filter(p => !selected.has(p))
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(getPartyShortName(p, false))}</option>`)
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`) // FULDT NAVN
           .join("");
     }
   }
+
 
   /* ===== Parti-sammenligning ===== */
   function getSelectedPartiesOrdered(){
