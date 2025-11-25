@@ -1769,30 +1769,6 @@
       }
       const cur=stats.find(s=>s.parti===state.activeParty);
       const bd=badge(cur?.letter||null);
-      const label = escapeHtml(getPartyShortName(state.activeParty, false));
-      const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
-      btnc.innerHTML=`${badgeHtml}<span class="truncate">${label}</span>`;
-    }
-
-  function renderPartyCombobox(){
-    if(!state.kommune){ resetPartyUI(); return; }
-
-    const stats=getPartyStats(), btn=el("partyButton"), btnc=el("partyButtonContent"), menu=el("partyMenu");
-    if(!stats.length){
-      btn.disabled=true;
-      btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Ingen partier fundet</span>`;
-      menu.innerHTML="";
-      return;
-    }
-    btn.disabled=false;
-
-    function renderButton(){
-      if(!state.activeParty){
-        btnc.innerHTML=`<span class="vb-badge" style="background:#e5e7eb;color:#111827;border-color:#e5e7eb"> </span><span class="truncate text-gray-500">Vælg parti…</span>`;
-        return;
-      }
-      const cur=stats.find(s=>s.parti===state.activeParty);
-      const bd=badge(cur?.letter||null);
       const label = escapeHtml(state.activeParty); // FULDT NAVN
       const badgeHtml = bd.hasBadge ? `<span class="vb-badge" style="${bd.style}">${bd.text}</span>` : "";
       btnc.innerHTML=`${badgeHtml}<span class="truncate">${label}</span>`;
