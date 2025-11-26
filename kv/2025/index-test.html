@@ -294,13 +294,13 @@
 
     <div id="partySelectedList" class="space-y-2 text-sm"></div>
 
-    <div class="overflow-auto">
-      <table class="table-sticky w-full text-sm min-w-[720px]" id="partyTable">
-        <thead id="partyThead"></thead>
-        <tbody id="partyTbody"></tbody>
-        <tfoot id="partyTFoot"></tfoot>
-      </table>
-    </div>
+<div class="overflow-x-auto">
+  <table class="table-sticky w-full text-sm min-w-[720px]" id="partyTable">
+    <thead id="partyThead"></thead>
+    <tbody id="partyTbody"></tbody>
+    <tfoot id="partyTFoot"></tfoot>
+  </table>
+</div>
     <p class="text-xs text-gray-500">
       Procenttallet viser partiets andel af alle gyldige stemmer i den valgte region / kommune / valgsted.
       Klik på ▸ for at folde regioner ud til kommuner og videre til valgsteder.
@@ -355,16 +355,16 @@
   </section>
 
   <!-- TABEL pr. valgsted -->
-  <section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
-    <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
-    <div class="overflow-auto">
-      <table class="table-sticky w-full text-sm min-w-[720px]" id="psTable">
-        <thead id="psThead"></thead>
-        <tbody id="psTbody"></tbody>
-        <tfoot id="psTFoot"></tfoot>
-      </table>
-    </div>
-  </section>
+<section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
+  <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
+  <div class="overflow-x-auto">  <!-- ændret -->
+    <table class="table-sticky w-full text-sm min-w-[720px]" id="psTable">
+      <thead id="psThead"></thead>
+      <tbody id="psTbody"></tbody>
+      <tfoot id="psTFoot"></tfoot>
+    </table>
+  </div>
+</section>
 </main>
 
 <footer class="mt-10 border-t bg-gray-100">
