@@ -34,21 +34,29 @@
     .vb-option:hover, .vb-option[aria-selected="true"]{ background:#f3f4f6; }
 
     /* Sticky tabel: både første kolonne og header-rækken */
-    .table-sticky thead th{
+    .scroll-x-only{
+      overflow-x:auto;
+      overflow-y:visible;
+    }
+    .table-sticky thead th,
+    .table-sticky thead td{
       position:sticky;
       top:0;
       background:#fff;
       z-index:20;
     }
     .table-sticky thead th:first-child,
+    .table-sticky thead td:first-child,
     .table-sticky tbody td:first-child,
-    .table-sticky tfoot th:first-child{
+    .table-sticky tfoot th:first-child,
+    .table-sticky tfoot td:first-child{
       position:sticky;
       left:0;
       background:#fff;
       z-index:10;
     }
-    .table-sticky thead th:first-child{
+    .table-sticky thead th:first-child,
+    .table-sticky thead td:first-child{
       z-index:30;
     }
 
@@ -294,13 +302,13 @@
 
     <div id="partySelectedList" class="space-y-2 text-sm"></div>
 
-<div class="overflow-x-auto">
-  <table class="table-sticky w-full text-sm min-w-[720px]" id="partyTable">
-    <thead id="partyThead"></thead>
-    <tbody id="partyTbody"></tbody>
-    <tfoot id="partyTFoot"></tfoot>
-  </table>
-</div>
+    <div class="scroll-x-only">
+      <table class="table-sticky w-full text-sm min-w-[720px]" id="partyTable">
+        <thead id="partyThead"></thead>
+        <tbody id="partyTbody"></tbody>
+        <tfoot id="partyTFoot"></tfoot>
+      </table>
+    </div>
     <p class="text-xs text-gray-500">
       Procenttallet viser partiets andel af alle gyldige stemmer i den valgte region / kommune / valgsted.
       Klik på ▸ for at folde regioner ud til kommuner og videre til valgsteder.
@@ -355,23 +363,23 @@
   </section>
 
   <!-- TABEL pr. valgsted -->
-<section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
-  <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
-  <div class="overflow-x-auto">  <!-- ændret -->
-    <table class="table-sticky w-full text-sm min-w-[720px]" id="psTable">
-      <thead id="psThead"></thead>
-      <tbody id="psTbody"></tbody>
-      <tfoot id="psTFoot"></tfoot>
-    </table>
-  </div>
-</section>
+  <section id="tabsCard" class="vb-card p-4 space-y-4 hidden">
+    <div class="text-sm text-gray-600">Tabel pr. valgsted</div>
+    <div class="scroll-x-only">
+      <table class="table-sticky w-full text-sm min-w-[720px]" id="psTable">
+        <thead id="psThead"></thead>
+        <tbody id="psTbody"></tbody>
+        <tfoot id="psTFoot"></tfoot>
+      </table>
+    </div>
+  </section>
 </main>
 
 <footer class="mt-10 border-t bg-gray-100">
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-8
               flex flex-col md:flex-row items-center justify-between
               gap-3 md:gap-6 text-sm md:text-base text-gray-700">
-    
+
     <a href="mailto:hej@valgbar.dk" class="font-medium hover:text-gray-900">
       hej@valgbar.dk
     </a>
@@ -570,9 +578,6 @@
     if (key.startsWith("danmarksdemokraterne")) {
       return "Danmarksdemokraterne - Inger Støjberg";
     }
-        if (key.startsWith("dansk folkeparti") {
-      return "Dansk Folkeparti";
-    }
     return p;
   }
 
@@ -616,6 +621,28 @@
     const s = canon(name);
     const m = s.match(/^\d+\.\s*(.+)$/);
     return m ? m[1] : s;
+  }
+
+  /* Fælles sortering for valgstedsnavne:
+     - først efter tal i starten (1., 2., 3. ...)
+     - derefter alfabetisk på resten */
+  function comparePollingNames(aName, bName){
+    const a = canon(aName);
+    const b = canon(bName);
+
+    const ma = a.match(/^(\d+)\.\s*(.+)$/);
+    const mb = b.match(/^(\d+)\.\s*(.+)$/);
+
+    if (ma && mb){
+      const na = parseInt(ma[1], 10);
+      const nb = parseInt(mb[1], 10);
+      if (na !== nb) return na - nb;
+      return ma[2].localeCompare(mb[2], 'da');
+    }
+    if (ma && !mb) return -1;
+    if (!ma && mb) return 1;
+
+    return a.localeCompare(b, 'da');
   }
 
   function getCurrentValgstedName(){
@@ -1171,7 +1198,6 @@
         const disabledAttr = isAvailable ? "" : " disabled";
         const label = isAvailable ? k : `${k} (ingen data endnu)`;
 
-
         const classAttr = isAvailable ? "" : " text-gray-400";
         return `<option value="${k}"${disabledAttr} class="${classAttr}">${label}</option>`;
       }).join("");
@@ -1243,24 +1269,9 @@
       if(!map.has(id)) map.set(id, navn);
     }
 
-    // NY SORTERING: først efter nummer (1., 2., 3. ...), derefter alfabetisk
-    const entries = Array.from(map.entries()).sort((a, b) => {
-      const nameA = a[1];
-      const nameB = b[1];
-
-      const mA = nameA.match(/^(\d+)/);
-      const mB = nameB.match(/^(\d+)/);
-
-      if (mA && mB) {
-        const numA = parseInt(mA[1], 10);
-        const numB = parseInt(mB[1], 10);
-        if (numA !== numB) return numA - numB;
-        return nameA.localeCompare(nameB, 'da');
-      }
-      if (mA) return -1;   // navne med nummer først
-      if (mB) return 1;
-      return nameA.localeCompare(nameB, 'da');
-    });
+    const entries = Array.from(map.entries()).sort((a, b) =>
+      comparePollingNames(a[1], b[1])
+    );
 
     if(!entries.length){
       vsel.disabled = true;
@@ -1504,7 +1515,7 @@
     return { kommune, region: regionFinal };
   }
 
-    function renderOverview(){
+  function renderOverview(){
     const rows = getActiveRows();
     const totalValid = totalValidVotes(rows);
     const showCandidatePercent = !!state.kommune;
@@ -1843,7 +1854,8 @@
         </div>
         ${buttonHtml}
       </div>`;
-      if(!listestemmer){
+
+          if(!listestemmer){
         const btn = div.querySelector('button[data-add]');
         btn.onclick=()=>{
           if (state.selectedParties.size > 0) {
@@ -1856,8 +1868,13 @@
           updateTopButtonsForScope();
           renderOverview();
 
-          state.selected.set(k.kandidat_id,{kandidat_id:k.kandidat_id,kandidat_navn:k.kandidat_navn,parti:k.parti});
-          renderAll(); persistUrl(false);
+          state.selected.set(k.kandidat_id,{
+            kandidat_id:k.kandidat_id,
+            kandidat_navn:k.kandidat_navn,
+            parti:k.parti
+          });
+          renderAll();
+          persistUrl(false);
         };
       }
       return div;
@@ -1895,7 +1912,7 @@
       topSel.innerHTML =
         '<option value="">Vælg parti…</option>' +
         partier
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`) // FULDT NAVN
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
           .join("");
     }
 
@@ -1906,11 +1923,10 @@
         '<option value="">Tilføj parti…</option>' +
         partier
           .filter(p => !selected.has(p))
-          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`) // FULDT NAVN
+          .map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
           .join("");
     }
   }
-
 
   /* ===== Parti-sammenligning ===== */
   function getSelectedPartiesOrdered(){
@@ -2122,7 +2138,7 @@
         `);
 
         const valgsteder = Array.from(kom.valgsteder.values())
-          .sort((a, b) => a.name.localeCompare(b.name, "da"));
+          .sort((a, b) => comparePollingNames(a.name, b.name));
 
         valgsteder.forEach(vs => {
           const vsKey = `valgsted:${reg.name}:${kom.name}:${vs.key}`;
@@ -2206,13 +2222,16 @@
     el("compareSection").classList.toggle("hidden",!hasSel);
     el("tabsCard").classList.toggle("hidden",!hasSel);
   }
+
   function computeTotalsByCandidate(){
     const m=new Map();
     const rows = getActiveRows();
     for(const r of rows) m.set(r.kandidat_id,(m.get(r.kandidat_id)||0)+r.stemmer);
     return m;
   }
+
   function stemmerLabel(n){ return n===1 ? 'stemme' : 'stemmer'; }
+
   function renderSelected(){
     const root=el("selectedList"), totals=computeTotalsByCandidate(), sel=getSelectedOrdered();
     function letterForParti(parti){
@@ -2240,6 +2259,7 @@
     }).join("") || `<div class="text-sm text-gray-500">Ingen kandidater valgt endnu.</div>`;
     el("btnClearAll").disabled = sel.length===0;
   }
+
   window.removeCandidate = id => { state.selected.delete(id); renderAll(); persistUrl(false); };
   const getSelected = () => Array.from(state.selected.values()).filter(k=>!isListestemmer(k.kandidat_navn));
   const getSelectedOrdered = () => { const s=getSelected().slice(); s.sort(sortKandidaterAlpha); return s; };
@@ -2253,8 +2273,10 @@
       const ps=m.get(key);
       ps[r.kandidat_id]=(ps[r.kandidat_id]||0)+r.stemmer;
     }
-    return Array.from(m.values()).sort((a,b)=>a.navn.localeCompare(b.navn,'da'));
+    // Brug samme sorterlogik som i dropdown: tal først, derefter alfabetisk
+    return Array.from(m.values()).sort((a,b)=>comparePollingNames(a.navn, b.navn));
   }
+
   function renderPsTable(psList, sel){
     const thead=el("psThead"), tbody=el("psTbody"), tfoot=el("psTFoot");
     if(!sel.length){
